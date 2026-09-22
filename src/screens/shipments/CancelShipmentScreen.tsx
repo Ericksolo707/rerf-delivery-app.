@@ -12,17 +12,19 @@ import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 
-export const CancelShipmentScreen = ({ route, navigation }: any) => {
+import { RootStackScreenProps } from '../../types/navigation';
+
+export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'>> = ({ route, navigation }) => {
   const { cancelShipment } = useApp();
-  const initialCode = route.params?.shipmentId || '';
+  const initialCode: string = route.params?.shipmentId || '';
 
-  const [searchCode, setSearchCode] = useState(initialCode);
-  const [reason, setReason] = useState('');
-  const [error, setError] = useState('');
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [searchCode, setSearchCode] = useState<string>(initialCode);
+  const [reason, setReason] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
-  const handleTriggerCancel = () => {
+  const handleTriggerCancel = (): void => {
     if (!searchCode.trim()) {
       setError('Por favor ingresa el código o ID del envío.');
       return;
@@ -35,9 +37,9 @@ export const CancelShipmentScreen = ({ route, navigation }: any) => {
     setShowConfirmModal(true);
   };
 
-  const executeCancellation = () => {
+  const executeCancellation = async (): Promise<void> => {
     setShowConfirmModal(false);
-    cancelShipment(searchCode.trim(), reason);
+    await cancelShipment(searchCode.trim(), reason);
     setShowSuccessModal(true);
   };
 

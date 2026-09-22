@@ -11,8 +11,9 @@ import { Header } from '../../components/Header';
 import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
 import { PaymentMethod } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const ShipmentApprovalScreen = ({ route, navigation }: any) => {
+export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEnvio'>> = ({ route, navigation }) => {
   const shipment = route.params?.shipment || {
     tracking_number: 'RERF-98234-GT',
     recipient_name: 'María Fernández',

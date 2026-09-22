@@ -12,17 +12,19 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
 
-export const RegisterScreen = ({ navigation }: any) => {
-  const { register } = useApp();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+import { RootStackScreenProps } from '../../types/navigation';
 
-  const handleRegister = async () => {
+export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation }) => {
+  const { register } = useApp();
+  const [firstName, setFirstName] = useState<string>('');
+  const [lastName, setLastName] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+
+  const handleRegister = async (): Promise<void> => {
     if (!firstName || !lastName || !email || !password) {
       setError('Por favor llena todos los campos obligatorios.');
       return;
@@ -35,8 +37,9 @@ export const RegisterScreen = ({ navigation }: any) => {
     setLoading(true);
     try {
       await register(firstName, lastName, email, password);
-    } catch (e) {
-      setError('Error al crear la cuenta.');
+    } catch (error: unknown) {
+      const mensaje: string = error instanceof Error ? error.message : 'Error al crear la cuenta.';
+      setError(mensaje);
     } finally {
       setLoading(false);
     }

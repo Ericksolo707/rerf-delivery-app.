@@ -7,8 +7,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const ShipmentManagementScreen = ({ navigation }: any) => {
+export const ShipmentManagementScreen: React.FC<RootStackScreenProps<'GestionEnvio'>> = ({ navigation }) => {
   const actions = [
     {
       title: 'Realizar envío',

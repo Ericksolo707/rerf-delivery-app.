@@ -9,13 +9,24 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 
-export const MenuScreen = ({ navigation }: any) => {
-  const menuItems = [
+import { RootStackScreenProps } from '../../types/navigation';
+
+interface MenuItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  screen: 'Cotizador' | 'TrackingGPS' | 'Facturas' | 'DesglosePaquetes';
+}
+
+export const MenuScreen: React.FC<RootStackScreenProps<'Menu'>> = ({ navigation }) => {
+  const menuItems: MenuItem[] = [
     {
       id: 'cotizador',
       title: 'Cotizador de envío',
       subtitle: 'Calcula el costo por peso y tipo de material',
-      icon: 'calculator-outline' as const,
+      icon: 'calculator-outline',
       color: '#2563EB',
       screen: 'Cotizador',
     },
@@ -23,7 +34,7 @@ export const MenuScreen = ({ navigation }: any) => {
       id: 'llegada',
       title: 'Consultar llegada o estado',
       subtitle: 'Seguimiento por GPS y mapa en vivo',
-      icon: 'navigate-outline' as const,
+      icon: 'navigate-outline',
       color: '#10B981',
       screen: 'TrackingGPS',
     },
@@ -31,7 +42,7 @@ export const MenuScreen = ({ navigation }: any) => {
       id: 'facturas',
       title: 'Listado de facturas',
       subtitle: 'Consulta y descarga comprobantes de pago',
-      icon: 'document-text-outline' as const,
+      icon: 'document-text-outline',
       color: '#F59E0B',
       screen: 'Facturas',
     },
@@ -39,11 +50,28 @@ export const MenuScreen = ({ navigation }: any) => {
       id: 'todos_paquetes',
       title: 'Listado de todos los paquetes',
       subtitle: 'Histórico y desglose de todos los pedidos',
-      icon: 'cube-outline' as const,
+      icon: 'cube-outline',
       color: '#8B5CF6',
       screen: 'DesglosePaquetes',
     },
   ];
+
+  const handleNavigate = (screen: MenuItem['screen']): void => {
+    switch (screen) {
+      case 'Cotizador':
+        navigation.navigate('Cotizador');
+        break;
+      case 'TrackingGPS':
+        navigation.navigate('TrackingGPS');
+        break;
+      case 'Facturas':
+        navigation.navigate('Facturas');
+        break;
+      case 'DesglosePaquetes':
+        navigation.navigate('DesglosePaquetes');
+        break;
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -57,7 +85,7 @@ export const MenuScreen = ({ navigation }: any) => {
             <TouchableOpacity
               key={item.id}
               style={styles.card}
-              onPress={() => navigation.navigate(item.screen)}
+              onPress={() => handleNavigate(item.screen)}
               activeOpacity={0.7}
             >
               <View style={[styles.iconHolder, { backgroundColor: `${item.color}15` }]}>

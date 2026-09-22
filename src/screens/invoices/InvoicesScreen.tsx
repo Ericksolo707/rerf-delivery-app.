@@ -13,10 +13,12 @@ import { Input } from '../../components/Input';
 import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 import { Invoice } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
+import { mostrarAlerta } from '../../utils/alerts';
 
-export const InvoicesScreen = ({ navigation }: any) => {
+export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ navigation }) => {
   const { invoices } = useApp();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   const filtered = invoices.filter(inv =>
@@ -105,7 +107,7 @@ export const InvoicesScreen = ({ navigation }: any) => {
           cancelText="Cerrar"
           onConfirm={() => {
             setSelectedInvoice(null);
-            Alert.alert('Descarga simulada', 'Se ha guardado el comprobante en tu dispositivo.');
+            mostrarAlerta('Descarga simulada', 'Se ha guardado el comprobante en tu dispositivo.');
           }}
           onCancel={() => setSelectedInvoice(null)}
         />

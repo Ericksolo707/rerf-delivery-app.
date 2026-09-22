@@ -15,22 +15,24 @@ import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 
-export const CreateShipmentScreen = ({ navigation }: any) => {
+import { RootStackScreenProps } from '../../types/navigation';
+
+export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ navigation }) => {
   const { addShipment, warehouseItems } = useApp();
 
-  const [recipientName, setRecipientName] = useState('');
+  const [recipientName, setRecipientName] = useState<string>('');
   const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<string>('');
-  const [address, setAddress] = useState('');
-  const [references, setReferences] = useState('');
-  const [scheduledDate, setScheduledDate] = useState('2026-09-24');
-  const [description, setDescription] = useState('');
+  const [address, setAddress] = useState<string>('');
+  const [references, setReferences] = useState<string>('');
+  const [scheduledDate, setScheduledDate] = useState<string>('2026-09-24');
+  const [description, setDescription] = useState<string>('');
   const [packageType, setPackageType] = useState<'nuevo' | 'bodega'>('nuevo');
   
-  const [error, setError] = useState('');
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [createdShipmentId, setCreatedShipmentId] = useState<string>('');
 
-  const handleSubmit = () => {
+  const handleSubmit = (): void => {
     if (!recipientName || !address || !description) {
       setError('Por favor llena los campos obligatorios (*).');
       return;
@@ -39,14 +41,14 @@ export const CreateShipmentScreen = ({ navigation }: any) => {
     setShowConfirmModal(true);
   };
 
-  const handleConfirmAndProceed = () => {
+  const handleConfirmAndProceed = async (): Promise<void> => {
     setShowConfirmModal(false);
     
     // Generar nuevo envío
     const codeNumber = Math.floor(10000 + Math.random() * 90000);
     const tracking = `RERF-${codeNumber}-ENV`;
 
-    const newShip = addShipment({
+    const newShip = await addShipment({
       tracking_number: tracking,
       sender_id: 'usr-001',
       recipient_name: recipientName,

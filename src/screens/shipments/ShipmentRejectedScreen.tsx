@@ -8,8 +8,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { Button } from '../../components/Button';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const ShipmentRejectedScreen = ({ route, navigation }: any) => {
+export const ShipmentRejectedScreen: React.FC<RootStackScreenProps<'EnvioRechazado'>> = ({ route, navigation }) => {
   const rejectedData = route.params?.shipment || {
     tracking_number: 'RERF-33219-RJ',
     recipient_name: 'Roberto Paredes',

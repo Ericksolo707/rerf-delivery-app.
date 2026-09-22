@@ -10,8 +10,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const OrdersScreen = ({ navigation }: any) => {
+export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ navigation }) => {
   const { shipments } = useApp();
 
   const renderOrder = ({ item }: { item: Shipment }) => (

@@ -11,8 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const UsersListScreen = ({ navigation }: any) => {
+export const UsersListScreen: React.FC<RootStackScreenProps<'ListadoUsuarios'>> = ({ navigation }) => {
   const { users, toggleFavoriteUser } = useApp();
 
   const renderUser = ({ item }: { item: UserProfile }) => (

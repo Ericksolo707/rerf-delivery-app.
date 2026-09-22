@@ -13,14 +13,16 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
 
-export const LoginScreen = ({ navigation }: any) => {
-  const { login } = useApp();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+import { RootStackScreenProps } from '../../types/navigation';
 
-  const handleLogin = async () => {
+export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) => {
+  const { login } = useApp();
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+
+  const handleLogin = async (): Promise<void> => {
     if (!email || !password) {
       setError('Por favor completa todos los campos.');
       return;
@@ -29,8 +31,9 @@ export const LoginScreen = ({ navigation }: any) => {
     setLoading(true);
     try {
       await login(email, password);
-    } catch (e: any) {
-      setError('Credenciales inválidas.');
+    } catch (error: unknown) {
+      const mensaje: string = error instanceof Error ? error.message : 'Credenciales inválidas.';
+      setError(mensaje);
     } finally {
       setLoading(false);
     }

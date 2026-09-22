@@ -13,8 +13,9 @@ import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const UserProfileViewScreen = ({ route, navigation }: any) => {
+export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsuario'>> = ({ route, navigation }) => {
   const { toggleFavoriteUser, reportUser } = useApp();
   const targetUser: UserProfile = route.params?.user || {
     id: 'usr-002',

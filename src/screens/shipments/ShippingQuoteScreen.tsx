@@ -11,8 +11,9 @@ import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { MaterialType } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const ShippingQuoteScreen = ({ navigation }: any) => {
+export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = ({ navigation }) => {
   const [quantity, setQuantity] = useState('1');
   const [weightKg, setWeightKg] = useState('2.5');
   const [material, setMaterial] = useState<MaterialType>('fuerte');
