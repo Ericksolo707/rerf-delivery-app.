@@ -13,12 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { ChatMessage } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const SupportChatScreen = ({ route, navigation }: any) => {
+export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = ({ route, navigation }) => {
   const { supportMessages, sendSupportMessage, user } = useApp();
-  const contactName = route.params?.contact?.name || 'Moderación RERF';
+  const contactName: string = route.params?.contact?.name || 'Moderación RERF';
 
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState<string>('');
 
   const handleSend = () => {
     if (!inputText.trim()) return;

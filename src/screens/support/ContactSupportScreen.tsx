@@ -10,8 +10,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { MOCK_SUPPORT_CONTACTS } from '../../services/mockData';
+import { MainTabCompositeScreenProps } from '../../types/navigation';
 
-export const ContactSupportScreen = ({ navigation }: any) => {
+export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'ContactoTab'>> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Header title="Apartado de Contacto" rightIcon="help-circle-outline" />
@@ -40,7 +41,7 @@ export const ContactSupportScreen = ({ navigation }: any) => {
         <Text style={styles.sectionHeading}>Moderadores y Soporte en Línea</Text>
 
         <View style={styles.contactList}>
-          {MOCK_SUPPORT_CONTACTS.map(contact => (
+          {MOCK_SUPPORT_CONTACTS.map((contact: typeof MOCK_SUPPORT_CONTACTS[number]) => (
             <TouchableOpacity
               key={contact.id}
               style={styles.contactCard}

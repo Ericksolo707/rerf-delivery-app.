@@ -12,10 +12,11 @@ import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const UserSearchScreen = ({ navigation }: any) => {
+export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ navigation }) => {
   const { users } = useApp();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
 
   const favorites = users.filter(u => u.is_favorite);
   const suggested = users.filter(u => !u.is_favorite);

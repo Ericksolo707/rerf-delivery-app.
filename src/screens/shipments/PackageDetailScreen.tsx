@@ -10,11 +10,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
+import { Shipment } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const PackageDetailScreen = ({ route, navigation }: any) => {
+export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'>> = ({ route, navigation }) => {
   const { shipments } = useApp();
-  const shipmentId = route.params?.shipmentId;
-  const shipment = shipments.find(s => s.id === shipmentId || s.tracking_number === shipmentId) || shipments[0];
+  const shipmentId: string | undefined = route.params?.shipmentId;
+  const shipment: Shipment | undefined = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId) || shipments[0];
 
   const firstPackage = shipment?.packages?.[0];
 

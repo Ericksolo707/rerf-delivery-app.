@@ -12,10 +12,11 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
 import { WarehouseItem } from '../../types';
+import { MainTabCompositeScreenProps } from '../../types/navigation';
 
-export const WarehouseScreen = ({ navigation }: any) => {
+export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>> = ({ navigation }) => {
   const { warehouseItems } = useApp();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
 
   const filtered = warehouseItems.filter(item =>
     item.product_type.toLowerCase().includes(search.toLowerCase()) ||

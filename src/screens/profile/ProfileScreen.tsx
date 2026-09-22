@@ -15,18 +15,20 @@ import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 
-export const ProfileScreen = ({ navigation }: any) => {
+import { MainTabCompositeScreenProps } from '../../types/navigation';
+
+export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> = ({ navigation }) => {
   const { user, updateProfile, logout } = useApp();
 
-  const [phone, setPhone] = useState(user?.phone || '');
-  const [address, setAddress] = useState(user?.address || '');
-  const [references, setReferences] = useState(user?.address_references || '');
-  const [bio, setBio] = useState(user?.bio || '');
-  const [savedSuccess, setSavedSuccess] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [phone, setPhone] = useState<string>(user?.phone || '');
+  const [address, setAddress] = useState<string>(user?.address || '');
+  const [references, setReferences] = useState<string>(user?.address_references || '');
+  const [bio, setBio] = useState<string>(user?.bio || '');
+  const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
+  const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
 
-  const handleSave = () => {
-    updateProfile({
+  const handleSave = async (): Promise<void> => {
+    await updateProfile({
       phone,
       address,
       address_references: references,

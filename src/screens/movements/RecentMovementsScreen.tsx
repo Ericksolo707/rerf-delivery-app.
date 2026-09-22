@@ -10,8 +10,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const RecentMovementsScreen = ({ navigation }: any) => {
+export const RecentMovementsScreen: React.FC<RootStackScreenProps<'MovimientosRecientes'>> = ({ navigation }) => {
   const { shipments } = useApp();
 
   const renderMovement = ({ item }: { item: Shipment }) => {

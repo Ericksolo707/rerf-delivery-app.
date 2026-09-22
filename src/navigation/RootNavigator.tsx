@@ -1,16 +1,25 @@
+/**
+ * RootNavigator.tsx - Navegador Principal de la Aplicación
+ * Programación II - UMG
+ *
+ * Responsabilidad: Definir la pila de navegación de todas las pantallas,
+ * aplicando tipado estricto con RootStackParamList.
+ */
+
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { useApp } from '../context/AppContext';
+import { RootStackParamList } from '../types/navigation';
 
-// Auth Screens
+// Pantallas de Autenticación
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 
-// Main Tabs
+// Navegador de Pestañas Inferiores
 import { MainTabNavigator } from './MainTabNavigator';
 
-// Movements & Shipments Screens
+// Pantallas de Movimientos y Envíos
 import { RecentMovementsScreen } from '../screens/movements/RecentMovementsScreen';
 import { OrdersScreen } from '../screens/shipments/OrdersScreen';
 import { DeliveriesScreen } from '../screens/shipments/DeliveriesScreen';
@@ -24,26 +33,27 @@ import { TrackingGpsScreen } from '../screens/shipments/TrackingGpsScreen';
 import { PackagesOverviewScreen } from '../screens/shipments/PackagesOverviewScreen';
 import { PackageDetailScreen } from '../screens/shipments/PackageDetailScreen';
 
-// Warehouse Screens
+// Pantallas de Bodega Personal
 import { WarehouseRequestScreen } from '../screens/warehouse/WarehouseRequestScreen';
 
-// User Directory Screens
+// Pantallas de Directorio de Usuarios
 import { UserSearchScreen } from '../screens/users/UserSearchScreen';
 import { UsersListScreen } from '../screens/users/UsersListScreen';
 import { UserProfileViewScreen } from '../screens/users/UserProfileViewScreen';
 
-// Support & Invoices Screens
+// Pantallas de Soporte y Facturación
 import { SupportChatScreen } from '../screens/support/SupportChatScreen';
 import { AiChatScreen } from '../screens/support/AiChatScreen';
 import { InvoicesScreen } from '../screens/invoices/InvoicesScreen';
 
-// Home Modals & Menus
+// Pantallas de Notificaciones y Menú
 import { NotificationsScreen } from '../screens/home/NotificationsScreen';
 import { MenuScreen } from '../screens/home/MenuScreen';
 
-const Stack = createNativeStackNavigator();
+// Instanciación tipada del Stack Navigator
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export const RootNavigator = () => {
+export const RootNavigator: React.FC = () => {
   const { isAuthenticated } = useApp();
 
   return (
@@ -59,7 +69,7 @@ export const RootNavigator = () => {
           // Flujo Principal de la Aplicación
           <>
             <Stack.Screen name="Principal" component={MainTabNavigator} />
-            
+
             {/* Movimientos y Envíos */}
             <Stack.Screen name="MovimientosRecientes" component={RecentMovementsScreen} />
             <Stack.Screen name="Pedidos" component={OrdersScreen} />

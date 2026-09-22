@@ -12,9 +12,11 @@ import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { NotificationItem } from '../../types';
 
-export const NotificationsScreen = ({ navigation }: any) => {
+import { RootStackScreenProps } from '../../types/navigation';
+
+export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'>> = ({ navigation }) => {
   const { notifications, markNotificationRead } = useApp();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
 
   const filtered = notifications.filter(n =>
     n.title.toLowerCase().includes(search.toLowerCase()) ||

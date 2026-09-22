@@ -11,16 +11,19 @@ import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
+import { Shipment } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const TrackingGpsScreen = ({ route, navigation }: any) => {
+export const TrackingGpsScreen: React.FC<RootStackScreenProps<'TrackingGPS'>> = ({ route, navigation }) => {
   const { shipments } = useApp();
-  const initialShipment = route.params?.shipmentId 
-    ? shipments.find(s => s.id === route.params.shipmentId || s.tracking_number === route.params.shipmentId)
-    : shipments.find(s => s.status === 'en_camino') || shipments[0];
+  const trackingParam: string | undefined = route.params?.shipmentId;
+  const initialShipment: Shipment | undefined = trackingParam
+    ? shipments.find((s: Shipment) => s.id === trackingParam || s.tracking_number === trackingParam)
+    : shipments.find((s: Shipment) => s.status === 'en_camino') || shipments[0];
 
-  const [searchCode, setSearchCode] = useState(initialShipment?.tracking_number || 'RERF-98234-GT');
+  const [searchCode, setSearchCode] = useState<string>(initialShipment?.tracking_number || 'RERF-98234-GT');
 
-  const activeShip = shipments.find(s => 
+  const activeShip: Shipment | undefined = shipments.find((s: Shipment) => 
     s.tracking_number.toLowerCase().includes(searchCode.toLowerCase())
   ) || initialShipment;
 

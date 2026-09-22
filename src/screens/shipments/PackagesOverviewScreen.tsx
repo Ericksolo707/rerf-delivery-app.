@@ -11,10 +11,11 @@ import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const PackagesOverviewScreen = ({ navigation }: any) => {
+export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaquetes'>> = ({ navigation }) => {
   const { shipments } = useApp();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
 
   const filtered = shipments.filter(s =>
     s.tracking_number.toLowerCase().includes(search.toLowerCase()) ||

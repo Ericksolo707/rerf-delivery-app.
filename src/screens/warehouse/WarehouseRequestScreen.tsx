@@ -13,26 +13,27 @@ import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 import { MaterialType, PickupMethod } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const WarehouseRequestScreen = ({ navigation }: any) => {
+export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlmacenaje'>> = ({ navigation }) => {
   const { addWarehouseItem, user } = useApp();
 
-  const [productType, setProductType] = useState('');
-  const [description, setDescription] = useState('');
+  const [productType, setProductType] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
   const [material, setMaterial] = useState<MaterialType>('fuerte');
   const [pickupMethod, setPickupMethod] = useState<PickupMethod>('entrega_personal');
   
-  const [error, setError] = useState('');
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!productType.trim() || !description.trim()) {
       setError('Por favor llena los campos requeridos.');
       return;
     }
     setError('');
 
-    addWarehouseItem({
+    await addWarehouseItem({
       user_id: user?.id || 'usr-001',
       product_type: productType,
       description,

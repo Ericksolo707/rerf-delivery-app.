@@ -10,8 +10,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
+import { RootStackScreenProps } from '../../types/navigation';
 
-export const DeliveriesScreen = ({ navigation }: any) => {
+export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ navigation }) => {
   const { shipments } = useApp();
   const [activeTab, setActiveTab] = useState<'activas' | 'pendientes'>('activas');
 

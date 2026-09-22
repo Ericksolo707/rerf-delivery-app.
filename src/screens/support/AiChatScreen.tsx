@@ -13,10 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { ChatMessage } from '../../types';
+import { RootStackScreenProps, MainTabCompositeScreenProps } from '../../types/navigation';
 
-export const AiChatScreen = ({ navigation }: any) => {
+type AiChatScreenProps = Partial<RootStackScreenProps<'ChatIA'>> & Partial<MainTabCompositeScreenProps<'ChatTab'>>;
+
+export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
   const { aiMessages, sendAiMessage } = useApp();
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState<string>('');
 
   const handleSend = () => {
     if (!input.trim()) return;

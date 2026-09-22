@@ -1,15 +1,25 @@
+/**
+ * MainTabNavigator.tsx - Navegador Inferior de Pestañas
+ * Programación II - UMG
+ *
+ * Responsabilidad: Controlar las 5 pestañas principales de la app,
+ * con tipado formal de parámetros mediante MainTabParamList.
+ */
+
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { MainTabParamList } from '../types/navigation';
+
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { WarehouseScreen } from '../screens/warehouse/WarehouseScreen';
 import { ContactSupportScreen } from '../screens/support/ContactSupportScreen';
 import { AiChatScreen } from '../screens/support/AiChatScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
-export const MainTabNavigator = () => {
+export const MainTabNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -28,7 +38,7 @@ export const MainTabNavigator = () => {
           fontSize: 11,
           fontWeight: '700',
         },
-        tabBarIcon: ({ color, size, focused }) => {
+        tabBarIcon: ({ color, focused }: { color: string; size: number; focused: boolean }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
           if (route.name === 'InicioTab') {

@@ -11,7 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 
-export const HomeScreen = ({ navigation }: any) => {
+import { MainTabCompositeScreenProps } from '../../types/navigation';
+
+export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({ navigation }) => {
   const { user, shipments } = useApp();
   const recentShipments = shipments.slice(0, 3);
 
