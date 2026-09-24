@@ -14,6 +14,9 @@ import { useApp } from '../../context/AppContext';
 import { WarehouseItem } from '../../types';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
 
+import { ModuleBannerHeader } from '../../components/ModuleBannerHeader';
+import { RerfColors } from '../../constants/theme';
+
 export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>> = ({ navigation }) => {
   const { warehouseItems } = useApp();
   const [search, setSearch] = useState<string>('');
@@ -28,7 +31,7 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.codeBadge}>
-          <Ionicons name="barcode-outline" size={16} color="#2563EB" />
+          <Ionicons name="barcode-outline" size={16} color={RerfColors.logisticsBlue} />
           <Text style={styles.codeText}>{item.storage_code}</Text>
         </View>
 
@@ -53,7 +56,7 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
           <Ionicons 
             name={item.material === 'fragil' ? 'wine-outline' : 'shield-outline'} 
             size={14} 
-            color={item.material === 'fragil' ? '#DC2626' : '#2563EB'} 
+            color={item.material === 'fragil' ? '#DC2626' : RerfColors.logisticsBlue} 
           />
           <Text style={styles.tagText}>{item.material === 'fragil' ? 'Frágil' : 'Fuerte'}</Text>
         </View>
@@ -75,6 +78,14 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
   return (
     <View style={styles.container}>
       <Header title="Mi Bodega Personal" rightIcon="business-outline" />
+
+      {/* Banner Modular Oficial RerF */}
+      <ModuleBannerHeader
+        title="Mi Bodega Personal"
+        subtitle="Inventario físico y almacenamiento temporal en centros de distribución RerF."
+        iconName="business-outline"
+        accentColor={RerfColors.primaryYellow}
+      />
 
       <View style={styles.searchBar}>
         <Input
@@ -99,12 +110,12 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
         }
       />
 
-      {/* Floating Button "Solicitar Almacenaje" (Excalidraw Pantalla 19) */}
+      {/* Floating Button "Solicitar Almacenaje" */}
       <View style={styles.floatingAction}>
         <Button
           title="Solicitar Almacenaje"
-          variant="primary"
-          icon={<Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />}
+          variant="yellow"
+          icon={<Ionicons name="add-circle-outline" size={20} color={RerfColors.primaryYellowText} />}
           onPress={() => navigation.navigate('SolicitudAlmacenaje')}
         />
       </View>

@@ -1,3 +1,14 @@
+/**
+ * Button.tsx - Botón Corporativo RerF Logistics
+ * Programación II - UMG
+ *
+ * Responsabilidad: Botón interactivo con las variantes cromáticas de RerF:
+ * - yellow (o primary): Amarillo RerF con tipografía oscura en negrita.
+ * - blue: Azul logístico con tipografía blanca.
+ * - dark-outline: Contorno blanco/gris sobre fondos oscuros (Hero).
+ * - outline, danger, success.
+ */
+
 import React from 'react';
 import { 
   TouchableOpacity, 
@@ -6,13 +17,15 @@ import {
   ActivityIndicator, 
   StyleProp, 
   ViewStyle, 
-  TextStyle 
+  TextStyle,
+  View
 } from 'react-native';
+import { RerfColors } from '../constants/theme';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'success';
+  variant?: 'primary' | 'yellow' | 'blue' | 'secondary' | 'outline' | 'dark-outline' | 'danger' | 'success';
   loading?: boolean;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -23,35 +36,58 @@ interface ButtonProps {
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
-  variant = 'primary',
+  variant = 'yellow',
   loading = false,
   disabled = false,
   style,
   textStyle,
   icon,
 }) => {
-  const getBackgroundColor = () => {
+  const getBackgroundColor = (): string => {
     if (disabled) return '#CBD5E1';
     switch (variant) {
-      case 'primary': return '#2563EB';
-      case 'secondary': return '#F1F5F9';
-      case 'danger': return '#EF4444';
-      case 'success': return '#10B981';
-      case 'outline': return 'transparent';
-      default: return '#2563EB';
+      case 'primary':
+      case 'yellow':
+        return RerfColors.primaryYellow;
+      case 'blue':
+        return RerfColors.logisticsBlue;
+      case 'secondary':
+        return RerfColors.surfaceSubtle;
+      case 'danger':
+        return RerfColors.errorRed;
+      case 'success':
+        return RerfColors.successGreen;
+      case 'outline':
+      case 'dark-outline':
+        return 'transparent';
+      default:
+        return RerfColors.primaryYellow;
     }
   };
 
-  const getTextColor = () => {
+  const getTextColor = (): string => {
     if (disabled) return '#94A3B8';
     switch (variant) {
-      case 'secondary': return '#1E293B';
-      case 'outline': return '#2563EB';
-      default: return '#FFFFFF';
+      case 'primary':
+      case 'yellow':
+        return RerfColors.primaryYellowText;
+      case 'blue':
+      case 'danger':
+      case 'success':
+        return '#FFFFFF';
+      case 'secondary':
+        return RerfColors.textMain;
+      case 'outline':
+        return RerfColors.logisticsBlue;
+      case 'dark-outline':
+        return '#FFFFFF';
+      default:
+        return RerfColors.primaryYellowText;
     }
   };
 
   const isOutline = variant === 'outline';
+  const isDarkOutline = variant === 'dark-outline';
 
   return (
     <TouchableOpacity
@@ -59,6 +95,7 @@ export const Button: React.FC<ButtonProps> = ({
         styles.button,
         { backgroundColor: getBackgroundColor() },
         isOutline && styles.outlineBorder,
+        isDarkOutline && styles.darkOutlineBorder,
         style,
       ]}
       onPress={onPress}
@@ -68,12 +105,12 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator color={getTextColor()} size="small" />
       ) : (
-        <>
-          {icon}
+        <View style={styles.contentRow}>
+          {icon && <View style={styles.iconContainer}>{icon}</View>}
           <Text style={[styles.text, { color: getTextColor() }, textStyle]}>
             {title}
           </Text>
-        </>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -82,19 +119,30 @@ export const Button: React.FC<ButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     height: 48,
-    borderRadius: 12,
-    flexDirection: 'row',
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingHorizontal: 20,
+  },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconContainer: {
+    marginRight: 8,
+  },
+  text: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   outlineBorder: {
     borderWidth: 1.5,
-    borderColor: '#2563EB',
+    borderColor: RerfColors.logisticsBlue,
   },
-  text: {
-    fontSize: 15,
-    fontWeight: '700',
+  darkOutlineBorder: {
+    borderWidth: 1.5,
+    borderColor: '#475569',
   },
 });
