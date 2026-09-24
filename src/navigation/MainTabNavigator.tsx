@@ -10,6 +10,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { MainTabParamList } from '../types/navigation';
+import { RerfColors } from '../constants/theme';
 
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { WarehouseScreen } from '../screens/warehouse/WarehouseScreen';
@@ -30,9 +31,9 @@ export const MainTabNavigator: React.FC = () => {
           paddingTop: 8,
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
-          borderTopColor: '#E2E8F0',
+          borderTopColor: RerfColors.surfaceCardBorder,
         },
-        tabBarActiveTintColor: '#2563EB',
+        tabBarActiveTintColor: RerfColors.logisticsBlue,
         tabBarInactiveTintColor: '#94A3B8',
         tabBarLabelStyle: {
           fontSize: 11,

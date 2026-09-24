@@ -92,13 +92,13 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total a pagar:</Text>
-            <Text style={styles.totalVal}>${shipment.total_amount?.toFixed(2) || '120.00'}</Text>
+            <Text style={styles.totalVal}>Q {shipment.total_amount?.toFixed(2) || '120.00'}</Text>
           </View>
         </View>
 
         {/* Payment selector */}
         <View style={styles.card}>
-          <Text style={styles.cardHeaderTitle}>Seleccionar método de pago</Text>
+          <Text style={styles.cardHeaderTitle}>Confirmar método de pago</Text>
 
           <View style={styles.paymentList}>
             {paymentOptions.map(opt => (
@@ -135,8 +135,8 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
           </View>
 
           <Button
-            title="Confirmar y Finalizar"
-            variant="primary"
+            title="Confirmar y Finalizar Pedido"
+            variant="yellow"
             onPress={handleFinishPayment}
             style={styles.payBtn}
           />
@@ -146,15 +146,20 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
       {/* Success Modal */}
       <ModalDialog
         visible={showSuccessModal}
-        title="¡Pedido en Marcha!"
-        message="Tu orden ha quedado programada exitosamente. Puedes seguir su avance en el mapa satelital en cualquier momento."
+        title="¡Guía Generada Exitosamente!"
+        message={`Tu orden ${shipment.tracking_number || ''} ha sido registrada. Puedes seguir su avance en el mapa satelital.`}
         iconName="paper-plane-outline"
         iconColor="#10B981"
-        confirmText="Ir a Mis Pedidos"
-        singleButton={true}
-        onConfirm={() => {
+        confirmText="Rastrear Guía en GPS"
+        singleButton={false}
+        cancelText="Ir a Inicio"
+        onCancel={() => {
           setShowSuccessModal(false);
           navigation.navigate('Principal');
+        }}
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          navigation.navigate('TrackingGPS', { shipmentId: shipment.tracking_number });
         }}
       />
     </View>
