@@ -1,39 +1,89 @@
 /**
  * RepositorioBodega.ts - Repositorio de Almacenaje y Bodega Personal
- * Programación II - UMG
+ * Programación II - Sesiones 5, 6 y 7 UMG
  *
- * Responsabilidad: Gestión y persistencia en memoria de los paquetes en bodega.
- * Aísla la lógica de almacenamiento de la interfaz gráfica.
+ * Responsabilidad: Gestión y persistencia de artículos en bodega.
+ * - Sesión 5: Hereda de RepositorioBase implementando métodos polimórficos obligatorios.
+ * - Sesión 6: Aplica el patrón de diseño Singleton con constructor privado y getInstance().
+ * - Sesión 7: Integración con Supabase para operaciones CRUD con soporte en memoria fallback.
  */
 
 import { WarehouseItem } from '../types';
 import { MOCK_WAREHOUSE_ITEMS } from '../services/mockData';
+import { RepositorioBase } from './RepositorioBase';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
-export class RepositorioBodega {
+export class RepositorioBodega extends RepositorioBase<
+  WarehouseItem, 
+  Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>
+> {
+  public readonly nombreEntidad: string = 'warehouse_items';
+
+  // Referencia Singleton única en memoria (Sesión 6)
+  private static instancia: RepositorioBodega | null = null;
+
+  // Almacén en memoria de artículos en bodega
   private articulos: WarehouseItem[];
 
   /**
-   * Inicializa el repositorio con datos semilla de bodega
-   * @param semillas Arreglo inicial de artículos en bodega
+   * Constructor privado para restringir la instanciación directa (Patrón Singleton)
    */
-  constructor(semillas: WarehouseItem[] = MOCK_WAREHOUSE_ITEMS) {
+  private constructor(semillas: WarehouseItem[] = MOCK_WAREHOUSE_ITEMS) {
+    super();
     this.articulos = semillas.map((item) => ({ ...item }));
   }
 
   /**
+   * Punto de acceso global a la instancia única de Bodega (Sesión 6)
+   */
+  public static getInstance(): RepositorioBodega {
+    if (RepositorioBodega.instancia === null) {
+      RepositorioBodega.instancia = new RepositorioBodega();
+    }
+    return RepositorioBodega.instancia;
+  }
+
+  /**
    * Devuelve todos los artículos almacenados en bodega
-   * @returns Lista de artículos en bodega
    */
   public async listar(): Promise<WarehouseItem[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from(this.nombreEntidad)
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          return data as WarehouseItem[];
+        }
+      } catch (err) {
+        console.warn('[RepositorioBodega] Error consultando Supabase, usando memoria:', err);
+      }
+    }
     return [...this.articulos];
   }
 
   /**
    * Busca un artículo por su identificador o código de almacenamiento
-   * @param idOrCode Identificador único o código de almacenaje (ej. BDG-001)
-   * @returns Artículo encontrado o undefined
    */
   public async obtener(idOrCode: string): Promise<WarehouseItem | undefined> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from(this.nombreEntidad)
+          .select('*')
+          .or(`id.eq.${idOrCode},storage_code.eq.${idOrCode}`)
+          .single();
+
+        if (!error && data) {
+          return data as WarehouseItem;
+        }
+      } catch (err) {
+        console.warn('[RepositorioBodega] Fallback a memoria:', err);
+      }
+    }
+
     const encontrado = this.articulos.find(
       (item) => item.id === idOrCode || item.storage_code === idOrCode
     );
@@ -41,9 +91,16 @@ export class RepositorioBodega {
   }
 
   /**
+   * Implementación del método crear obligatorio de RepositorioBase
+   */
+  public async crear(
+    datos: Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>
+  ): Promise<WarehouseItem> {
+    return this.solicitarAlmacenaje(datos);
+  }
+
+  /**
    * Registra una nueva solicitud de almacenaje en bodega
-   * @param datos Información del artículo a almacenar
-   * @returns El artículo registrado con código asignado
    */
   public async solicitarAlmacenaje(
     datos: Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>
@@ -56,20 +113,55 @@ export class RepositorioBodega {
       created_at: new Date().toISOString(),
     };
 
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from(this.nombreEntidad)
+          .insert(nuevoArticulo)
+          .select()
+          .single();
+
+        if (!error && data) {
+          this.articulos = [data as WarehouseItem, ...this.articulos];
+          return data as WarehouseItem;
+        }
+      } catch (err) {
+        console.warn('[RepositorioBodega] Error insertando en Supabase:', err);
+      }
+    }
+
     this.articulos = [nuevoArticulo, ...this.articulos];
     return nuevoArticulo;
   }
 
   /**
    * Actualiza los datos de un artículo en bodega
-   * @param id Identificador del artículo
-   * @param datos Campos parciales a actualizar
-   * @returns Artículo actualizado o undefined
    */
   public async actualizar(
     id: string,
     datos: Partial<Omit<WarehouseItem, 'id'>>
   ): Promise<WarehouseItem | undefined> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from(this.nombreEntidad)
+          .update(datos)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (!error && data) {
+          const index = this.articulos.findIndex((item) => item.id === id);
+          if (index !== -1) {
+            this.articulos[index] = data as WarehouseItem;
+          }
+          return data as WarehouseItem;
+        }
+      } catch (err) {
+        console.warn('[RepositorioBodega] Error actualizando en Supabase:', err);
+      }
+    }
+
     const index = this.articulos.findIndex((item) => item.id === id);
     if (index === -1) {
       return undefined;
@@ -85,10 +177,24 @@ export class RepositorioBodega {
 
   /**
    * Elimina un artículo de la bodega
-   * @param id Identificador del artículo
-   * @returns true si se eliminó, false si no se encontró
    */
   public async eliminar(id: string): Promise<boolean> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from(this.nombreEntidad)
+          .delete()
+          .eq('id', id);
+
+        if (!error) {
+          this.articulos = this.articulos.filter((item) => item.id !== id);
+          return true;
+        }
+      } catch (err) {
+        console.warn('[RepositorioBodega] Error eliminando en Supabase:', err);
+      }
+    }
+
     const inicial = this.articulos.length;
     this.articulos = this.articulos.filter((item) => item.id !== id);
     return this.articulos.length < inicial;

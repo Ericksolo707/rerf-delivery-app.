@@ -1,22 +1,29 @@
 /**
  * RepositorioUsuarios.ts - Repositorio de Usuarios y Perfiles
- * Programación II - UMG
+ * Programación II - Sesiones 5, 6 y 7 UMG
  *
  * Responsabilidad: Gestión de usuarios, perfiles, búsqueda en el directorio
  * y acciones sobre perfiles (favoritos, reportes).
+ * Aplica el patrón Singleton (Sesión 6).
  */
 
 import { UserProfile } from '../types';
 import { INITIAL_USER, MOCK_USERS_DIRECTORY } from '../services/mockData';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
 export class RepositorioUsuarios {
+  public readonly nombreEntidad: string = 'users';
+
+  // Referencia Singleton única en memoria (Sesión 6)
+  private static instancia: RepositorioUsuarios | null = null;
+
   private usuarioActual: UserProfile;
   private directorio: UserProfile[];
 
   /**
-   * Inicializa el repositorio con el usuario actual y el directorio semilla
+   * Constructor privado para restringir instanciación externa (Patrón Singleton)
    */
-  constructor(
+  private constructor(
     usuarioInicial: UserProfile = INITIAL_USER,
     directorioInicial: UserProfile[] = MOCK_USERS_DIRECTORY
   ) {
@@ -25,38 +32,87 @@ export class RepositorioUsuarios {
   }
 
   /**
+   * Punto de acceso global a la instancia única de Usuarios (Sesión 6)
+   */
+  public static getInstance(): RepositorioUsuarios {
+    if (RepositorioUsuarios.instancia === null) {
+      RepositorioUsuarios.instancia = new RepositorioUsuarios();
+    }
+    return RepositorioUsuarios.instancia;
+  }
+
+  /**
    * Obtiene el perfil del usuario autenticado actualmente
-   * @returns Perfil de usuario actual
    */
   public async obtenerUsuarioActual(): Promise<UserProfile> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data, error } = await supabase
+            .from(this.nombreEntidad)
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (!error && data) {
+            this.usuarioActual = data as UserProfile;
+            return this.usuarioActual;
+          }
+        }
+      } catch (err) {
+        console.warn('[RepositorioUsuarios] Fallback a memoria para usuario actual:', err);
+      }
+    }
     return { ...this.usuarioActual };
   }
 
   /**
    * Actualiza los datos del perfil del usuario en sesión
-   * @param datos Campos a modificar del perfil
-   * @returns Perfil actualizado
    */
   public async actualizarPerfil(datos: Partial<UserProfile>): Promise<UserProfile> {
     this.usuarioActual = {
       ...this.usuarioActual,
       ...datos,
     };
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from(this.nombreEntidad)
+          .update(datos)
+          .eq('id', this.usuarioActual.id);
+      } catch (err) {
+        console.warn('[RepositorioUsuarios] Error actualizando perfil en Supabase:', err);
+      }
+    }
+
     return { ...this.usuarioActual };
   }
 
   /**
    * Lista todos los usuarios registrados en el directorio
-   * @returns Lista de perfiles de usuario
    */
   public async listarDirectorio(): Promise<UserProfile[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from(this.nombreEntidad)
+          .select('*')
+          .order('first_name');
+
+        if (!error && data && data.length > 0) {
+          return data as UserProfile[];
+        }
+      } catch (err) {
+        console.warn('[RepositorioUsuarios] Fallback a memoria para directorio:', err);
+      }
+    }
     return [...this.directorio];
   }
 
   /**
    * Busca usuarios por nombre, apellido, correo o teléfono
-   * @param termino Texto de búsqueda
-   * @returns Lista de perfiles coincidentes
    */
   public async buscar(termino: string): Promise<UserProfile[]> {
     const q: string = termino.toLowerCase().trim();
@@ -64,7 +120,8 @@ export class RepositorioUsuarios {
       return this.listarDirectorio();
     }
 
-    return this.directorio.filter((u) => {
+    const todos = await this.listarDirectorio();
+    return todos.filter((u) => {
       const nombreCompleto: string = `${u.first_name} ${u.last_name}`.toLowerCase();
       const correo: string = u.email.toLowerCase();
       const telefono: string = (u.phone || '').toLowerCase();
@@ -74,18 +131,15 @@ export class RepositorioUsuarios {
 
   /**
    * Obtiene un usuario específico por su ID
-   * @param id Identificador del usuario
-   * @returns Perfil encontrado o undefined
    */
   public async obtenerPorId(id: string): Promise<UserProfile | undefined> {
-    const encontrado = this.directorio.find((u) => u.id === id);
+    const todos = await this.listarDirectorio();
+    const encontrado = todos.find((u) => u.id === id);
     return encontrado ? { ...encontrado } : undefined;
   }
 
   /**
    * Alterna el estado de favorito de un usuario del directorio
-   * @param id Identificador del usuario
-   * @returns Perfil actualizado
    */
   public async alternarFavorito(id: string): Promise<UserProfile | undefined> {
     const index = this.directorio.findIndex((u) => u.id === id);
