@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
+import { Avatar } from '../../components/Avatar';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
@@ -35,9 +36,11 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
       onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
       activeOpacity={0.7}
     >
-      <Image 
-        source={{ uri: user.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80' }} 
-        style={styles.avatar} 
+      <Avatar 
+        firstName={user.first_name} 
+        lastName={user.last_name} 
+        role={user.role} 
+        size={46} 
       />
 
       <View style={styles.userInfo}>

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
+import { Avatar } from '../../components/Avatar';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
@@ -22,9 +23,11 @@ export const UsersListScreen: React.FC<RootStackScreenProps<'ListadoUsuarios'>> 
       onPress={() => navigation.navigate('VerPerfilUsuario', { user: item })}
       activeOpacity={0.7}
     >
-      <Image
-        source={{ uri: item.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80' }}
-        style={styles.avatar}
+      <Avatar
+        firstName={item.first_name}
+        lastName={item.last_name}
+        role={item.role}
+        size={46}
       />
 
       <View style={styles.info}>

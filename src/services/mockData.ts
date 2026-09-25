@@ -17,7 +17,7 @@ export const ADMIN_USER: UserProfile = {
   address_references: 'Torre Empresarial RerF, Nivel 4',
   bio: 'Administrador general del sistema de logística nacional RerF.',
   role: 'admin',
-  avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
+  avatar_url: '',
 };
 
 export const ERICK_USER: UserProfile = {
@@ -30,7 +30,7 @@ export const ERICK_USER: UserProfile = {
   address_references: 'Oficina Central',
   bio: 'Usuario registrado en RerF Logistics.',
   role: 'cliente',
-  avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+  avatar_url: '',
 };
 
 export const INITIAL_USER: UserProfile = {
@@ -43,7 +43,7 @@ export const INITIAL_USER: UserProfile = {
   address_references: 'Frente a Plaza Futeca, edificio gris',
   bio: 'Cliente frecuente de envíos nacionales y almacenaje en bodega.',
   role: 'cliente',
-  avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+  avatar_url: '',
 };
 
 export const MOCK_USERS_DIRECTORY: UserProfile[] = [
@@ -59,7 +59,7 @@ export const MOCK_USERS_DIRECTORY: UserProfile[] = [
     bio: 'Vendedora de artesanías y artículos para el hogar.',
     role: 'cliente',
     is_favorite: true,
-    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
+    avatar_url: '',
   },
   {
     id: 'usr-003',
@@ -72,7 +72,7 @@ export const MOCK_USERS_DIRECTORY: UserProfile[] = [
     bio: 'Distribuidor mayorista de electrónicos.',
     role: 'cliente',
     is_favorite: true,
-    avatar_url: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=200&q=80',
+    avatar_url: '',
   },
   {
     id: 'usr-004',
@@ -84,7 +84,7 @@ export const MOCK_USERS_DIRECTORY: UserProfile[] = [
     bio: 'Emprendedora de moda sustentable.',
     role: 'cliente',
     is_favorite: false,
-    avatar_url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=200&q=80',
+    avatar_url: '',
   },
   {
     id: 'usr-005',
@@ -96,7 +96,7 @@ export const MOCK_USERS_DIRECTORY: UserProfile[] = [
     bio: 'Envíos regulares de repuestos industriales.',
     role: 'cliente',
     is_favorite: false,
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    avatar_url: '',
   },
 ];
 
