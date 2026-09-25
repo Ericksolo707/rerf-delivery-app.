@@ -38,36 +38,55 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const { addShipment, warehouseItems } = useApp();
   const prefilled = route.params?.prefilledRecipient;
 
-  // 1. Origen (Recolección)
-  const [senderName, setSenderName] = useState<string>('Carlos Gómez');
-  const [senderPhone, setSenderPhone] = useState<string>('44332211');
-  const [pickupAddress, setPickupAddress] = useState<string>('Km 15 Ruta al Atlántico, Comercial El Frutal, Local 5');
-  const [pickupReferences, setPickupReferences] = useState<string>('A la par de la farmacia, portón gris de metal');
+  // 1. Origen (Recolección) - Campos limpios por defecto
+  const [senderName, setSenderName] = useState<string>('');
+  const [senderPhone, setSenderPhone] = useState<string>('');
+  const [pickupAddress, setPickupAddress] = useState<string>('');
+  const [pickupReferences, setPickupReferences] = useState<string>('');
 
-  // 2. Destino (Quién recibe)
-  const [recipientName, setRecipientName] = useState<string>(prefilled || 'Juan Pérez');
-  const [recipientPhone, setRecipientPhone] = useState<string>('55554444');
+  // 2. Destino (Quién recibe) - Campos limpios por defecto
+  const [recipientName, setRecipientName] = useState<string>(prefilled || '');
+  const [recipientPhone, setRecipientPhone] = useState<string>('');
 
   // 3. Destino Geográfico
   const [departamento, setDepartamento] = useState<string>('Guatemala');
   const [municipio, setMunicipio] = useState<string>('Ciudad de Guatemala');
-  const [deliveryAddress, setDeliveryAddress] = useState<string>('3ra Avenida 4-22 Zona 1');
-  const [deliveryReferences, setDeliveryReferences] = useState<string>('Frente a la tienda El Sol, portón de metal verde');
+  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
+  const [deliveryReferences, setDeliveryReferences] = useState<string>('');
 
   // 4. Paquete / Contenido
   const [contentType, setContentType] = useState<string>('Paquetería General');
-  const [weightLbs, setWeightLbs] = useState<string>('5');
+  const [weightLbs, setWeightLbs] = useState<string>('');
   const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<string>('');
 
   // 5. Pago y Facturación
   const [paymentForm, setPaymentForm] = useState<string>('Pago Contra Entrega (Efectivo)');
-  const [nit, setNit] = useState<string>('1234567-K');
-  const [billingInfo, setBillingInfo] = useState<string>('Consumidor Final');
+  const [nit, setNit] = useState<string>('');
+  const [billingInfo, setBillingInfo] = useState<string>('');
 
-  // Modales
+  // Modales y control de envío
   const [modalType, setModalType] = useState<'depto' | 'muni' | 'content' | 'payment' | null>(null);
   const [errorBanner, setErrorBanner] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Función auxiliar para evaluación rápida del docente
+  const handleFillDemoData = (): void => {
+    setSenderName('Carlos Gómez');
+    setSenderPhone('44332211');
+    setPickupAddress('Km 15 Ruta al Atlántico, Comercial El Frutal, Local 5');
+    setPickupReferences('A la par de la farmacia, portón gris de metal');
+    setRecipientName('Juan Pérez');
+    setRecipientPhone('55554444');
+    setDepartamento('Guatemala');
+    setMunicipio('Ciudad de Guatemala');
+    setDeliveryAddress('3ra Avenida 4-22 Zona 1');
+    setDeliveryReferences('Frente a la tienda El Sol, portón de metal verde');
+    setContentType('Paquetería General');
+    setWeightLbs('5');
+    setNit('1234567-K');
+    setBillingInfo('Consumidor Final');
+    setErrorBanner('');
+  };
 
   // Lista de municipios dependiente del departamento actual
   const currentMunicipios: string[] = MUNICIPIOS_POR_DEPARTAMENTO[departamento] || [
@@ -147,6 +166,18 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           iconName="cube-outline"
           accentColor={RerfColors.logisticsBlue}
         />
+
+        {/* Botón opcional para prueba rápida del catedrático */}
+        <View style={styles.demoFillRow}>
+          <TouchableOpacity 
+            style={styles.demoFillBtn} 
+            onPress={handleFillDemoData}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="flash-outline" size={14} color={RerfColors.logisticsBlue} />
+            <Text style={styles.demoFillText}>⚡ Rellenar datos de prueba para evaluación</Text>
+          </TouchableOpacity>
+        </View>
 
         {errorBanner ? (
           <View style={styles.errorAlert}>
@@ -539,6 +570,27 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
+  },
+  demoFillRow: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    alignItems: 'flex-end',
+  },
+  demoFillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: RerfColors.logisticsBlueLight,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: RerfColors.logisticsBlueBorder,
+  },
+  demoFillText: {
+    fontSize: 11,
+    color: RerfColors.logisticsBlue,
+    fontWeight: '700',
   },
   errorAlert: {
     flexDirection: 'row',

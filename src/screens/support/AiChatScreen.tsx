@@ -7,7 +7,8 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   TextInput, 
-  TouchableOpacity 
+  TouchableOpacity,
+  ScrollView 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -29,8 +30,11 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
 
   const quickPrompts = [
     '¿Cuál es el estado de mi envío?',
-    '¿Cuánto cuesta enviar un paquete frágil?',
+    '¿Cuánto cuesta un flete en Guatemala?',
+    '¿Cuál es la cobertura nacional?',
     '¿Cómo solicito espacio en bodega?',
+    'Protocolo para envíos frágiles',
+    'Opciones de pago y facturación SAT',
   ];
 
   const renderBubble = ({ item }: { item: ChatMessage }) => {
@@ -41,7 +45,7 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
         {isBot && (
           <View style={styles.botBadge}>
             <Ionicons name="sparkles" size={14} color="#7C3AED" />
-            <Text style={styles.botName}>Asistente Inteligente RERF</Text>
+            <Text style={styles.botName}>Asistente Inteligente RerF</Text>
           </View>
         )}
 
@@ -71,17 +75,20 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
         contentContainerStyle={styles.list}
       />
 
-      {/* Sugerencias Rápidas */}
+      {/* Sugerencias Rápidas con Scroll Horizontal */}
       <View style={styles.quickPromptsBar}>
-        {quickPrompts.map((prompt, i) => (
-          <TouchableOpacity 
-            key={i} 
-            style={styles.promptChip}
-            onPress={() => sendAiMessage(prompt)}
-          >
-            <Text style={styles.promptChipText}>{prompt}</Text>
-          </TouchableOpacity>
-        ))}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}>
+          {quickPrompts.map((prompt, i) => (
+            <TouchableOpacity 
+              key={i} 
+              style={styles.promptChip}
+              onPress={() => sendAiMessage(prompt)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.promptChipText}>{prompt}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Input bar */}
