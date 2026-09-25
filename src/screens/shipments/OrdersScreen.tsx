@@ -20,7 +20,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
       <View style={styles.cardContent}>
         <View style={styles.headerLine}>
           <Text style={styles.codeText}>{item.tracking_number}</Text>
-          <Text style={styles.priceText}>${item.total_amount.toFixed(2)}</Text>
+          <Text style={styles.priceText}>Q {item.total_amount.toFixed(2)}</Text>
         </View>
 
         <Text style={styles.recipientText}>Destinatario: {item.recipient_name}</Text>
@@ -61,7 +61,14 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={48} color="#94A3B8" />
-            <Text style={styles.emptyText}>No tienes pedidos registrados</Text>
+            <Text style={styles.emptyText}>No tienes pedidos registrados en tu cuenta</Text>
+            <TouchableOpacity 
+              style={styles.createBtn}
+              onPress={() => navigation.navigate('RealizarEnvio')}
+            >
+              <Ionicons name="add-circle-outline" size={18} color="#0B132B" />
+              <Text style={styles.createBtnText}>Crear Primer Envío</Text>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -152,5 +159,20 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#94A3B8',
+  },
+  createBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7C948',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+    marginTop: 8,
+  },
+  createBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0B132B',
   },
 });

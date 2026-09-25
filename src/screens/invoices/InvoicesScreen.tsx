@@ -55,7 +55,7 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
+        <Text style={styles.amount}>Q {item.amount.toFixed(2)}</Text>
         
         <TouchableOpacity
           style={styles.viewBtn}
@@ -100,7 +100,7 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
         <ModalDialog
           visible={Boolean(selectedInvoice)}
           title={`Factura ${selectedInvoice.invoice_number}`}
-          message={`Servicio: ${selectedInvoice.description}\nMonto Total: $${selectedInvoice.amount.toFixed(2)}\nFecha: ${selectedInvoice.issued_date}\nEstado: ${selectedInvoice.status.toUpperCase()}`}
+          message={`Servicio: ${selectedInvoice.description}\nMonto Total: Q ${selectedInvoice.amount.toFixed(2)}\nFecha: ${selectedInvoice.issued_date}\nEstado: ${selectedInvoice.status.toUpperCase()}`}
           iconName="document-text-outline"
           iconColor="#2563EB"
           confirmText="Descargar PDF"

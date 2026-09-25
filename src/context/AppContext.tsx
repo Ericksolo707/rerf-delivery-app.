@@ -70,9 +70,9 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Estados reactivos sincronizados con los repositorios
   const [user, setUser] = useState<UserProfile | null>(null);
-  // Por requerimiento expreso del usuario: la app arranca pidiendo inicio de sesión
+  // Requerimiento: Siempre arrancar en la pantalla de Iniciar Sesión sin auto-logueo
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [allShipments, setAllShipments] = useState<Shipment[]>([]);
   const [warehouseItems, setWarehouseItems] = useState<WarehouseItem[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -81,26 +81,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(MOCK_CHAT_MESSAGES);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>(MOCK_AI_MESSAGES);
 
+  // Filtrado de envíos: cada usuario solo ve sus propios movimientos. El Administrador ve todos.
+  const userShipments = React.useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'admin') return allShipments;
+    return allShipments.filter(s => s.sender_id === user.id);
+  }, [user, allShipments]);
+
+  // Filtrado de bodega: cada usuario solo ve sus propios artículos en bodega. El Administrador ve todos.
+  const userWarehouseItems = React.useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'admin') return warehouseItems;
+    return warehouseItems.filter(w => w.user_id === user.id);
+  }, [user, warehouseItems]);
+
+  // Filtrado de facturas: el Administrador ve todas, el usuario solo las de sus propios envíos
+  const userInvoices = React.useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'admin') return invoices;
+    const userShipmentIds = new Set(userShipments.map(s => s.id));
+    return invoices.filter(inv => inv.shipment_id && userShipmentIds.has(inv.shipment_id));
+  }, [user, invoices, userShipments]);
+
   // Inicialización de datos desde los repositorios al arrancar
   useEffect(() => {
     async function inicializarDatos(): Promise<void> {
       try {
         await repositorioUsuarios.inicializarPersistencia();
-        const sesionActiva = await repositorioUsuarios.obtenerSesionActiva();
         const listaEnvios = await repositorioEnvios.listar();
         const listaBodega = await repositorioBodega.listar();
         const listaFacturas = await repositorioFacturas.listar();
         const listaUsuarios = await repositorioUsuarios.listarDirectorio();
 
-        if (sesionActiva) {
-          setUser(sesionActiva);
-          setIsAuthenticated(true);
-        } else {
-          setUser(null);
-          setIsAuthenticated(false);
-        }
+        // Siempre requerir inicio de sesión manual
+        setUser(null);
+        setIsAuthenticated(false);
 
-        setShipments(listaEnvios);
+        setAllShipments(listaEnvios);
         setWarehouseItems(listaBodega);
         setInvoices(listaFacturas);
         setUsers(listaUsuarios);
@@ -158,8 +175,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addShipment = async (
     shipmentData: Omit<Shipment, 'id' | 'created_at'>
   ): Promise<Shipment> => {
-    const nuevoEnvio = await repositorioEnvios.crear(shipmentData);
-    setShipments(prev => [nuevoEnvio, ...prev]);
+    // Asociar el envío al usuario conectado actualmente
+    const dataWithUser = {
+      ...shipmentData,
+      sender_id: user?.id || 'usr-001',
+    };
+    const nuevoEnvio = await repositorioEnvios.crear(dataWithUser);
+    setAllShipments(prev => [nuevoEnvio, ...prev]);
     
     // Generar notificación de seguimiento
     const nuevaNotificacion: NotificationItem = {
@@ -177,7 +199,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const cancelShipment = async (shipmentId: string, reason: string): Promise<void> => {
     await repositorioEnvios.cancelar(shipmentId, reason);
-    setShipments(prev =>
+    setAllShipments(prev =>
       prev.map(s =>
         s.id === shipmentId || s.tracking_number === shipmentId
           ? { ...s, status: 'cancelado', cancellation_reason: reason }
@@ -189,7 +211,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addWarehouseItem = async (
     itemData: Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>
   ): Promise<WarehouseItem> => {
-    const nuevoArticulo = await repositorioBodega.solicitarAlmacenaje(itemData);
+    const itemWithUser = {
+      ...itemData,
+      user_id: user?.id || 'usr-001',
+    };
+    const nuevoArticulo = await repositorioBodega.solicitarAlmacenaje(itemWithUser);
     setWarehouseItems(prev => [nuevoArticulo, ...prev]);
     return nuevoArticulo;
   };
@@ -248,7 +274,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAiMessages(prev => [...prev, nuevoMensaje]);
 
     setTimeout(() => {
-      const respuestaBot = AiLogisticsService.generarRespuesta(text, shipments, user);
+      const respuestaBot = AiLogisticsService.generarRespuesta(text, userShipments, user);
 
       setAiMessages(prev => [
         ...prev,
@@ -273,14 +299,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         register,
         logout,
         updateProfile,
-        shipments,
+        shipments: userShipments,
         addShipment,
         cancelShipment,
-        warehouseItems,
+        warehouseItems: userWarehouseItems,
         addWarehouseItem,
         notifications,
         markNotificationRead,
-        invoices,
+        invoices: userInvoices,
         users,
         toggleFavoriteUser,
         reportUser,

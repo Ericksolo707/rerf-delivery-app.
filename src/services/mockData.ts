@@ -20,6 +20,19 @@ export const ADMIN_USER: UserProfile = {
   avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
 };
 
+export const ERICK_USER: UserProfile = {
+  id: 'usr-erick',
+  first_name: 'Erick',
+  last_name: 'Jimenez',
+  email: 'esolorzano@gmail.com',
+  phone: '+502 4433 2211',
+  address: 'Ciudad de Guatemala',
+  address_references: 'Oficina Central',
+  bio: 'Usuario registrado en RerF Logistics.',
+  role: 'cliente',
+  avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+};
+
 export const INITIAL_USER: UserProfile = {
   id: 'usr-001',
   first_name: 'Carlos',
@@ -34,6 +47,7 @@ export const INITIAL_USER: UserProfile = {
 };
 
 export const MOCK_USERS_DIRECTORY: UserProfile[] = [
+  { ...ERICK_USER },
   {
     id: 'usr-002',
     first_name: 'María',

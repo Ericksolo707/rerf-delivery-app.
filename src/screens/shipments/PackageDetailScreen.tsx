@@ -83,7 +83,7 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
           {/* Cost & Payment info */}
           <View style={styles.rowItem}>
             <Text style={styles.costTitle}>Costo Total:</Text>
-            <Text style={styles.costAmount}>${shipment?.total_amount.toFixed(2)}</Text>
+            <Text style={styles.costAmount}>Q {shipment?.total_amount.toFixed(2)}</Text>
           </View>
 
           <View style={styles.rowItem}>

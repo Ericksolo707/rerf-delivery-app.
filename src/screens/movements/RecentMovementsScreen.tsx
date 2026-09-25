@@ -40,7 +40,7 @@ export const RecentMovementsScreen: React.FC<RootStackScreenProps<'MovimientosRe
             </View>
             <Text style={styles.dateText}>{item.created_at}</Text>
           </View>
-          <Text style={styles.amountText}>${item.total_amount.toFixed(2)}</Text>
+          <Text style={styles.amountText}>Q {item.total_amount.toFixed(2)}</Text>
         </View>
 
         <View style={styles.cardBody}>

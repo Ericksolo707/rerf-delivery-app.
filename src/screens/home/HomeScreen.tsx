@@ -179,40 +179,57 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
             </TouchableOpacity>
           </View>
 
-          {recentShipments.map((shipment) => (
-            <TouchableOpacity 
-              key={shipment.id} 
-              style={styles.shipmentCard}
-              onPress={() => navigation.navigate('TrackingGPS', { shipmentId: shipment.tracking_number })}
-              activeOpacity={0.8}
-            >
-              <View style={styles.shipmentTop}>
-                <View style={styles.shipmentCodeRow}>
-                  <Ionicons name="barcode-outline" size={18} color={RerfColors.logisticsBlue} />
-                  <Text style={styles.shipmentTracking}>{shipment.tracking_number}</Text>
-                </View>
-                <View style={[
-                  styles.statusTag, 
-                  { backgroundColor: shipment.status === 'entregado' ? '#D1FAE5' : '#EFF6FF' }
-                ]}>
-                  <Text style={[
-                    styles.statusTagText,
-                    { color: shipment.status === 'entregado' ? '#065F46' : '#1E40AF' }
+          {recentShipments.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Ionicons name="cube-outline" size={40} color="#94A3B8" style={{ marginBottom: 8 }} />
+              <Text style={styles.emptyTitle}>Sin despachos registrados</Text>
+              <Text style={styles.emptySubtitle}>
+                No tienes guías asociadas a tu cuenta aún. Registra una nueva guía para comenzar el seguimiento.
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyActionButton}
+                onPress={() => navigation.navigate('RealizarEnvio')}
+              >
+                <Ionicons name="add-circle-outline" size={16} color="#0B132B" style={{ marginRight: 6 }} />
+                <Text style={styles.emptyActionText}>Crear Primer Envío</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            recentShipments.map((shipment) => (
+              <TouchableOpacity 
+                key={shipment.id} 
+                style={styles.shipmentCard}
+                onPress={() => navigation.navigate('TrackingGPS', { shipmentId: shipment.tracking_number })}
+                activeOpacity={0.8}
+              >
+                <View style={styles.shipmentTop}>
+                  <View style={styles.shipmentCodeRow}>
+                    <Ionicons name="barcode-outline" size={18} color={RerfColors.logisticsBlue} />
+                    <Text style={styles.shipmentTracking}>{shipment.tracking_number}</Text>
+                  </View>
+                  <View style={[
+                    styles.statusTag, 
+                    { backgroundColor: shipment.status === 'entregado' ? '#D1FAE5' : '#EFF6FF' }
                   ]}>
-                    {shipment.status.toUpperCase()}
-                  </Text>
+                    <Text style={[
+                      styles.statusTagText,
+                      { color: shipment.status === 'entregado' ? '#065F46' : '#1E40AF' }
+                    ]}>
+                      {shipment.status.toUpperCase()}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <Text style={styles.shipmentRecipient}>Destinatario: {shipment.recipient_name}</Text>
-              <Text style={styles.shipmentAddress} numberOfLines={1}>📍 {shipment.delivery_address}</Text>
+                <Text style={styles.shipmentRecipient}>Destinatario: {shipment.recipient_name}</Text>
+                <Text style={styles.shipmentAddress} numberOfLines={1}>📍 {shipment.delivery_address}</Text>
 
-              <View style={styles.shipmentFooter}>
-                <Text style={styles.shipmentDate}>Programado: {shipment.scheduled_date}</Text>
-                <Text style={styles.shipmentAmount}>Q {shipment.total_amount.toFixed(2)}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.shipmentFooter}>
+                  <Text style={styles.shipmentDate}>Programado: {shipment.scheduled_date}</Text>
+                  <Text style={styles.shipmentAmount}>Q {shipment.total_amount.toFixed(2)}</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -511,5 +528,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: RerfColors.textMain,
+  },
+  emptyCard: {
+    backgroundColor: RerfColors.surfaceCard,
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderStyle: 'dashed',
+    marginTop: 8,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: RerfColors.textMain,
+    marginBottom: 4,
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    color: RerfColors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+  },
+  emptyActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: RerfColors.primaryYellow,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  emptyActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0B132B',
   },
 });
