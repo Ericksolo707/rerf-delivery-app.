@@ -35,7 +35,7 @@ import {
 import { PaymentMethod } from '../../types';
 
 export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ route, navigation }) => {
-  const { addShipment, warehouseItems } = useApp();
+  const { addShipment, warehouseItems, user } = useApp();
   const prefilled = route.params?.prefilledRecipient;
 
   // 1. Origen (Recolección) - Campos limpios por defecto
@@ -126,7 +126,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
       const newShipment = await addShipment({
         tracking_number: trackingNumber,
-        sender_id: 'usr-001',
+        sender_id: user?.id || 'usr-001',
         recipient_name: recipientName,
         recipient_phone: recipientPhone,
         delivery_address: fullDeliveryAddress,

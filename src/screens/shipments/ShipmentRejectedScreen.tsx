@@ -56,7 +56,7 @@ export const ShipmentRejectedScreen: React.FC<RootStackScreenProps<'EnvioRechaza
 
           <View style={styles.infoRow}>
             <Text style={styles.label}>Importe asociado:</Text>
-            <Text style={styles.val}>${rejectedData.total_amount?.toFixed(2)}</Text>
+            <Text style={styles.val}>Q {rejectedData.total_amount?.toFixed(2)}</Text>
           </View>
         </View>
 

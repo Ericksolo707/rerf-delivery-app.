@@ -41,7 +41,7 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
       <Text style={styles.descText} numberOfLines={2}>{item.description}</Text>
 
       <View style={styles.cardFooter}>
-        <Text style={styles.price}>${item.total_amount.toFixed(2)}</Text>
+        <Text style={styles.price}>Q {item.total_amount.toFixed(2)}</Text>
         <View style={styles.viewDetailRow}>
           <Text style={styles.viewDetailText}>Ver Detalle Completo</Text>
           <Ionicons name="chevron-forward" size={16} color="#2563EB" />

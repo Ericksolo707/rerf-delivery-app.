@@ -9,7 +9,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile } from '../types';
-import { ADMIN_USER, INITIAL_USER, MOCK_USERS_DIRECTORY } from '../services/mockData';
+import { ADMIN_USER, ERICK_USER, INITIAL_USER, MOCK_USERS_DIRECTORY } from '../services/mockData';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
 const STORAGE_KEY_USERS = '@rerf_registered_users';
@@ -29,6 +29,7 @@ export class RepositorioUsuarios {
     'admin': 'admin',
     'admin123': 'admin123',
     'carlos.gomez@rerf.gt': '123456',
+    'esolorzano@gmail.com': 'admin2026',
   };
 
   /**
@@ -37,6 +38,7 @@ export class RepositorioUsuarios {
   private constructor() {
     this.directorio = [
       { ...ADMIN_USER },
+      { ...ERICK_USER },
       { ...INITIAL_USER },
       ...MOCK_USERS_DIRECTORY.map((u) => ({ ...u })),
     ];
