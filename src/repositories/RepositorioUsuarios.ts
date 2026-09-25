@@ -132,19 +132,6 @@ export class RepositorioUsuarios {
   }
 
   /**
-   * Obtiene la lista de cuentas y contraseñas registradas en el dispositivo
-   */
-  public async listarCredencialesRegistradas(): Promise<{ email: string; pass: string; user?: UserProfile }[]> {
-    await this.inicializarPersistencia();
-    return Object.entries(this.credenciales)
-      .filter(([email]) => email.includes('@'))
-      .map(([email, pass]) => {
-        const user = this.directorio.find((u) => u.email.toLowerCase() === email.toLowerCase());
-        return { email, pass, user };
-      });
-  }
-
-  /**
    * Registra un nuevo usuario en la app y lo persiste en AsyncStorage
    */
   public async registrarNuevoUsuario(

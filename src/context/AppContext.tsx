@@ -63,9 +63,6 @@ interface AppContextType {
   sendSupportMessage: (text: string) => void;
   aiMessages: ChatMessage[];
   sendAiMessage: (text: string) => void;
-  
-  // Utilidad para recuperar y verificar credenciales
-  getRegisteredAccounts: () => Promise<{ email: string; pass: string; user?: UserProfile }[]>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -267,10 +264,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 1000);
   };
 
-  const getRegisteredAccounts = async (): Promise<{ email: string; pass: string; user?: UserProfile }[]> => {
-    return await repositorioUsuarios.listarCredencialesRegistradas();
-  };
-
   return (
     <AppContext.Provider
       value={{
@@ -295,7 +288,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sendSupportMessage,
         aiMessages,
         sendAiMessage,
-        getRegisteredAccounts,
       }}
     >
       {children}

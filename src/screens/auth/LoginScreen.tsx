@@ -2,8 +2,7 @@
  * LoginScreen.tsx - Inicio de Sesión Corporativo RerF Logistics
  * Programación II - UMG / RerF Logistics
  *
- * Responsabilidad: Autenticación de usuarios, acceso directo para Administrador
- * y visor de credenciales/cuentas registradas en el dispositivo.
+ * Responsabilidad: Autenticación de usuarios y acceso directo para el Administrador base.
  */
 
 import React, { useState } from 'react';
@@ -14,9 +13,7 @@ import {
   TouchableOpacity, 
   KeyboardAvoidingView, 
   Platform, 
-  ScrollView,
-  Modal,
-  FlatList
+  ScrollView 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/Input';
@@ -24,18 +21,13 @@ import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
-import { UserProfile } from '../../types';
 
 export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) => {
-  const { login, getRegisteredAccounts } = useApp();
+  const { login } = useApp();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-
-  // Modal para ver cuentas y credenciales registradas
-  const [showAccountsModal, setShowAccountsModal] = useState<boolean>(false);
-  const [accountsList, setAccountsList] = useState<{ email: string; pass: string; user?: UserProfile }[]>([]);
 
   const handleLogin = async (): Promise<void> => {
     if (!email.trim() || !password.trim()) {
@@ -67,19 +59,6 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleOpenAccountsModal = async (): Promise<void> => {
-    const accs = await getRegisteredAccounts();
-    setAccountsList(accs);
-    setShowAccountsModal(true);
-  };
-
-  const handleSelectAccount = (accountEmail: string, accountPass: string): void => {
-    setEmail(accountEmail);
-    setPassword(accountPass);
-    setShowAccountsModal(false);
-    setError('');
   };
 
   return (
@@ -148,8 +127,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
 
           {/* Acceso Rápido para Pruebas del Catedrático / Administrador */}
           <View style={styles.adminQuickAccess}>
-            <Text style={styles.adminQuickTitle}>Accesos y Herramientas del Sistema:</Text>
-            
+            <Text style={styles.adminQuickTitle}>¿Acceso Evaluador / Docente?</Text>
             <TouchableOpacity
               style={styles.adminBtn}
               onPress={handleFastAdminLogin}
@@ -157,15 +135,6 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
             >
               <Ionicons name="shield-checkmark" size={18} color={RerfColors.logisticsBlue} />
               <Text style={styles.adminBtnText}>⚡ Ingresar como Administrador (admin@rerf.gt)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.inspectBtn}
-              onPress={handleOpenAccountsModal}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="key-outline" size={16} color={RerfColors.textSecondary} />
-              <Text style={styles.inspectBtnText}>🔑 Ver Cuentas y Contraseñas Registradas</Text>
             </TouchableOpacity>
           </View>
 
@@ -184,69 +153,6 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
           RerF Logistics Guatemala © 2026 • Programación II UMG
         </Text>
       </ScrollView>
-
-      {/* Modal de Visor de Credenciales Registradas */}
-      <Modal
-        visible={showAccountsModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowAccountsModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Cuentas y Credenciales Registradas</Text>
-                <Text style={styles.modalSubtitle}>Usuarios guardados en la memoria y base de datos local</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowAccountsModal(false)}>
-                <Ionicons name="close-circle" size={24} color={RerfColors.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={accountsList}
-              keyExtractor={(item) => item.email}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const isAdmin = item.email.includes('admin');
-                const fullName = item.user ? `${item.user.first_name} ${item.user.last_name}` : item.email;
-                return (
-                  <View style={styles.accountCard}>
-                    <View style={styles.accountTopRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.accountName}>{fullName}</Text>
-                        <Text style={styles.accountEmail}>📧 {item.email}</Text>
-                      </View>
-                      <View style={[styles.roleBadge, isAdmin ? styles.roleBadgeAdmin : styles.roleBadgeClient]}>
-                        <Text style={[styles.roleBadgeText, isAdmin ? styles.roleBadgeAdminText : styles.roleBadgeClientText]}>
-                          {isAdmin ? 'ADMIN' : 'CLIENTE'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.credRow}>
-                      <Text style={styles.credLabel}>Contraseña:</Text>
-                      <View style={styles.credBox}>
-                        <Text style={styles.credValue}>{item.pass}</Text>
-                      </View>
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.useAccountBtn}
-                      onPress={() => handleSelectAccount(item.email, item.pass)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="log-in-outline" size={16} color={RerfColors.logisticsBlue} />
-                      <Text style={styles.useAccountBtnText}>Usar estas credenciales</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -344,13 +250,12 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: RerfColors.surfaceCardBorder,
-    gap: 8,
   },
   adminQuickTitle: {
     fontSize: 11,
     color: RerfColors.textMuted,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 6,
   },
   adminBtn: {
     flexDirection: 'row',
@@ -368,23 +273,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: RerfColors.logisticsBlue,
-  },
-  inspectBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: RerfColors.surfaceSubtle,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-  },
-  inspectBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: RerfColors.textSecondary,
   },
   divider: {
     height: 1,
@@ -409,126 +297,5 @@ const styles = StyleSheet.create({
     marginTop: 24,
     fontSize: 11,
     color: RerfColors.textMuted,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    maxHeight: '75%',
-    padding: 18,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: RerfColors.surfaceCardBorder,
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: RerfColors.textMain,
-  },
-  modalSubtitle: {
-    fontSize: 11,
-    color: RerfColors.textMuted,
-    marginTop: 2,
-  },
-  accountCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    padding: 12,
-    marginBottom: 10,
-  },
-  accountTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  accountName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: RerfColors.textMain,
-  },
-  accountEmail: {
-    fontSize: 12,
-    color: RerfColors.textSecondary,
-    marginTop: 2,
-  },
-  roleBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  roleBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  roleBadgeAdmin: {
-    backgroundColor: '#FEF3C7',
-  },
-  roleBadgeAdminText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#B45309',
-  },
-  roleBadgeClient: {
-    backgroundColor: RerfColors.logisticsBlueLight,
-  },
-  roleBadgeClientText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: RerfColors.logisticsBlue,
-  },
-  credRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  credLabel: {
-    fontSize: 11,
-    color: RerfColors.textMuted,
-    fontWeight: '600',
-  },
-  credBox: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  credValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: RerfColors.textMain,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-  useAccountBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: RerfColors.logisticsBlueBorder,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  useAccountBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: RerfColors.logisticsBlue,
   },
 });
