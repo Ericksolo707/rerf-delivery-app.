@@ -30,6 +30,7 @@ export class RepositorioUsuarios {
     'admin123': 'admin123',
     'carlos.gomez@rerf.gt': '123456',
     'esolorzano@gmail.com': 'admin2026',
+    '26025370': '26025370',
   };
 
   /**
@@ -106,6 +107,7 @@ export class RepositorioUsuarios {
         'esolorzano@gmail.com': 'admin2026',
         'esolorzano': 'admin2026',
         'erick': 'admin2026',
+        '26025370': '26025370',
         'carlos.gomez@rerf.gt': '123456',
         'carlos': '123456',
       };
@@ -143,18 +145,30 @@ export class RepositorioUsuarios {
       }
     }
 
-    // 2. Caso directo Erick Jimenez
+    // 2. Caso directo Erick Jimenez (admite correo, usuario, carné/código 26025370 o clave 26025370 / admin2026)
     if (
       cleanInput === 'esolorzano@gmail.com' ||
       cleanInput === 'esolorzano' ||
       cleanInput === 'erick' ||
-      cleanInput === 'erick jimenez'
+      cleanInput === 'erick jimenez' ||
+      cleanInput === '26025370'
     ) {
-      if (cleanPass === 'admin2026' || cleanPass.length >= 4) {
+      if (
+        cleanPass === '26025370' ||
+        cleanPass === 'admin2026' ||
+        cleanPass.length >= 4
+      ) {
         this.usuarioActual = { ...ERICK_USER };
         await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
         return { ...this.usuarioActual };
       }
+    }
+
+    // 2.1 Si la clave ingresada es 26025370 con cualquier usuario
+    if (cleanPass === '26025370') {
+      this.usuarioActual = { ...ERICK_USER };
+      await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
+      return { ...this.usuarioActual };
     }
 
     // 3. Verificar en contraseñas registradas

@@ -25,10 +25,10 @@ export const ERICK_USER: UserProfile = {
   first_name: 'Erick',
   last_name: 'Jimenez',
   email: 'esolorzano@gmail.com',
-  phone: '+502 4433 2211',
+  phone: '26025370',
   address: 'Ciudad de Guatemala',
   address_references: 'Oficina Central',
-  bio: 'Usuario registrado en RerF Logistics.',
+  bio: 'Usuario registrado en RerF Logistics. ID: 26025370.',
   role: 'cliente',
   avatar_url: '',
 };
