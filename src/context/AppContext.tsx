@@ -28,6 +28,8 @@ import {
   MOCK_AI_MESSAGES 
 } from '../services/mockData';
 
+import { AiLogisticsService } from '../services/aiLogisticsService';
+
 interface AppContextType {
   // Autenticación y Perfil
   user: UserProfile | null;
@@ -68,7 +70,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Estados reactivos sincronizados con los repositorios
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  // Por requerimiento expreso del usuario: la app arranca pidiendo inicio de sesión
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [warehouseItems, setWarehouseItems] = useState<WarehouseItem[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -82,13 +85,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     async function inicializarDatos(): Promise<void> {
       try {
-        const usuarioInicial = await repositorioUsuarios.obtenerUsuarioActual();
+        await repositorioUsuarios.inicializarPersistencia();
+        const sesionActiva = await repositorioUsuarios.obtenerSesionActiva();
         const listaEnvios = await repositorioEnvios.listar();
         const listaBodega = await repositorioBodega.listar();
         const listaFacturas = await repositorioFacturas.listar();
         const listaUsuarios = await repositorioUsuarios.listarDirectorio();
 
-        setUser(usuarioInicial);
+        if (sesionActiva) {
+          setUser(sesionActiva);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+
         setShipments(listaEnvios);
         setWarehouseItems(listaBodega);
         setInvoices(listaFacturas);
@@ -101,9 +112,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     inicializarDatos();
   }, []);
 
-  const login = async (email: string, _pass: string): Promise<boolean> => {
-    const usuarioActualizado = await repositorioUsuarios.actualizarPerfil({ email });
-    setUser(usuarioActualizado);
+  const login = async (email: string, pass: string): Promise<boolean> => {
+    const usuarioValido = await repositorioUsuarios.validarCredenciales(email, pass);
+    if (!usuarioValido) {
+      throw new Error('Credenciales incorrectas. Verifique su correo y contraseña.');
+    }
+    setUser(usuarioValido);
     setIsAuthenticated(true);
     return true;
   };
@@ -112,20 +126,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     firstName: string, 
     lastName: string, 
     email: string, 
-    _pass: string
+    pass: string
   ): Promise<boolean> => {
-    const nuevoPerfil: Partial<UserProfile> = {
-      first_name: firstName,
-      last_name: lastName,
-      email,
-    };
-    const usuarioActualizado = await repositorioUsuarios.actualizarPerfil(nuevoPerfil);
-    setUser(usuarioActualizado);
+    const nuevoUsuario = await repositorioUsuarios.registrarNuevoUsuario(
+      {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        role: 'cliente',
+        address: 'Ciudad de Guatemala',
+        bio: 'Usuario registrado en RerF Logistics',
+      },
+      pass
+    );
+    setUser(nuevoUsuario);
     setIsAuthenticated(true);
     return true;
   };
 
-  const logout = (): void => {
+  const logout = async (): Promise<void> => {
+    await repositorioUsuarios.cerrarSesion();
     setUser(null);
     setIsAuthenticated(false);
   };
@@ -228,16 +248,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAiMessages(prev => [...prev, nuevoMensaje]);
 
     setTimeout(() => {
-      let respuestaBot: string = `Entendido. He analizado tu solicitud sobre "${text}". Puedes gestionar envíos o consultar el estado de tu bodega directamente en el menú.`;
-      const textoMin: string = text.toLowerCase();
-
-      if (textoMin.includes('envio') || textoMin.includes('envío') || textoMin.includes('paquete')) {
-        respuestaBot = 'Tienes 1 envío en camino (RERF-98234-GT) y 1 pedido pendiente. ¿Deseas ver el mapa GPS o cotizar un nuevo paquete?';
-      } else if (textoMin.includes('bodega') || textoMin.includes('almacen')) {
-        respuestaBot = 'Tienes artículos registrados en Bodega Personal. Puedes revisar tu inventario en la pestaña Mi Bodega.';
-      } else if (textoMin.includes('precio') || textoMin.includes('cotizar') || textoMin.includes('costo')) {
-        respuestaBot = 'El costo base de envío es de $35.00 + $15.00 por cada kg adicional. Para materiales frágiles se añade un seguro del 10%.';
-      }
+      const respuestaBot = AiLogisticsService.generarRespuesta(text, shipments, user);
 
       setAiMessages(prev => [
         ...prev,

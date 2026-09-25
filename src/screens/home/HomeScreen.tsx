@@ -183,7 +183,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
             <TouchableOpacity 
               key={shipment.id} 
               style={styles.shipmentCard}
-              onPress={() => navigation.navigate('DetallePaquete', { shipmentId: shipment.id })}
+              onPress={() => navigation.navigate('TrackingGPS', { shipmentId: shipment.tracking_number })}
               activeOpacity={0.8}
             >
               <View style={styles.shipmentTop}>

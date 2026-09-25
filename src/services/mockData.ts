@@ -7,15 +7,28 @@ import {
   ChatMessage 
 } from '../types';
 
+export const ADMIN_USER: UserProfile = {
+  id: 'usr-admin',
+  first_name: 'Administrador',
+  last_name: 'RerF',
+  email: 'admin@rerf.gt',
+  phone: '+502 2345 6789',
+  address: 'Oficinas Centrales RerF Logistics, Zona 10, Ciudad de Guatemala',
+  address_references: 'Torre Empresarial RerF, Nivel 4',
+  bio: 'Administrador general del sistema de logística nacional RerF.',
+  role: 'admin',
+  avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
+};
+
 export const INITIAL_USER: UserProfile = {
   id: 'usr-001',
   first_name: 'Carlos',
   last_name: 'Gómez',
-  email: 'carlos.gomez@rerf.com',
-  phone: '+52 55 1234 5678',
-  address: 'Av. Las Rosas #452, Col. Del Valle',
-  address_references: 'Frente al parque, portón blanco',
-  bio: 'Cliente frecuente de envíos locales y almacenaje.',
+  email: 'carlos.gomez@rerf.gt',
+  phone: '+502 5512 3456',
+  address: '10ma Calle 4-22 Zona 14, Ciudad de Guatemala',
+  address_references: 'Frente a Plaza Futeca, edificio gris',
+  bio: 'Cliente frecuente de envíos nacionales y almacenaje en bodega.',
   role: 'cliente',
   avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
 };
@@ -305,9 +318,9 @@ export const MOCK_AI_MESSAGES: ChatMessage[] = [
   {
     id: 'ai-1',
     sender_id: 'bot-rerf',
-    sender_name: 'Asistente IA RERF',
-    message: 'Tu último envío fue para María #1 donde la entrada espacial a las 11am el día de hoy. ¿Deseas cotizar un nuevo envío o consultar el estado de tu bodega?',
-    created_at: '10:30 AM',
+    sender_name: 'Asistente IA RerF',
+    message: '¡Hola! Soy tu Asistente Logístico Inteligente de RerF Logistics Guatemala. 🇬🇹📦\n\nPuedo ayudarte a consultar el estado de tus guías en tiempo real, calcular tarifas y fletes en Quetzales, revisar coberturas departamentales o gestionar tu inventario en bodega. ¿En qué te puedo colaborar hoy?',
+    created_at: '08:00 AM',
     is_bot: true,
   },
 ];

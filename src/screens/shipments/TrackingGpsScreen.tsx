@@ -28,10 +28,10 @@ export const TrackingGpsScreen: React.FC<RootStackScreenProps<'TrackingGPS'>> = 
   const { shipments } = useApp();
   const trackingParam: string | undefined = route.params?.shipmentId;
 
-  // Si viene un parámetro inicial, o si hay un envío activo
+  // Si viene un parámetro inicial explícito por ruta
   const initialShipment: Shipment | undefined = trackingParam
     ? shipments.find((s: Shipment) => s.id === trackingParam || s.tracking_number.toLowerCase() === trackingParam.toLowerCase())
-    : shipments[0];
+    : undefined;
 
   const [inputCode, setInputCode] = useState<string>(initialShipment?.tracking_number || '');
   const [searchedShipment, setSearchedShipment] = useState<Shipment | null>(initialShipment || null);
