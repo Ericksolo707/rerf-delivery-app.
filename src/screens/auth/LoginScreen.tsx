@@ -63,11 +63,11 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
 
   const handleFastErickLogin = async (): Promise<void> => {
     setEmail('esolorzano@gmail.com');
-    setPassword('admin2026');
+    setPassword('26025370');
     setError('');
     setLoading(true);
     try {
-      await login('esolorzano@gmail.com', 'admin2026');
+      await login('esolorzano@gmail.com', '26025370');
     } catch (err: unknown) {
       const msg: string = err instanceof Error ? err.message : 'Error al autenticar usuario.';
       setError(msg);
