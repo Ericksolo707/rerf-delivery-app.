@@ -13,6 +13,7 @@ import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
+import { Avatar } from '../../components/Avatar';
 import { useApp } from '../../context/AppContext';
 
 import { MainTabCompositeScreenProps } from '../../types/navigation';
@@ -47,16 +48,15 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Profile Card / Photo */}
+        {/* Profile Card / Generic Avatar */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarWrapper}>
-            <Image 
-              source={{ uri: user?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80' }} 
-              style={styles.avatar} 
+            <Avatar 
+              firstName={user?.first_name} 
+              lastName={user?.last_name} 
+              role={user?.role} 
+              size={88} 
             />
-            <TouchableOpacity style={styles.cameraBtn}>
-              <Ionicons name="camera" size={16} color="#FFFFFF" />
-            </TouchableOpacity>
           </View>
 
           <Text style={styles.userName}>{user?.first_name} {user?.last_name}</Text>

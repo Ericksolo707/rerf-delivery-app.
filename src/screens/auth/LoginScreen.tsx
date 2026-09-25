@@ -61,6 +61,21 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
     }
   };
 
+  const handleFastErickLogin = async (): Promise<void> => {
+    setEmail('esolorzano@gmail.com');
+    setPassword('admin2026');
+    setError('');
+    setLoading(true);
+    try {
+      await login('esolorzano@gmail.com', 'admin2026');
+    } catch (err: unknown) {
+      const msg: string = err instanceof Error ? err.message : 'Error al autenticar usuario.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
@@ -125,9 +140,9 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
             style={styles.submitBtn}
           />
 
-          {/* Acceso Rápido para Pruebas del Catedrático / Administrador */}
+          {/* Accesos Rápidos de Prueba y Evaluación */}
           <View style={styles.adminQuickAccess}>
-            <Text style={styles.adminQuickTitle}>¿Acceso Evaluador / Docente?</Text>
+            <Text style={styles.adminQuickTitle}>Accesos Rápidos Directos:</Text>
             <TouchableOpacity
               style={styles.adminBtn}
               onPress={handleFastAdminLogin}
@@ -135,6 +150,17 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
             >
               <Ionicons name="shield-checkmark" size={18} color={RerfColors.logisticsBlue} />
               <Text style={styles.adminBtnText}>⚡ Ingresar como Administrador (admin@rerf.gt)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.adminBtn, { marginTop: 8, borderColor: '#10B981', backgroundColor: '#ECFDF5' }]}
+              onPress={handleFastErickLogin}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="person-circle" size={18} color="#059669" />
+              <Text style={[styles.adminBtnText, { color: '#047857' }]}>
+                ⚡ Ingresar con Erick Jimenez (esolorzano@gmail.com)
+              </Text>
             </TouchableOpacity>
           </View>
 

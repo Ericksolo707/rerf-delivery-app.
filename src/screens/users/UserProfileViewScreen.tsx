@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
+import { Avatar } from '../../components/Avatar';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
@@ -52,9 +53,11 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
         {/* User Card */}
         <View style={styles.card}>
           <View style={styles.avatarContainer}>
-            <Image
-              source={{ uri: targetUser.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80' }}
-              style={styles.avatar}
+            <Avatar
+              firstName={targetUser.first_name}
+              lastName={targetUser.last_name}
+              role={targetUser.role}
+              size={90}
             />
             {isFav && (
               <View style={styles.favBadge}>
