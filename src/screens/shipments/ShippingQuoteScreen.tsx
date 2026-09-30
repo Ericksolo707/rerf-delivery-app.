@@ -208,7 +208,8 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
 
           {/* Botón CTA Amarillo Corporativo */}
           <Button
-            title="⚙️ Calcular y Guardar Cotización"
+            title="Calcular y Guardar Cotización"
+            icon={<Ionicons name="calculator-outline" size={18} color={RerfColors.primaryYellowText} />}
             variant="yellow"
             onPress={handleCalculate}
             style={styles.calcButton}
@@ -236,7 +237,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
             <View style={styles.receiptContainer}>
               <View style={styles.routePill}>
                 <Text style={styles.routePillText}>
-                  {projection.origen} ➔ {projection.destino}
+                  {projection.origen} a {projection.destino}
                 </Text>
               </View>
 
@@ -270,7 +271,8 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
               </View>
 
               <Button
-                title="📄 Registrar Envío con esta Cotización"
+                title="Registrar Envío con esta Cotización"
+                icon={<Ionicons name="document-text-outline" size={18} color="#FFFFFF" />}
                 variant="blue"
                 onPress={() => navigation.navigate('RealizarEnvio')}
                 style={styles.proceedButton}

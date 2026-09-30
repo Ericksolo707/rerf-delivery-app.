@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MainTabParamList } from '../types/navigation';
 import { RerfColors } from '../constants/theme';
@@ -21,14 +22,17 @@ import { ProfileScreen } from '../screens/profile/ProfileScreen';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export const MainTabNavigator: React.FC = () => {
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom > 0 ? insets.bottom : 8;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 56 + bottomInset,
+          paddingBottom: bottomInset,
+          paddingTop: 6,
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: RerfColors.surfaceCardBorder,

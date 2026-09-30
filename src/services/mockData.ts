@@ -333,7 +333,7 @@ export const MOCK_AI_MESSAGES: ChatMessage[] = [
     id: 'ai-1',
     sender_id: 'bot-rerf',
     sender_name: 'Asistente IA RerF',
-    message: '¡Hola! Soy tu Asistente Logístico Inteligente de RerF Logistics Guatemala. 🇬🇹📦\n\nPuedo ayudarte a consultar el estado de tus guías en tiempo real, calcular tarifas y fletes en Quetzales, revisar coberturas departamentales o gestionar tu inventario en bodega. ¿En qué te puedo colaborar hoy?',
+    message: '¡Hola! Soy tu Asistente Logístico Inteligente de RerF Logistics Guatemala.\n\nPuedo ayudarte a consultar el estado de tus guías en tiempo real, calcular tarifas y fletes en Quetzales, revisar coberturas departamentales o gestionar tu inventario en bodega. ¿En qué te puedo colaborar hoy?',
     created_at: '08:00 AM',
     is_bot: true,
   },

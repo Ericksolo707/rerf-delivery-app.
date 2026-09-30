@@ -167,15 +167,15 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           accentColor={RerfColors.logisticsBlue}
         />
 
-        {/* Botón opcional para prueba rápida del catedrático */}
+        {/* Botón opcional para prueba rápida */}
         <View style={styles.demoFillRow}>
           <TouchableOpacity 
             style={styles.demoFillBtn} 
             onPress={handleFillDemoData}
             activeOpacity={0.7}
           >
-            <Ionicons name="flash-outline" size={14} color={RerfColors.logisticsBlue} />
-            <Text style={styles.demoFillText}>⚡ Rellenar datos de prueba para evaluación</Text>
+            <Ionicons name="document-text-outline" size={14} color={RerfColors.logisticsBlue} />
+            <Text style={styles.demoFillText}>Rellenar datos de prueba</Text>
           </TouchableOpacity>
         </View>
 
@@ -388,7 +388,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
                     }}
                   >
                     <Text style={[styles.warehouseChipText, selectedWarehouseItem === item.id && styles.warehouseChipTextActive]}>
-                      📦 {item.product_type} ({item.storage_code})
+                      {item.product_type} ({item.storage_code})
                     </Text>
                   </TouchableOpacity>
                 ))}

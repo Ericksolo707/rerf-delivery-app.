@@ -31,26 +31,26 @@ export class AiLogisticsService {
 
       if (envioEncontrado) {
         const estadoDesc = 
-          envioEncontrado.status === 'entregado' ? '✅ Entregado con éxito' :
-          envioEncontrado.status === 'en_camino' ? '🚚 En Camino (Piloto en ruta)' :
-          envioEncontrado.status === 'aprobado' ? '📦 Aprobado y en preparación de despacho' :
-          envioEncontrado.status === 'pendiente' ? '⏳ Pendiente de recolección' :
-          '❌ ' + envioEncontrado.status.toUpperCase();
+          envioEncontrado.status === 'entregado' ? '[ENTREGADO] Entregado con éxito' :
+          envioEncontrado.status === 'en_camino' ? '[EN RUTA] En Camino (Piloto en ruta)' :
+          envioEncontrado.status === 'aprobado' ? '[APROBADO] Aprobado y en preparación de despacho' :
+          envioEncontrado.status === 'pendiente' ? '[PENDIENTE] Pendiente de recolección' :
+          '[' + envioEncontrado.status.toUpperCase() + ']';
 
         return (
-          `🔍 **Reporte de Rastreo para ${envioEncontrado.tracking_number}**\n\n` +
-          `• **Estado actual:** ${estadoDesc}\n` +
-          `• **Destinatario:** ${envioEncontrado.recipient_name}\n` +
-          `• **Destino:** ${envioEncontrado.delivery_address}\n` +
-          `• **Contenido:** ${envioEncontrado.description}\n` +
-          `• **Total:** Q ${envioEncontrado.total_amount.toFixed(2)}\n` +
-          `• **Piloto Asignado:** ${envioEncontrado.agent_name || 'Unidad de reparto #14'}\n\n` +
-          `💡 Puedes pulsar en **Rastrear Guía** en el menú para ver la ubicación satelital en tiempo real.`
+          `**Reporte de Rastreo para ${envioEncontrado.tracking_number}**\n\n` +
+          `• Estado actual: ${estadoDesc}\n` +
+          `• Destinatario: ${envioEncontrado.recipient_name}\n` +
+          `• Destino: ${envioEncontrado.delivery_address}\n` +
+          `• Contenido: ${envioEncontrado.description}\n` +
+          `• Total: Q ${envioEncontrado.total_amount.toFixed(2)}\n` +
+          `• Piloto Asignado: ${envioEncontrado.agent_name || 'Unidad de reparto #14'}\n\n` +
+          `Nota: Puedes pulsar en "Rastrear Guía" en el menú para ver la ubicación satelital en tiempo real.`
         );
       } else {
         return (
-          `⚠️ No encontré ninguna guía activa con el código **${codigoBuscado}** en el sistema.\n\n` +
-          `Por favor verifica que esté bien escrito o revisa tus envíos registrados en la sección **Inicio > Envíos Recientes**.`
+          `No se encontró ninguna guía activa con el código **${codigoBuscado}** en el sistema.\n\n` +
+          `Por favor verifica que esté bien escrito o revisa tus envíos registrados en la sección de inicio.`
         );
       }
     }
@@ -68,7 +68,7 @@ export class AiLogisticsService {
       if (enviosActuales.length === 0) {
         return (
           `Hola ${nombreUsuario}, actualmente no tienes ninguna guía registrada en el sistema.\n\n` +
-          `Puedes generar tu primera guía pulsando en el botón amarillo **+ Nuevo Envío** en la pantalla de inicio.`
+          `Puedes generar tu primera guía pulsando en el botón "+ Nuevo Envío" en la pantalla de inicio.`
         );
       }
 
@@ -79,10 +79,10 @@ export class AiLogisticsService {
         .join('\n');
 
       return (
-        `📦 **Tus envíos más recientes en RerF Logistics:**\n\n` +
+        `**Tus envíos más recientes en RerF Logistics:**\n\n` +
         `${listaEnvios}\n\n` +
         `El envío principal **${primerEnvio.tracking_number}** se dirige a **${primerEnvio.recipient_name}**.\n` +
-        `¿Deseas rastrear una guía en específico? Solo indícame su número o pulsa en **Rastrear Guía**.`
+        `¿Deseas rastrear una guía en específico? Solo indícame su número o pulsa en "Rastrear Guía".`
       );
     }
 
@@ -98,7 +98,7 @@ export class AiLogisticsService {
       q.includes('calcular')
     ) {
       return (
-        `💰 **Estructura Tarifaria Oficial RerF Logistics Guatemala:**\n\n` +
+        `**Estructura Tarifaria Oficial RerF Logistics Guatemala:**\n\n` +
         `• **Flete Base Nacional:** Q 25.00 (Incluye recolección y entrega hasta 1 Libra).\n` +
         `• **Tarifa por Peso Extra:** Q 3.50 por cada Libra adicional.\n` +
         `• **Recargos Departamentales:**\n` +
@@ -107,8 +107,8 @@ export class AiLogisticsService {
         `  - Chimaltenango / Escuintla: +Q 10.00 a Q 15.00\n` +
         `  - Occidente (Quetzaltenango, Sololá): +Q 20.00 a Q 25.00\n` +
         `  - Norte (Petén, Izabal): +Q 35.00 a Q 45.00\n` +
-        `• **Seguro de Mercancía:** 1.5% sobre valor declarado para protección total contra pérdidas.\n\n` +
-        `💡 Puedes proyectar el costo exacto en segundos desde el módulo **Calculadora de Tarifas**.`
+        `• **Seguro de Mercancía:** 1.5% sobre valor declarado para protección contra pérdidas.\n\n` +
+        `Puedes proyectar el costo exacto en segundos desde el módulo "Calculadora de Tarifas".`
       );
     }
 
@@ -123,14 +123,14 @@ export class AiLogisticsService {
       q.includes('departamentos')
     ) {
       return (
-        `🗺️ **Cobertura Nacional de RerF Logistics:**\n\n` +
+        `**Cobertura Nacional de RerF Logistics:**\n\n` +
         `Cubrimos los **22 departamentos de Guatemala** y más de 300 municipios con servicio puerta a puerta:\n\n` +
         `• **Zona Central:** Guatemala, Sacatepéquez, Chimaltenango.\n` +
         `• **Zona Occidente:** Quetzaltenango, Sololá, Totonicapán, San Marcos, Huehuetenango, Quiché.\n` +
         `• **Zona Sur:** Escuintla, Suchitepéquez, Retalhuleu, Santa Rosa.\n` +
         `• **Zona Oriente:** El Progreso, Zacapa, Chiquimula, Jalapa, Jutiapa.\n` +
         `• **Zona Norte:** Alta Verapaz, Baja Verapaz, Izabal y Petén.\n\n` +
-        `Nuestros camiones y motoristas salen diariamente desde los Centros de Distribución Centrales.`
+        `Nuestros transportes salen diariamente desde los Centros de Distribución Centrales.`
       );
     }
 
@@ -145,7 +145,7 @@ export class AiLogisticsService {
       q.includes('plazo')
     ) {
       return (
-        `⏱️ **Tiempos Estimados de Entrega Puerta a Puerta:**\n\n` +
+        `**Tiempos Estimados de Entrega Puerta a Puerta:**\n\n` +
         `• **Área Metropolitana (Ciudad de Guatemala, Mixco, Villa Nueva):** Mismo día si se recolecta antes de las 11:00 AM, o 24 horas hábiles.\n` +
         `• **Departamentos Cercanos (Antigua Guatemala, Escuintla, Chimaltenango):** 24 horas hábiles.\n` +
         `• **Cabeceras Departamentales del Interior:** 24 a 48 horas hábiles.\n` +
@@ -165,7 +165,7 @@ export class AiLogisticsService {
       q.includes('cuidado')
     ) {
       return (
-        `🛡️ **Protocolo de Envíos Frágiles y Embalaje Seguro:**\n\n` +
+        `**Protocolo de Envíos Frágiles y Embalaje Seguro:**\n\n` +
         `1. **Protección interna:** Utiliza al menos 3 capas de plástico de burbujas en artículos de vidrio, cerámica o electrónica.\n` +
         `2. **Caja rígida:** Evita bolsas flexibles para artículos quebradizos. Utiliza cajas de cartón corrugado.\n` +
         `3. **Relleno:** No dejes espacios vacíos; rellena con papel Kraft o maní de embalaje.\n` +
@@ -186,7 +186,7 @@ export class AiLogisticsService {
       q.includes('sat')
     ) {
       return (
-        `💳 **Opciones de Pago y Facturación Electrónica:**\n\n` +
+        `**Opciones de Pago y Facturación Electrónica:**\n\n` +
         `• **Pago Contra Entrega (Efectivo):** El destinatario cancela en efectivo al recibir el paquete.\n` +
         `• **Transferencia Bancaria:** Aceptamos transferencias inmediatas vía Banco Industrial (BI), BAM, Banrural y G&T Continental.\n` +
         `• **Tarjetas de Débito / Crédito:** Visa y MasterCard mediante pasarela segura.\n` +
@@ -204,7 +204,7 @@ export class AiLogisticsService {
       q.includes('stock')
     ) {
       return (
-        `🏢 **Módulo Mi Bodega Personal:**\n\n` +
+        `**Módulo Mi Bodega Personal:**\n\n` +
         `En RerF Logistics ofrecemos micro-almacenaje en nuestros hubs logísticos:\n\n` +
         `• **¿Cómo funciona?** Ingresas a la pestaña **Mi Bodega** y seleccionas **Solicitar Almacenaje**.\n` +
         `• Un piloto puede recoger tu mercancía o puedes entregarla en punto de acopio.\n` +
@@ -223,7 +223,7 @@ export class AiLogisticsService {
       q.includes('horario')
     ) {
       return (
-        `📞 **Canales de Atención y Soporte RerF Logistics:**\n\n` +
+        `**Canales de Atención y Soporte RerF Logistics:**\n\n` +
         `• **PBX Central:** +502 2345 6789\n` +
         `• **Horario de Operaciones:** Lunes a Sábado de 7:00 AM a 6:00 PM.\n` +
         `• **Chat con Piloto:** Puedes enviar mensajes directos al piloto asignado desde la ficha de cada envío en el mapa GPS.\n` +
@@ -242,13 +242,13 @@ export class AiLogisticsService {
       q.includes('ayuda')
     ) {
       return (
-        `👋 ¡Hola ${nombreUsuario}! Soy el Asistente Logístico Inteligente de **RerF Logistics**.\n\n` +
+        `¡Hola ${nombreUsuario}! Soy el Asistente Logístico Inteligente de **RerF Logistics**.\n\n` +
         `¿En qué puedo apoyarte hoy?\n\n` +
-        `• 🔍 **Rastrear paquetes** (escribe el código o pregunta por tus envíos).\n` +
-        `• 💰 **Consultar tarifas y recargos** en Quetzales.\n` +
-        `• 🗺️ **Rutas y cobertura** en los 22 departamentos.\n` +
-        `• 🏢 **Gestión de Mi Bodega Personal** y solicitudes de almacenaje.\n` +
-        `• 🛡️ **Consejos de empaque y envíos frágiles**.`
+        `• **Rastrear paquetes** (escribe el código o pregunta por tus envíos).\n` +
+        `• **Consultar tarifas y recargos** en Quetzales.\n` +
+        `• **Rutas y cobertura** en los 22 departamentos.\n` +
+        `• **Gestión de Mi Bodega Personal** y solicitudes de almacenaje.\n` +
+        `• **Consejos de empaque y envíos frágiles**.`
       );
     }
 

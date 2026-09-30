@@ -15,6 +15,7 @@ import {
   Platform, 
   ScrollView 
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
@@ -23,6 +24,7 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const { login } = useApp();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -46,42 +48,21 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
     }
   };
 
-  const handleFastAdminLogin = async (): Promise<void> => {
-    setEmail('admin@rerf.gt');
-    setPassword('admin');
-    setError('');
-    setLoading(true);
-    try {
-      await login('admin@rerf.gt', 'admin');
-    } catch (err: unknown) {
-      const msg: string = err instanceof Error ? err.message : 'Error al autenticar administrador.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFastErickLogin = async (): Promise<void> => {
-    setEmail('esolorzano@gmail.com');
-    setPassword('26025370');
-    setError('');
-    setLoading(true);
-    try {
-      await login('esolorzano@gmail.com', '26025370');
-    } catch (err: unknown) {
-      const msg: string = err instanceof Error ? err.message : 'Error al autenticar usuario.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={[
+          styles.scrollContent, 
+          { 
+            paddingTop: Math.max(insets.top + 20, 44),
+            paddingBottom: Math.max(insets.bottom + 20, 32)
+          }
+        ]} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* Cabecera Corporativa RerF */}
         <View style={styles.brandHero}>
           <View style={styles.logoPill}>
@@ -97,7 +78,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
         <View style={styles.formCard}>
           <Text style={styles.cardHeaderTitle}>Iniciar Sesión</Text>
           <Text style={styles.cardHeaderSubtitle}>
-            Ingrese sus credenciales registradas para acceder a la plataforma.
+            Ingrese su correo electrónico y contraseña para acceder a la plataforma.
           </Text>
 
           {error ? (
@@ -108,8 +89,8 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
           ) : null}
 
           <Input
-            label="Usuario o Correo Electrónico"
-            placeholder="ej. admin@rerf.gt o tu correo"
+            label="Correo Electrónico"
+            placeholder="ejemplo@correo.com"
             value={email}
             onChangeText={(val) => {
               setEmail(val);
@@ -117,7 +98,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
             }}
             autoCapitalize="none"
             keyboardType="email-address"
-            leftIcon={<Ionicons name="person-outline" size={18} color={RerfColors.textMuted} />}
+            leftIcon={<Ionicons name="mail-outline" size={18} color={RerfColors.textMuted} />}
           />
 
           <Input
@@ -140,37 +121,17 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
             style={styles.submitBtn}
           />
 
-          {/* Accesos Rápidos de Prueba y Evaluación */}
-          <View style={styles.adminQuickAccess}>
-            <Text style={styles.adminQuickTitle}>Accesos Rápidos Directos:</Text>
-            <TouchableOpacity
-              style={styles.adminBtn}
-              onPress={handleFastAdminLogin}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="shield-checkmark" size={18} color={RerfColors.logisticsBlue} />
-              <Text style={styles.adminBtnText}>⚡ Ingresar como Administrador (admin@rerf.gt)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.adminBtn, { marginTop: 8, borderColor: '#10B981', backgroundColor: '#ECFDF5' }]}
-              onPress={handleFastErickLogin}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="person-circle" size={18} color="#059669" />
-              <Text style={[styles.adminBtnText, { color: '#047857' }]}>
-                ⚡ Ingresar con Erick Jimenez (esolorzano@gmail.com)
-              </Text>
-            </TouchableOpacity>
-          </View>
-
           <View style={styles.divider} />
 
           {/* Enlace para registrar nueva cuenta */}
           <View style={styles.registerPrompt}>
             <Text style={styles.promptText}>¿No tienes una cuenta aún?</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerLink}>Registrar nuevo usuario ➔</Text>
+            <TouchableOpacity 
+              style={styles.registerLinkBtn}
+              onPress={() => navigation.navigate('Register')}
+            >
+              <Text style={styles.registerLink}>Registrar nuevo usuario</Text>
+              <Ionicons name="arrow-forward" size={15} color={RerfColors.logisticsBlue} style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
         </View>
@@ -271,35 +232,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 6,
   },
-  adminQuickAccess: {
-    marginTop: 18,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: RerfColors.surfaceCardBorder,
-  },
-  adminQuickTitle: {
-    fontSize: 11,
-    color: RerfColors.textMuted,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  adminBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: RerfColors.logisticsBlueLight,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: RerfColors.logisticsBlueBorder,
-  },
-  adminBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: RerfColors.logisticsBlue,
-  },
   divider: {
     height: 1,
     backgroundColor: RerfColors.surfaceCardBorder,
@@ -312,6 +244,11 @@ const styles = StyleSheet.create({
   promptText: {
     fontSize: 12,
     color: RerfColors.textSecondary,
+  },
+  registerLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
   },
   registerLink: {
     fontSize: 13,

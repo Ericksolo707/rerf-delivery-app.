@@ -7,7 +7,8 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -33,7 +34,13 @@ export const Header: React.FC<HeaderProps> = ({
   showNotification = false,
   isDark = false,
 }) => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0
+  );
 
   const textColor = isDark ? '#FFFFFF' : RerfColors.textMain;
   const iconColor = isDark ? '#FFFFFF' : RerfColors.textMain;
@@ -41,7 +48,17 @@ export const Header: React.FC<HeaderProps> = ({
   const borderColor = isDark ? RerfColors.heroDarkBorder : RerfColors.surfaceCardBorder;
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor, borderBottomColor: borderColor }]}>
+    <View 
+      style={[
+        styles.container, 
+        { 
+          backgroundColor: bgColor, 
+          borderBottomColor: borderColor,
+          paddingTop: topInset,
+          height: 56 + topInset,
+        }
+      ]}
+    >
       <View style={styles.leftContainer}>
         {showBack ? (
           <TouchableOpacity 

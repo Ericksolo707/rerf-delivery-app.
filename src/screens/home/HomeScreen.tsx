@@ -38,7 +38,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* HERO BANNER OSCURO (Idéntico a la Web de RerF Logistics) */}
+        {/* HERO BANNER OSCURO */}
         <View style={styles.heroContainer}>
           <View style={styles.badgeRow}>
             <View style={styles.yellowBadge}>
@@ -52,14 +52,13 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
                 Distribución Inteligente a Nivel Nacional
               </Text>
               <Text style={styles.heroSubtitle}>
-                Bienvenido al portal operativo de RerF Logistics. Gestione guías de despacho, 
-                cotice tarifas comerciales y rastree flujos de transporte en tiempo real.
+                Gestione guías de despacho, cotice tarifas comerciales y rastree flujos de transporte en tiempo real.
               </Text>
             </View>
 
-            {/* Ilustración de Camión de Carga RerF */}
+            {/* Ilustración de Transporte RerF */}
             <View style={styles.truckIllustrationBox}>
-              <Ionicons name="bus-outline" size={54} color={RerfColors.primaryYellow} />
+              <Ionicons name="bus-outline" size={36} color={RerfColors.primaryYellow} />
             </View>
           </View>
 
@@ -70,7 +69,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               onPress={() => navigation.navigate('RealizarEnvio')}
               activeOpacity={0.85}
             >
-              <Ionicons name="add-circle" size={18} color={RerfColors.primaryYellowText} />
+              <Ionicons name="add-circle" size={17} color={RerfColors.primaryYellowText} />
               <Text style={styles.heroYellowButtonText}>Nuevo Envío</Text>
             </TouchableOpacity>
 
@@ -93,72 +92,72 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
           </Text>
         </View>
 
-        {/* GRID DE MÓDULOS (Imagen 1) */}
+        {/* LISTADO DE MÓDULOS EN FORMATO COMPACTO Y RESPONSIVO */}
         <View style={styles.modulesContainer}>
           {/* Módulo 1: Registrar Envío */}
-          <View style={styles.moduleCard}>
+          <TouchableOpacity 
+            style={styles.moduleCard}
+            onPress={() => navigation.navigate('RealizarEnvio')}
+            activeOpacity={0.75}
+          >
             <View style={[styles.moduleIconCircle, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="cube-outline" size={26} color={RerfColors.primaryYellow} />
+              <Ionicons name="cube-outline" size={24} color="#D97706" />
             </View>
-            <Text style={styles.moduleTitle}>Registrar Envío</Text>
-            <Text style={styles.moduleDesc}>
-              Genere guías de despacho, capture datos de origen/destino y organice la recolección a domicilio.
-            </Text>
-            <TouchableOpacity 
-              style={[styles.moduleActionButton, { backgroundColor: RerfColors.logisticsBlue }]}
-              onPress={() => navigation.navigate('RealizarEnvio')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.moduleActionText}>Ingresar Módulo →</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.moduleTextContainer}>
+              <Text style={styles.moduleTitle}>Registrar Envío</Text>
+              <Text style={styles.moduleDesc} numberOfLines={2}>
+                Genere guías de despacho, capture datos de origen y organice recolección.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          </TouchableOpacity>
 
           {/* Módulo 2: Rastreo de Guías */}
-          <View style={styles.moduleCard}>
+          <TouchableOpacity 
+            style={styles.moduleCard}
+            onPress={() => navigation.navigate('TrackingGPS')}
+            activeOpacity={0.75}
+          >
             <View style={[styles.moduleIconCircle, { backgroundColor: '#EFF6FF' }]}>
-              <Ionicons name="location-outline" size={26} color={RerfColors.logisticsBlue} />
+              <Ionicons name="location-outline" size={24} color={RerfColors.logisticsBlue} />
             </View>
-            <Text style={styles.moduleTitle}>Rastreo de Guías</Text>
-            <Text style={styles.moduleDesc}>
-              Consulte el estado de los paquetes bajo el Régimen Operativo y verifique el historial de ruta.
-            </Text>
-            <TouchableOpacity 
-              style={[styles.moduleActionButton, { backgroundColor: RerfColors.logisticsBlue }]}
-              onPress={() => navigation.navigate('TrackingGPS')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.moduleActionText}>Monitorear →</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.moduleTextContainer}>
+              <Text style={styles.moduleTitle}>Rastreo de Guías</Text>
+              <Text style={styles.moduleDesc} numberOfLines={2}>
+                Consulte el estado operativo y verifique el historial satelital en ruta.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          </TouchableOpacity>
 
           {/* Módulo 3: Cotizador */}
-          <View style={styles.moduleCard}>
+          <TouchableOpacity 
+            style={styles.moduleCard}
+            onPress={() => navigation.navigate('Cotizador')}
+            activeOpacity={0.75}
+          >
             <View style={[styles.moduleIconCircle, { backgroundColor: '#D1FAE5' }]}>
-              <Ionicons name="calculator-outline" size={26} color={RerfColors.successGreen} />
+              <Ionicons name="calculator-outline" size={24} color={RerfColors.successGreen} />
             </View>
-            <Text style={styles.moduleTitle}>Cotizador</Text>
-            <Text style={styles.moduleDesc}>
-              Calcule los costos estimados de distribución nacional según el peso en libras y destino.
-            </Text>
-            <TouchableOpacity 
-              style={[styles.moduleActionButton, { backgroundColor: RerfColors.logisticsBlue }]}
-              onPress={() => navigation.navigate('Cotizador')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.moduleActionText}>Calcular Tarifa →</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.moduleTextContainer}>
+              <Text style={styles.moduleTitle}>Cotizador de Tarifas</Text>
+              <Text style={styles.moduleDesc} numberOfLines={2}>
+                Calcule costos de fletes según peso y departamento de destino.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          </TouchableOpacity>
         </View>
 
-        {/* BANNER DE SOPORTE Y RÉGIMEN DE TRANSPORTE (Imagen 1) */}
+        {/* BANNER DE SOPORTE Y RÉGIMEN DE TRANSPORTE */}
         <View style={styles.supportBannerCard}>
           <View style={styles.supportIconHolder}>
-            <Ionicons name="headset-outline" size={26} color={RerfColors.textMain} />
+            <Ionicons name="headset-outline" size={24} color={RerfColors.textMain} />
           </View>
           <View style={styles.supportTextHolder}>
             <Text style={styles.supportTitle}>¿Necesita asistencia con el régimen de transporte?</Text>
             <Text style={styles.supportDesc}>
-              Consulte las normativas de artículos prohibidos o genere un ticket formal en nuestra mesa de ayuda.
+              Consulte normativas de artículos permitidos o genere una consulta de ayuda.
             </Text>
           </View>
           <TouchableOpacity 
@@ -181,7 +180,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
 
           {recentShipments.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Ionicons name="cube-outline" size={40} color="#94A3B8" style={{ marginBottom: 8 }} />
+              <Ionicons name="cube-outline" size={36} color="#94A3B8" style={{ marginBottom: 8 }} />
               <Text style={styles.emptyTitle}>Sin despachos registrados</Text>
               <Text style={styles.emptySubtitle}>
                 No tienes guías asociadas a tu cuenta aún. Registra una nueva guía para comenzar el seguimiento.
@@ -204,7 +203,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               >
                 <View style={styles.shipmentTop}>
                   <View style={styles.shipmentCodeRow}>
-                    <Ionicons name="barcode-outline" size={18} color={RerfColors.logisticsBlue} />
+                    <Ionicons name="barcode-outline" size={17} color={RerfColors.logisticsBlue} />
                     <Text style={styles.shipmentTracking}>{shipment.tracking_number}</Text>
                   </View>
                   <View style={[
@@ -221,7 +220,11 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
                 </View>
 
                 <Text style={styles.shipmentRecipient}>Destinatario: {shipment.recipient_name}</Text>
-                <Text style={styles.shipmentAddress} numberOfLines={1}>📍 {shipment.delivery_address}</Text>
+                
+                <View style={styles.shipmentAddressRow}>
+                  <Ionicons name="location-outline" size={14} color="#64748B" style={{ marginRight: 4 }} />
+                  <Text style={styles.shipmentAddress} numberOfLines={1}>{shipment.delivery_address}</Text>
+                </View>
 
                 <View style={styles.shipmentFooter}>
                   <Text style={styles.shipmentDate}>Programado: {shipment.scheduled_date}</Text>
@@ -248,25 +251,25 @@ const styles = StyleSheet.create({
   // HERO BANNER
   heroContainer: {
     backgroundColor: RerfColors.heroDark,
-    paddingTop: 24,
-    paddingBottom: 28,
-    paddingHorizontal: 18,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
   },
   badgeRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   yellowBadge: {
     backgroundColor: RerfColors.primaryYellow,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 4,
   },
   yellowBadgeText: {
     color: RerfColors.primaryYellowText,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
@@ -274,28 +277,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   heroTextCol: {
     flex: 1,
     paddingRight: 10,
   },
   heroTitle: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: '900',
     color: '#FFFFFF',
-    lineHeight: 28,
-    marginBottom: 8,
+    lineHeight: 25,
+    marginBottom: 4,
   },
   heroSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94A3B8',
-    lineHeight: 18,
+    lineHeight: 16,
   },
   truckIllustrationBox: {
-    width: 70,
-    height: 70,
-    borderRadius: 12,
+    width: 52,
+    height: 52,
+    borderRadius: 10,
     backgroundColor: '#1F2937',
     borderWidth: 1,
     borderColor: '#374151',
@@ -304,20 +307,20 @@ const styles = StyleSheet.create({
   },
   heroActionsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   heroYellowButton: {
     backgroundColor: RerfColors.primaryYellow,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
     borderRadius: 6,
     gap: 6,
   },
   heroYellowButtonText: {
     color: RerfColors.primaryYellowText,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
   },
   heroOutlineButton: {
@@ -326,80 +329,70 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
     borderRadius: 6,
     gap: 6,
   },
   heroOutlineButtonText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
 
   // MÓDULOS DEL SISTEMA
   sectionHeader: {
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 16,
+    marginTop: 18,
+    marginBottom: 10,
     paddingHorizontal: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: RerfColors.textMain,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   sectionSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: RerfColors.textMuted,
     textAlign: 'center',
   },
   modulesContainer: {
     paddingHorizontal: 16,
-    gap: 14,
+    gap: 10,
   },
   moduleCard: {
     backgroundColor: RerfColors.surfaceCard,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: RerfColors.surfaceCardBorder,
-    padding: 18,
+    padding: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     ...RerfShadows.card,
   },
   moduleIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginRight: 12,
+  },
+  moduleTextContainer: {
+    flex: 1,
   },
   moduleTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
     color: RerfColors.textMain,
-    marginBottom: 6,
+    marginBottom: 2,
   },
   moduleDesc: {
-    fontSize: 12,
+    fontSize: 11,
     color: RerfColors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 17,
-    marginBottom: 16,
-  },
-  moduleActionButton: {
-    width: '100%',
-    paddingVertical: 11,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  moduleActionText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
+    lineHeight: 15,
   },
 
   // SOPORTE BANNER
@@ -409,17 +402,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: RerfColors.surfaceCardBorder,
     marginHorizontal: 16,
-    marginTop: 20,
-    padding: 16,
+    marginTop: 16,
+    padding: 14,
     flexDirection: 'column',
-    gap: 12,
+    gap: 10,
     ...RerfShadows.card,
   },
   supportIconHolder: {
     alignSelf: 'flex-start',
   },
   supportTextHolder: {
-    gap: 4,
+    gap: 3,
   },
   supportTitle: {
     fontSize: 13,
@@ -435,13 +428,13 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderWidth: 1,
     borderColor: RerfColors.surfaceCardBorder,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     borderRadius: 6,
     backgroundColor: RerfColors.surfaceSubtle,
   },
   supportButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: RerfColors.textMain,
   },
@@ -507,10 +500,15 @@ const styles = StyleSheet.create({
     color: RerfColors.textSecondary,
     marginBottom: 2,
   },
+  shipmentAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   shipmentAddress: {
     fontSize: 11,
     color: RerfColors.textMuted,
-    marginBottom: 8,
+    flex: 1,
   },
   shipmentFooter: {
     flexDirection: 'row',

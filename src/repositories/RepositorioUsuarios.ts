@@ -23,26 +23,14 @@ export class RepositorioUsuarios {
   private static instancia: RepositorioUsuarios | null = null;
 
   private usuarioActual: UserProfile | null = null;
-  private directorio: UserProfile[];
-  private credenciales: Record<string, string> = {
-    'admin@rerf.gt': 'admin',
-    'admin': 'admin',
-    'admin123': 'admin123',
-    'carlos.gomez@rerf.gt': '123456',
-    'esolorzano@gmail.com': 'admin2026',
-    '26025370': '26025370',
-  };
+  private directorio: UserProfile[] = [];
+  private credenciales: Record<string, string> = {};
 
   /**
    * Constructor privado para restringir instanciación externa (Patrón Singleton)
    */
   private constructor() {
-    this.directorio = [
-      { ...ADMIN_USER },
-      { ...ERICK_USER },
-      { ...INITIAL_USER },
-      ...MOCK_USERS_DIRECTORY.map((u) => ({ ...u })),
-    ];
+    this.directorio = [];
   }
 
   /**
@@ -62,61 +50,26 @@ export class RepositorioUsuarios {
     try {
       // 1. Cargar usuarios guardados
       const storedUsersRaw = await AsyncStorage.getItem(STORAGE_KEY_USERS);
-      let usersList: UserProfile[] = [];
       if (storedUsersRaw) {
         try {
-          usersList = JSON.parse(storedUsersRaw);
+          this.directorio = JSON.parse(storedUsersRaw);
         } catch {}
       }
 
-      // Asegurar que tanto ADMIN_USER como ERICK_USER existan siempre en el directorio local
-      const defaultUsers = [
-        { ...ADMIN_USER },
-        { ...ERICK_USER },
-        { ...INITIAL_USER },
-        ...MOCK_USERS_DIRECTORY.map((u) => ({ ...u })),
-      ];
-
-      for (const defUser of defaultUsers) {
-        const exists = usersList.some(
-          (u) => u.email.toLowerCase() === defUser.email.toLowerCase() || u.id === defUser.id
-        );
-        if (!exists) {
-          usersList.push({ ...defUser });
-        }
-      }
-
-      this.directorio = usersList;
-      await AsyncStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(this.directorio));
-
-      // 2. Cargar contraseñas guardadas
+      // 2. Cargar contraseñas guardadas localmente
       const storedCredsRaw = await AsyncStorage.getItem(STORAGE_KEY_CREDS);
-      let loadedCreds: Record<string, string> = {};
       if (storedCredsRaw) {
         try {
-          loadedCreds = JSON.parse(storedCredsRaw);
+          this.credenciales = JSON.parse(storedCredsRaw);
         } catch {}
       }
-
-      this.credenciales = {
-        ...this.credenciales,
-        ...loadedCreds,
-        'admin@rerf.gt': 'admin',
-        'admin': 'admin',
-        'admin123': 'admin123',
-        'esolorzano@gmail.com': 'admin2026',
-        'esolorzano': 'admin2026',
-        'erick': 'admin2026',
-        '26025370': '26025370',
-        'carlos.gomez@rerf.gt': '123456',
-        'carlos': '123456',
-      };
-      await AsyncStorage.setItem(STORAGE_KEY_CREDS, JSON.stringify(this.credenciales));
 
       // 3. Verificar si hay sesión activa guardada
       const sessionRaw = await AsyncStorage.getItem(STORAGE_KEY_SESSION);
       if (sessionRaw) {
-        this.usuarioActual = JSON.parse(sessionRaw);
+        try {
+          this.usuarioActual = JSON.parse(sessionRaw);
+        } catch {}
       }
     } catch (error) {
       console.warn('[RepositorioUsuarios] Error inicializando persistencia:', error);
@@ -124,104 +77,148 @@ export class RepositorioUsuarios {
   }
 
   /**
-   * Valida credenciales contra la base de datos local / memoria
+   * Valida credenciales contra Supabase Auth o base de datos local
    */
   public async validarCredenciales(email: string, pass: string): Promise<UserProfile | null> {
     await this.inicializarPersistencia();
 
-    const cleanInput = email.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
     const cleanPass = pass.trim();
 
-    // 1. Caso directo Administrador
-    if (
-      cleanInput === 'admin' ||
-      cleanInput === 'admin@rerf.gt' ||
-      cleanInput === 'admin@rerf.com'
-    ) {
-      if (cleanPass === 'admin' || cleanPass === 'admin123' || cleanPass.length >= 4) {
-        this.usuarioActual = { ...ADMIN_USER };
-        await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
-        return { ...this.usuarioActual };
+    if (!cleanEmail || !cleanPass) {
+      throw new Error('Por favor complete su correo electrónico y contraseña.');
+    }
+
+    // 1. Autenticación con Supabase Auth
+    if (isSupabaseConfigured) {
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanPass,
+        });
+
+        if (authError) {
+          if (authError.message.includes('Invalid login credentials')) {
+            throw new Error('Correo o contraseña incorrectos. Verifique sus datos o regístrese si es nuevo.');
+          }
+          if (authError.message.includes('Email not confirmed')) {
+            // La contraseña es correcta (Supabase valida la contraseña antes de chequear confirmación).
+            // Recuperamos el perfil y permitimos el acceso sin bloquear al usuario.
+            const localUser = this.directorio.find((u) => u.email.toLowerCase() === cleanEmail);
+            let profileData: any = null;
+            try {
+              const res = await supabase.from('profiles').select('*').eq('email', cleanEmail).maybeSingle();
+              profileData = res.data;
+            } catch {}
+
+            const resolvedUser: UserProfile = {
+              id: profileData?.id || localUser?.id || `usr-${Date.now()}`,
+              first_name: profileData?.first_name || localUser?.first_name || cleanEmail.split('@')[0],
+              last_name: profileData?.last_name || localUser?.last_name || '',
+              email: cleanEmail,
+              phone: profileData?.phone || localUser?.phone || '',
+              address: profileData?.address || localUser?.address || 'Ciudad de Guatemala',
+              address_references: profileData?.address_references || localUser?.address_references || '',
+              role: profileData?.role || localUser?.role || 'cliente',
+              avatar_url: profileData?.avatar_url || localUser?.avatar_url,
+              bio: profileData?.bio || localUser?.bio || 'Usuario activo en RerF Logistics',
+            };
+
+            this.usuarioActual = { ...resolvedUser };
+            this.credenciales[cleanEmail] = cleanPass;
+            await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
+            return { ...this.usuarioActual };
+          }
+          throw new Error(authError.message);
+        }
+
+        if (authData?.user) {
+          const userId = authData.user.id;
+
+          // Consultar perfil de negocio en public.profiles
+          let userProfile: UserProfile | null = null;
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .maybeSingle();
+
+            if (profileData) {
+              userProfile = {
+                id: profileData.id,
+                first_name: profileData.first_name,
+                last_name: profileData.last_name,
+                email: profileData.email,
+                phone: profileData.phone || '',
+                address: profileData.address || '',
+                address_references: profileData.address_references || '',
+                role: profileData.role || 'cliente',
+                avatar_url: profileData.avatar_url,
+                bio: profileData.bio,
+              };
+            }
+          } catch (profileErr) {
+            console.warn('[RepositorioUsuarios] Error leyendo profiles de Supabase:', profileErr);
+          }
+
+          if (!userProfile) {
+            userProfile = {
+              id: userId,
+              first_name: authData.user.user_metadata?.first_name || cleanEmail.split('@')[0],
+              last_name: authData.user.user_metadata?.last_name || '',
+              email: authData.user.email || cleanEmail,
+              role: (authData.user.user_metadata?.role as any) || 'cliente',
+              bio: 'Usuario autenticado vía Supabase',
+            };
+            try {
+              await supabase.from('profiles').upsert([userProfile]);
+            } catch {}
+          }
+
+          this.usuarioActual = { ...userProfile };
+
+          // Actualizar directorio local y credenciales cacheadas
+          const existingIdx = this.directorio.findIndex(
+            (u) => u.id === userProfile!.id || u.email.toLowerCase() === cleanEmail
+          );
+          if (existingIdx !== -1) {
+            this.directorio[existingIdx] = { ...userProfile };
+          } else {
+            this.directorio.unshift({ ...userProfile });
+          }
+
+          this.credenciales[cleanEmail] = cleanPass;
+          await AsyncStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(this.directorio));
+          await AsyncStorage.setItem(STORAGE_KEY_CREDS, JSON.stringify(this.credenciales));
+          await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
+
+          return { ...this.usuarioActual };
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && !err.message.includes('Network') && !err.message.includes('fetch')) {
+          throw err;
+        }
+        console.warn('[RepositorioUsuarios] Conexión fallida con Supabase, intentando local:', err);
       }
     }
 
-    // 2. Caso directo Erick Jimenez (admite correo, usuario, carné/código 26025370 o clave 26025370 / admin2026)
-    if (
-      cleanInput === 'esolorzano@gmail.com' ||
-      cleanInput === 'esolorzano' ||
-      cleanInput === 'erick' ||
-      cleanInput === 'erick jimenez' ||
-      cleanInput === '26025370'
-    ) {
-      if (
-        cleanPass === '26025370' ||
-        cleanPass === 'admin2026' ||
-        cleanPass.length >= 4
-      ) {
-        this.usuarioActual = { ...ERICK_USER };
-        await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
-        return { ...this.usuarioActual };
-      }
-    }
-
-    // 2.1 Si la clave ingresada es 26025370 con cualquier usuario
-    if (cleanPass === '26025370') {
-      this.usuarioActual = { ...ERICK_USER };
-      await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
-      return { ...this.usuarioActual };
-    }
-
-    // 3. Verificar en contraseñas registradas
-    const expectedPass = this.credenciales[cleanInput];
+    // 2. Fallback offline: validar contra credenciales guardadas en este dispositivo
+    const expectedPass = this.credenciales[cleanEmail];
     if (expectedPass && expectedPass === cleanPass) {
-      let foundUser = this.directorio.find(
-        (u) =>
-          u.email.toLowerCase() === cleanInput ||
-          u.email.split('@')[0].toLowerCase() === cleanInput
-      );
-      if (!foundUser) {
-        foundUser = {
-          id: `usr-${Date.now()}`,
-          first_name: cleanInput.includes('@') ? cleanInput.split('@')[0] : cleanInput,
-          last_name: 'Usuario',
-          email: cleanInput.includes('@') ? cleanInput : `${cleanInput}@rerf.gt`,
-          role: 'cliente',
-          bio: 'Usuario registrado en RerF Logistics',
-        };
-        this.directorio.push(foundUser);
-        await AsyncStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(this.directorio));
-      }
-      this.usuarioActual = { ...foundUser };
-      await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
-      return { ...this.usuarioActual };
-    }
-
-    // 4. Buscar usuario en directorio por email, username o nombre
-    const matchedUser = this.directorio.find(
-      (u) =>
-        u.email.toLowerCase() === cleanInput ||
-        u.email.split('@')[0].toLowerCase() === cleanInput ||
-        `${u.first_name} ${u.last_name}`.toLowerCase() === cleanInput
-    );
-    if (matchedUser) {
-      const userExpectedPass = this.credenciales[matchedUser.email.toLowerCase()];
-      if (userExpectedPass && userExpectedPass === cleanPass) {
-        this.usuarioActual = { ...matchedUser };
-        await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
-        return { ...this.usuarioActual };
-      }
-      if (cleanPass.length >= 4 && (!userExpectedPass || userExpectedPass === cleanPass)) {
-        this.usuarioActual = { ...matchedUser };
+      const foundUser = this.directorio.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (foundUser) {
+        this.usuarioActual = { ...foundUser };
         await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
         return { ...this.usuarioActual };
       }
     }
 
-    return null;
+    throw new Error('Credenciales incorrectas. Verifique su correo y contraseña.');
   }
 
   /**
-   * Registra un nuevo usuario en la app y lo persiste en AsyncStorage
+   * Registra un nuevo usuario en Supabase Auth y lo persiste en public.profiles y AsyncStorage
    */
   public async registrarNuevoUsuario(
     nuevoPerfil: Omit<UserProfile, 'id'>,
@@ -230,41 +227,76 @@ export class RepositorioUsuarios {
     await this.inicializarPersistencia();
 
     const cleanEmail = nuevoPerfil.email.trim().toLowerCase();
+    let createdId = `usr-${Date.now()}`;
 
-    // Verificar unicidad de correo
-    const existe = this.directorio.some((u) => u.email.toLowerCase() === cleanEmail);
-    if (existe) {
-      throw new Error('El correo electrónico ya se encuentra registrado en el sistema.');
+    // 1. Registrar en Supabase Auth oficial (aparecerá en Authentication > Users)
+    if (isSupabaseConfigured) {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: password,
+        options: {
+          data: {
+            first_name: nuevoPerfil.first_name,
+            last_name: nuevoPerfil.last_name,
+            role: nuevoPerfil.role || 'cliente',
+          },
+        },
+      });
+
+      if (authError) {
+        if (
+          authError.message.includes('User already registered') ||
+          authError.message.includes('already exists')
+        ) {
+          throw new Error('El correo electrónico ya se encuentra registrado en el sistema.');
+        }
+        throw new Error(authError.message);
+      }
+
+      if (authData?.user) {
+        createdId = authData.user.id;
+      }
     }
 
     const nuevoUsuario: UserProfile = {
       ...nuevoPerfil,
-      id: `usr-${Date.now()}`,
+      id: createdId,
       email: cleanEmail,
       role: nuevoPerfil.role || 'cliente',
     };
 
-    // Agregar al directorio en memoria
+    // 2. Registrar en la tabla public.profiles de Supabase
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('profiles').upsert([
+          {
+            id: createdId,
+            first_name: nuevoUsuario.first_name,
+            last_name: nuevoUsuario.last_name,
+            email: nuevoUsuario.email,
+            phone: nuevoUsuario.phone || '',
+            address: nuevoUsuario.address || '',
+            address_references: nuevoUsuario.address_references || '',
+            role: nuevoUsuario.role || 'cliente',
+            bio: nuevoUsuario.bio || 'Usuario registrado en RerF Logistics',
+          },
+        ]);
+      } catch (profileErr) {
+        console.warn('[RepositorioUsuarios] Aviso al guardar en profiles de Supabase:', profileErr);
+      }
+    }
+
+    // 3. Persistir en el directorio y almacenamiento local
     this.directorio.unshift(nuevoUsuario);
     this.credenciales[cleanEmail] = password;
     this.usuarioActual = { ...nuevoUsuario };
 
-    // Persistir en AsyncStorage
     try {
       await AsyncStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(this.directorio));
       await AsyncStorage.setItem(STORAGE_KEY_CREDS, JSON.stringify(this.credenciales));
       await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
     } catch (err) {
       console.warn('[RepositorioUsuarios] Error guardando usuario en storage:', err);
-    }
-
-    // Si Supabase está disponible, registrar en la nube
-    if (isSupabaseConfigured) {
-      try {
-        await supabase.from(this.nombreEntidad).insert([nuevoUsuario]);
-      } catch (err) {
-        console.warn('[RepositorioUsuarios] Fallback local tras error en Supabase:', err);
-      }
     }
 
     return { ...nuevoUsuario };
@@ -342,6 +374,41 @@ export class RepositorioUsuarios {
    */
   public async listarDirectorio(): Promise<UserProfile[]> {
     await this.inicializarPersistencia();
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.from('profiles').select('*');
+        if (!error && data && data.length > 0) {
+          const remoteUsers: UserProfile[] = data.map((p) => ({
+            id: p.id,
+            first_name: p.first_name,
+            last_name: p.last_name,
+            email: p.email,
+            phone: p.phone || '',
+            address: p.address || '',
+            address_references: p.address_references || '',
+            avatar_url: p.avatar_url,
+            bio: p.bio,
+            role: p.role || 'cliente',
+          }));
+
+          // Preservar favoritos locales
+          const merged = remoteUsers.map((ru) => {
+            const local = this.directorio.find((lu) => lu.id === ru.id);
+            return {
+              ...ru,
+              is_favorite: local ? local.is_favorite : false,
+            };
+          });
+
+          this.directorio = merged;
+          await AsyncStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(this.directorio));
+        }
+      } catch (err) {
+        console.warn('[RepositorioUsuarios] Fallo de sincronización con Supabase:', err);
+      }
+    }
+
     return [...this.directorio];
   }
 

@@ -16,6 +16,7 @@ import {
   Platform, 
   ScrollView 
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
@@ -24,6 +25,7 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const { register } = useApp();
   const [firstName, setFirstName] = useState<string>('');
   const [lastName, setLastName] = useState<string>('');
@@ -44,8 +46,8 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
       return;
     }
 
-    if (password.length < 4) {
-      setError('La contraseña debe tener al menos 4 caracteres.');
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
@@ -66,7 +68,16 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top + 16, 36),
+            paddingBottom: Math.max(insets.bottom + 20, 30),
+          }
+        ]} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* Cabecera Corporativa RerF */}
         <View style={styles.brandHero}>
           <TouchableOpacity 
@@ -142,7 +153,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
 
           <Input
             label="Contraseña *"
-            placeholder="Mínimo 4 caracteres"
+            placeholder="Mínimo 6 caracteres"
             value={password}
             onChangeText={(val) => {
               setPassword(val);
@@ -177,8 +188,12 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
           {/* Enlace para volver a Iniciar Sesión */}
           <View style={styles.loginPrompt}>
             <Text style={styles.promptText}>¿Ya tienes una cuenta registrada?</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.loginLink}>Iniciar Sesión ➔</Text>
+            <TouchableOpacity 
+              style={styles.loginLinkBtn}
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Text style={styles.loginLink}>Iniciar Sesión</Text>
+              <Ionicons name="arrow-forward" size={15} color={RerfColors.logisticsBlue} style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
         </View>
@@ -307,6 +322,11 @@ const styles = StyleSheet.create({
   promptText: {
     fontSize: 12,
     color: RerfColors.textSecondary,
+  },
+  loginLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
   },
   loginLink: {
     fontSize: 13,
