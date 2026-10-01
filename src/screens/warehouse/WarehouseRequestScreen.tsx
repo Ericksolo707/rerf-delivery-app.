@@ -95,7 +95,8 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
   return (
     <KeyboardAvoidingView 
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <Header title="Almacenaje" showBack={true} />
 
@@ -104,7 +105,7 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingBottom: keyboardHeight > 0 ? 50 : 30,
+            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 40,
           }
         ]} 
         keyboardShouldPersistTaps="handled"
@@ -126,6 +127,7 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
             placeholderTextColor="#94A3B8"
             value={productType}
             onChangeText={setProductType}
+            onFocus={() => handleInputFocus(50)}
           />
         </View>
 
@@ -138,7 +140,7 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
             placeholderTextColor="#94A3B8"
             value={description}
             onChangeText={setDescription}
-            onFocus={() => handleInputFocus(70)}
+            onFocus={() => handleInputFocus(140)}
             multiline
             numberOfLines={4}
           />

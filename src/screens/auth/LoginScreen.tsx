@@ -85,15 +85,17 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <ScrollView 
         ref={scrollViewRef}
         contentContainerStyle={[
           styles.scrollContent, 
+          keyboardHeight > 0 && { justifyContent: 'flex-start' },
           { 
-            paddingTop: Math.max(insets.top + 20, 36),
-            paddingBottom: keyboardHeight > 0 ? 40 : Math.max(insets.bottom + 20, 30)
+            paddingTop: Math.max(insets.top + 24, 44),
+            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : Math.max(insets.bottom + 24, 40)
           }
         ]} 
         keyboardShouldPersistTaps="handled"
@@ -125,7 +127,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
               setEmail(val);
               if (error) setError('');
             }}
-            onFocus={() => handleInputFocus(20)}
+            onFocus={() => handleInputFocus(90)}
             autoCapitalize="none"
             keyboardType="email-address"
             containerStyle={styles.sketchInputContainer}
@@ -138,7 +140,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
               setPassword(val);
               if (error) setError('');
             }}
-            onFocus={() => handleInputFocus(55)}
+            onFocus={() => handleInputFocus(160)}
             secureTextEntry
             containerStyle={styles.sketchInputContainer}
           />

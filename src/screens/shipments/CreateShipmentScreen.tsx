@@ -145,7 +145,8 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   return (
     <KeyboardAvoidingView 
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <Header title="Realizar Envío" showBack={true} />
 
@@ -154,7 +155,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingBottom: keyboardHeight > 0 ? 50 : 30,
+            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 100 : 40,
           }
         ]} 
         keyboardShouldPersistTaps="handled"
@@ -177,6 +178,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
               placeholderTextColor="#94A3B8"
               value={recipient}
               onChangeText={setRecipient}
+              onFocus={() => handleInputFocus(40)}
             />
             <TouchableOpacity 
               style={styles.tagButton}
@@ -217,7 +219,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             placeholderTextColor="#94A3B8"
             value={address}
             onChangeText={setAddress}
-            onFocus={() => handleInputFocus(60)}
+            onFocus={() => handleInputFocus(140)}
           />
         </View>
 
@@ -230,7 +232,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             placeholderTextColor="#94A3B8"
             value={reference}
             onChangeText={setReference}
-            onFocus={() => handleInputFocus(100)}
+            onFocus={() => handleInputFocus(220)}
           />
         </View>
 
@@ -260,7 +262,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             placeholderTextColor="#94A3B8"
             value={description}
             onChangeText={setDescription}
-            onFocus={() => handleInputFocus(150)}
+            onFocus={() => handleInputFocus(300)}
             multiline
             numberOfLines={3}
           />
