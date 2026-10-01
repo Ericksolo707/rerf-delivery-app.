@@ -1,83 +1,96 @@
+/**
+ * ContactSupportScreen.tsx - Pantalla 21 Apartado de Contacto (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 21 del boceto Excalidraw con:
+ * - Header: "Contacto" con botones [ ! ] y [ -> ]
+ * - Lista de canales de contacto con avatar circular:
+ *   - Moderación 1 / "Hola en que te puedo ayudar"
+ *   - Moderación 2 / "Hola en que te puedo ayudar"
+ *   - Moderación 3 / "Hola en que te puedo ayudar"
+ *   - Asistencia / "Línea de soporte técnico"
+ * - Botón inferior destacado: Círculo con texto "IA" y etiqueta "Asistente IA"
+ */
+
 import React from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity, 
-  Image 
+  TouchableOpacity 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { MOCK_SUPPORT_CONTACTS } from '../../services/mockData';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'ContactoTab'>> = ({ navigation }) => {
+  const moderators = [
+    {
+      id: 'mod-1',
+      name: 'Moderación 1',
+      preview: 'Hola, ¿en qué te puedo ayudar con tu envío?',
+      status: 'Activo',
+    },
+    {
+      id: 'mod-2',
+      name: 'Moderación 2',
+      preview: 'Revisión de guías y aclaraciones de cobro.',
+      status: 'En línea',
+    },
+    {
+      id: 'mod-3',
+      name: 'Moderación 3',
+      preview: 'Gestión de reclamos y soporte técnico en ruta.',
+      status: 'En línea',
+    },
+    {
+      id: 'mod-4',
+      name: 'Asistencia General',
+      preview: 'Atención al cliente y horarios de bodega central.',
+      status: 'Disponible',
+    },
+  ];
+
   return (
     <View style={styles.container}>
-      <Header title="Apartado de Contacto" rightIcon="help-circle-outline" />
+      <Header title="Contacto" />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Banner IA Chatbot Card */}
-        <TouchableOpacity 
-          style={styles.aiCard}
-          onPress={() => navigation.navigate('ChatIA')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.aiIconHolder}>
-            <Ionicons name="sparkles" size={28} color="#FFFFFF" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={styles.aiTag}>
-              <Text style={styles.aiTagText}>ASISTENTE 24/7</Text>
-            </View>
-            <Text style={styles.aiTitle}>Chat con Inteligencia Artificial</Text>
-            <Text style={styles.aiDesc}>Pregunta por tus envíos, tarifas o resuelve dudas al instante.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
-
-        {/* Moderadores y Equipo de Soporte Humano (Excalidraw Pantalla 21) */}
-        <Text style={styles.sectionHeading}>Moderadores y Soporte en Línea</Text>
-
-        <View style={styles.contactList}>
-          {MOCK_SUPPORT_CONTACTS.map((contact: typeof MOCK_SUPPORT_CONTACTS[number]) => (
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Lista de moderadores */}
+        <View style={styles.contactsList}>
+          {moderators.map((item) => (
             <TouchableOpacity
-              key={contact.id}
-              style={styles.contactCard}
-              onPress={() => navigation.navigate('ChatSoporte', { contact })}
+              key={item.id}
+              style={styles.contactRow}
+              onPress={() => navigation.navigate('ChatSoporte', { contact: { name: item.name, role: item.preview } })}
               activeOpacity={0.7}
             >
-              <View style={styles.avatarHolder}>
-                <Image source={{ uri: contact.avatar }} style={styles.avatar} />
-                <View style={[styles.onlineDot, { backgroundColor: contact.status === 'En línea' ? '#10B981' : '#F59E0B' }]} />
+              <View style={styles.circleAvatar}>
+                <Ionicons name="person-outline" size={22} color="#0F172A" />
               </View>
 
-              <View style={styles.contactInfo}>
-                <Text style={styles.contactName}>{contact.name}</Text>
-                <Text style={styles.contactRole}>{contact.role}</Text>
-                <Text style={[styles.contactStatus, { color: contact.status === 'En línea' ? '#059669' : '#D97706' }]}>
-                  ● {contact.status}
-                </Text>
+              <View style={styles.contactInfoCol}>
+                <Text style={styles.contactName}>{item.name}</Text>
+                <Text style={styles.contactPreview} numberOfLines={1}>{item.preview}</Text>
               </View>
 
-              <View style={styles.chatAction}>
-                <Ionicons name="chatbubble-outline" size={20} color="#2563EB" />
-              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={styles.channelsCard}>
-          <Text style={styles.channelsTitle}>Otros Canales de Atención</Text>
-          <View style={styles.channelRow}>
-            <Ionicons name="call-outline" size={18} color="#2563EB" />
-            <Text style={styles.channelText}>Línea directa: +52 (55) 800-RERF-00</Text>
-          </View>
-          <View style={styles.channelRow}>
-            <Ionicons name="mail-outline" size={18} color="#2563EB" />
-            <Text style={styles.channelText}>Correo: soporte@rerflogistics.com</Text>
-          </View>
+        {/* Sección inferior con Botón circular "IA" - Asistente IA (Excalidraw Pantalla 21) */}
+        <View style={styles.aiButtonContainer}>
+          <TouchableOpacity 
+            style={styles.aiCircleButton}
+            onPress={() => navigation.navigate('ChatIA')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.aiCircleText}>IA</Text>
+          </TouchableOpacity>
+          <Text style={styles.aiButtonLabel}>Asistente IA</Text>
         </View>
       </ScrollView>
     </View>
@@ -87,141 +100,82 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
-  content: {
+  scrollContent: {
     padding: 16,
+    paddingBottom: 40,
+    flexGrow: 1,
+    justifyContent: 'space-between',
   },
-  aiCard: {
-    backgroundColor: '#6D28D9',
-    borderRadius: 18,
-    padding: 18,
+  contactsList: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    marginBottom: 24,
-    shadowColor: '#6D28D9',
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 4,
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    gap: 12,
   },
-  aiIconHolder: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  circleAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  aiTag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  aiTagText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  aiTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  aiDesc: {
-    fontSize: 12,
-    color: '#E9D5FF',
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  sectionHeading: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 12,
-  },
-  contactList: {
-    gap: 12,
-    marginBottom: 20,
-  },
-  contactCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 12,
-  },
-  avatarHolder: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  contactInfo: {
+  contactInfoCol: {
     flex: 1,
   },
   contactName: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0F172A',
-  },
-  contactRole: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 1,
-  },
-  contactStatus: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  chatAction: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#EFF6FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  channelsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10,
-  },
-  channelsTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
     marginBottom: 2,
   },
-  channelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  channelText: {
+  contactPreview: {
     fontSize: 12,
-    color: '#475569',
+    color: '#64748B',
+  },
+  aiButtonContainer: {
+    alignItems: 'flex-end',
+    marginTop: 40,
+    paddingRight: 10,
+  },
+  aiCircleButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  aiCircleText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  aiButtonLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 6,
+    marginRight: 2,
   },
 });

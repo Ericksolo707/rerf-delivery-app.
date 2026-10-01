@@ -1,141 +1,196 @@
+/**
+ * CancelShipmentScreen.tsx - Pantalla 17 y 18 Cancelación de Envío (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 17 y 18 del boceto Excalidraw con:
+ * - Header: "Cancelar Envío" con botones [ ! ] y [ -> ]
+ * - Campo: "Envío a cancelar: [ID / Guía]"
+ * - Campo: "Motivo de cancelación:"
+ * - Botones: [ Regresar ]  [ Cancelar ]
+ * - Botón inferior: [ Soporte técnico ]
+ * - Modales Pantalla 18: Confirmación "¿Desea cancelar el pedido/paquete?" y "Tu envío fue cancelado con éxito"
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  ScrollView 
+  ScrollView, 
+  TextInput,
+  TouchableOpacity,
+  Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
-import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
-
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'>> = ({ route, navigation }) => {
   const { cancelShipment } = useApp();
-  const initialCode: string = route.params?.shipmentId || '';
+  const initialCode = route.params?.shipmentId || '';
 
-  const [searchCode, setSearchCode] = useState<string>(initialCode);
+  const [trackingCode, setTrackingCode] = useState<string>(initialCode);
   const [reason, setReason] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const [errorBanner, setErrorBanner] = useState<string>('');
+
+  // Modales Pantalla 18
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
-  const handleTriggerCancel = (): void => {
-    if (!searchCode.trim()) {
-      setError('Por favor ingresa el código o ID del envío.');
+  const handlePromptCancel = (): void => {
+    if (!trackingCode.trim()) {
+      setErrorBanner('Por favor ingrese el ID o guía del envío a cancelar.');
       return;
     }
     if (!reason.trim()) {
-      setError('Por favor describe el motivo de la cancelación.');
+      setErrorBanner('Por favor especifique el motivo de cancelación.');
       return;
     }
-    setError('');
-    setShowConfirmModal(true);
+
+    setErrorBanner('');
+    setShowConfirmModal(true); // Pantalla 18: ¿Desea cancelar el pedido/paquete?
   };
 
-  const executeCancellation = async (): Promise<void> => {
+  const handleConfirmExecution = async (): Promise<void> => {
     setShowConfirmModal(false);
-    await cancelShipment(searchCode.trim(), reason);
-    setShowSuccessModal(true);
+    await cancelShipment(trackingCode.trim(), reason.trim());
+    setShowSuccessModal(true); // Pantalla 18: Tu envío fue cancelado con éxito
+  };
+
+  const handleFinishAndExit = (): void => {
+    setShowSuccessModal(false);
+    navigation.navigate('Principal');
   };
 
   return (
     <View style={styles.container}>
-      <Header title="Cancelación de Envío" showBack={true} />
+      <Header title="Cancelar Envío" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Solicitud de Cancelación</Text>
-          <Text style={styles.subtitle}>
-            Ingresa el código del paquete que deseas anular y el motivo correspondiente.
-          </Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {errorBanner ? (
+          <View style={styles.errorAlert}>
+            <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
+            <Text style={styles.errorAlertText}>{errorBanner}</Text>
+          </View>
+        ) : null}
 
-          {error ? <Text style={styles.errorBanner}>{error}</Text> : null}
-
-          <Input
-            label="Buscar o Nombre / ID de Envío *"
-            placeholder="ej. RERF-98234-GT"
-            value={searchCode}
-            onChangeText={setSearchCode}
-            leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
+        {/* Campo: Envío a cancelar */}
+        <View style={styles.fieldBlock}>
+          <Text style={styles.fieldLabel}>Envío a cancelar: (ID / Guía)</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="ej. RERF-1001"
+            placeholderTextColor="#94A3B8"
+            value={trackingCode}
+            onChangeText={setTrackingCode}
+            autoCapitalize="characters"
           />
+        </View>
 
-          <Input
-            label="Motivo de Cancelación *"
-            placeholder="Explica detalladamente la razón por la que cancelas el envío..."
+        {/* Campo: Motivo de cancelación */}
+        <View style={styles.fieldBlock}>
+          <Text style={styles.fieldLabel}>Motivo de cancelación:</Text>
+          <TextInput
+            style={[styles.textInput, styles.textArea]}
+            placeholder="Explique las razones de la anulación..."
+            placeholderTextColor="#94A3B8"
             value={reason}
             onChangeText={setReason}
             multiline
-            numberOfLines={4}
-            leftIcon={<Ionicons name="document-text-outline" size={18} color="#64748B" />}
+            numberOfLines={5}
           />
-
-          <View style={styles.buttonRow}>
-            <Button
-              title="Regresar"
-              variant="secondary"
-              onPress={() => navigation.goBack()}
-              style={styles.backBtn}
-            />
-            <Button
-              title="Cancelar Envío"
-              variant="danger"
-              onPress={handleTriggerCancel}
-              style={styles.cancelBtn}
-            />
-          </View>
         </View>
 
-        {/* Soporte Técnico Link */}
-        <View style={styles.supportCard}>
-          <View style={styles.supportIcon}>
-            <Ionicons name="help-buoy-outline" size={24} color="#2563EB" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.supportTitle}>¿Tienes dudas con tu cancelación?</Text>
-            <Text style={styles.supportDesc}>Contacta a un moderador para resolver dudas o solicitar reembolsos.</Text>
-          </View>
+        {/* Botones de acción: [ Regresar ]  [ Cancelar ] */}
+        <View style={styles.buttonsRow}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.backButtonText}>Regresar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.cancelButton}
+            onPress={handlePromptCancel}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
         </View>
 
-        <Button
-          title="Contactar Soporte Técnico"
-          variant="outline"
-          icon={<Ionicons name="chatbubbles-outline" size={18} color="#2563EB" />}
+        {/* Botón inferior: [ Soporte técnico ] */}
+        <TouchableOpacity 
+          style={styles.supportButton}
           onPress={() => navigation.navigate('ChatSoporte')}
-        />
+          activeOpacity={0.8}
+        >
+          <Text style={styles.supportButtonText}>Soporte técnico</Text>
+        </TouchableOpacity>
       </ScrollView>
 
-      {/* Confirmation Modal */}
-      <ModalDialog
+      {/* Pantalla 18 Modal 1: ¿Desea cancelar el pedido/paquete? [ X ] [ ✓ ] */}
+      <Modal
         visible={showConfirmModal}
-        title="¿Deseas cancelar el envío?"
-        message={`Esta acción anulará el proceso de envío para ${searchCode}.`}
-        iconName="alert-circle-outline"
-        iconColor="#EF4444"
-        confirmText="Sí, Cancelar Envío"
-        cancelText="No, Volver"
-        onConfirm={executeCancellation}
-        onCancel={() => setShowConfirmModal(false)}
-      />
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.sketchConfirmCard}>
+            <Text style={styles.sketchAppName}>RERF APP</Text>
+            <Text style={styles.sketchPromptText}>¿Desea cancelar el pedido/paquete?</Text>
+            
+            <View style={styles.sketchConfirmActionsRow}>
+              {/* [ X ] Cancelar acción */}
+              <TouchableOpacity 
+                style={[styles.sketchSquareBtn, styles.redSquareBtn]}
+                onPress={() => setShowConfirmModal(false)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={24} color="#DC2626" />
+              </TouchableOpacity>
 
-      {/* Pantalla 18: Confirmación de envío cancelado según Excalidraw */}
-      <ModalDialog
+              {/* [ ✓ ] Confirmar cancelación */}
+              <TouchableOpacity 
+                style={[styles.sketchSquareBtn, styles.greenSquareBtn]}
+                onPress={handleConfirmExecution}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="checkmark" size={24} color="#16A34A" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Pantalla 18 Modal 2: "Tu envío fue cancelado con éxito" [ ✓ ] */}
+      <Modal
         visible={showSuccessModal}
-        title="Tu envío fue cancelado con éxito"
-        message="El registro ha sido actualizado. El monto se procesará según las políticas de reembolso."
-        iconName="checkmark-circle-outline"
-        iconColor="#10B981"
-        confirmText="Regresar a Inicio"
-        singleButton={true}
-        onConfirm={() => {
-          setShowSuccessModal(false);
-          navigation.navigate('Principal');
-        }}
-      />
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleFinishAndExit}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.sketchConfirmCard}>
+            <Text style={styles.sketchAppName}>RERF APP</Text>
+            <Text style={styles.sketchSuccessText}>
+              Tu envío fue cancelado con éxito.
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.sketchSquareBtn, styles.greenSquareBtn, { marginTop: 18 }]}
+              onPress={handleFinishAndExit}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="checkmark" size={24} color="#16A34A" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -143,79 +198,165 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  content: {
-    padding: 16,
-  },
-  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+  },
+  scrollContent: {
     padding: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
+    paddingBottom: 40,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 18,
-    lineHeight: 18,
-  },
-  errorBanner: {
-    backgroundColor: '#FEE2E2',
-    color: '#DC2626',
-    padding: 10,
-    borderRadius: 8,
-    fontSize: 13,
-    marginBottom: 14,
-    textAlign: 'center',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  backBtn: {
-    flex: 1,
-  },
-  cancelBtn: {
-    flex: 1.5,
-  },
-  supportCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 14,
-    padding: 14,
+  errorAlert: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
+    borderColor: '#FCA5A5',
   },
-  supportIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  errorAlertText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '700',
+    flex: 1,
+  },
+  fieldBlock: {
+    marginBottom: 18,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '600',
+    backgroundColor: '#FFFFFF',
+    height: 48,
+  },
+  textArea: {
+    height: 120,
+    paddingTop: 12,
+    textAlignVertical: 'top',
+  },
+  buttonsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  backButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  cancelButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  supportButton: {
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  supportTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1E40AF',
+  supportButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  supportDesc: {
-    fontSize: 11,
-    color: '#475569',
-    marginTop: 2,
-    lineHeight: 15,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  sketchConfirmCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  sketchAppName: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  sketchPromptText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#334155',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  sketchSuccessText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#15803D',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  sketchConfirmActionsRow: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  sketchSquareBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  redSquareBtn: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+  },
+  greenSquareBtn: {
+    borderColor: '#16A34A',
+    backgroundColor: '#DCFCE7',
   },
 });

@@ -1,14 +1,27 @@
+/**
+ * ShipmentRejectedScreen.tsx - Pantalla 16 Envío Rechazado (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 16 del boceto Excalidraw con:
+ * - Header: "Realizar Envío" con botones [ ! ] y [ -> ]
+ * - Título: "¡Envío Rechazado!"
+ * - Recuadro: "Detalles: Información y razones"
+ * - Opciones: [ Reenviar ]  [ Cancelar ]
+ * - Botón inferior: [ Soporte técnico ]
+ */
+
 import React from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  ScrollView 
+  ScrollView, 
+  TouchableOpacity 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Button } from '../../components/Button';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const ShipmentRejectedScreen: React.FC<RootStackScreenProps<'EnvioRechazado'>> = ({ route, navigation }) => {
   const rejectedData = route.params?.shipment || {
@@ -16,74 +29,74 @@ export const ShipmentRejectedScreen: React.FC<RootStackScreenProps<'EnvioRechaza
     recipient_name: 'Roberto Paredes',
     rejection_reason: 'El tipo de material o volumen excede las dimensiones máximas permitidas para la unidad de transporte asignada.',
     total_amount: 110.00,
-    created_at: '2026-09-19',
   };
 
   return (
     <View style={styles.container}>
-      <Header title="Envío Rechazado" showBack={true} />
+      <Header title="Realizar Envío" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Rejected Header Badge */}
-        <View style={styles.alertHeader}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="alert-circle" size={44} color="#EF4444" />
-          </View>
-          <Text style={styles.alertTitle}>Envío Rechazado</Text>
-          <Text style={styles.alertSubtitle}>
-            La solicitud para el código {rejectedData.tracking_number} no pudo ser procesada.
-          </Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Título: ¡Envío Rechazado! */}
+        <View style={styles.titleSection}>
+          <Text style={styles.rejectedTitle}>¡Envío Rechazado!</Text>
         </View>
 
-        {/* Details & Reasons Box */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Información y Razones</Text>
+        {/* Recuadro grande: Información y razones */}
+        <View style={styles.detailsBox}>
+          <Text style={styles.detailsHeaderLabel}>Detalles:</Text>
 
-          <View style={styles.reasonBox}>
-            <Ionicons name="warning-outline" size={20} color="#DC2626" />
-            <Text style={styles.reasonText}>{rejectedData.rejection_reason}</Text>
-          </View>
+          <View style={styles.innerReasonCard}>
+            <Text style={styles.reasonCardTitle}>Información y razones</Text>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Destinatario:</Text>
-            <Text style={styles.val}>{rejectedData.recipient_name}</Text>
-          </View>
+            <View style={styles.reasonTextContainer}>
+              <Ionicons name="alert-circle-outline" size={20} color="#DC2626" />
+              <Text style={styles.reasonText}>
+                {rejectedData.rejection_reason || 'La solicitud no cumple con los lineamientos de peso o dimensiones autorizadas para el corredor metropolitano.'}
+              </Text>
+            </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Fecha de solicitud:</Text>
-            <Text style={styles.val}>{rejectedData.created_at}</Text>
-          </View>
+            <View style={styles.divider} />
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Importe asociado:</Text>
-            <Text style={styles.val}>Q {rejectedData.total_amount?.toFixed(2)}</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Guía afectada:</Text>
+              <Text style={styles.metaValue}>{rejectedData.tracking_number}</Text>
+            </View>
+
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Destinatario:</Text>
+              <Text style={styles.metaValue}>{rejectedData.recipient_name}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Actions according to Excalidraw */}
-        <View style={styles.actionsContainer}>
-          <Text style={styles.actionPrompt}>¿Qué deseas hacer a continuación?</Text>
-
-          <Button
-            title="Reenviar Solicitud con Cambios"
-            variant="primary"
-            icon={<Ionicons name="refresh-outline" size={18} color="#FFFFFF" />}
+        {/* Opciones: [ Reenviar ]  [ Cancelar ] */}
+        <Text style={styles.optionsSectionTitle}>Opciones:</Text>
+        <View style={styles.optionsRow}>
+          <TouchableOpacity 
+            style={styles.optionButton}
             onPress={() => navigation.navigate('RealizarEnvio')}
-          />
+            activeOpacity={0.8}
+          >
+            <Text style={styles.optionButtonText}>Reenviar</Text>
+          </TouchableOpacity>
 
-          <Button
-            title="Soporte Técnico"
-            variant="outline"
-            icon={<Ionicons name="chatbubbles-outline" size={18} color="#2563EB" />}
-            onPress={() => navigation.navigate('ChatSoporte')}
-          />
-
-          <Button
-            title="Regresar a Pedidos"
-            variant="secondary"
-            onPress={() => navigation.navigate('Pedidos')}
-          />
+          <TouchableOpacity 
+            style={[styles.optionButton, styles.cancelOptionBtn]}
+            onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: rejectedData.tracking_number })}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.optionButtonText, { color: '#DC2626' }]}>Cancelar</Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Botón inferior: [ Soporte técnico ] */}
+        <TouchableOpacity 
+          style={styles.supportButton}
+          onPress={() => navigation.navigate('ChatSoporte')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.supportButtonText}>Soporte técnico</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -92,89 +105,128 @@ export const ShipmentRejectedScreen: React.FC<RootStackScreenProps<'EnvioRechaza
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  content: {
-    padding: 18,
-  },
-  alertHeader: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  iconCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#FEE2E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  alertTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#991B1B',
-  },
-  alertSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    textAlign: 'center',
-    marginTop: 4,
-    paddingHorizontal: 16,
-  },
-  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    marginBottom: 20,
   },
-  cardTitle: {
-    fontSize: 15,
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  titleSection: {
+    alignItems: 'center',
+    marginVertical: 14,
+  },
+  rejectedTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#DC2626',
+  },
+  detailsBox: {
+    marginBottom: 24,
+  },
+  detailsHeaderLabel: {
+    fontSize: 14,
     fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 12,
+    color: '#0F172A',
+    marginBottom: 8,
   },
-  reasonBox: {
+  innerReasonCard: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  reasonCardTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#64748B',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  reasonTextContainer: {
+    flexDirection: 'row',
+    gap: 8,
     backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
     borderRadius: 10,
     padding: 12,
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    marginBottom: 12,
   },
   reasonText: {
     fontSize: 13,
     color: '#991B1B',
+    lineHeight: 18,
     flex: 1,
     fontWeight: '500',
   },
-  infoRow: {
+  divider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 10,
+  },
+  metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  label: {
+  metaLabel: {
     fontSize: 13,
+    fontWeight: '700',
     color: '#64748B',
   },
-  val: {
+  metaValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#0F172A',
   },
-  actionsContainer: {
-    gap: 12,
-  },
-  actionPrompt: {
+  optionsSectionTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#475569',
-    textAlign: 'center',
-    marginBottom: 4,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 10,
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 24,
+  },
+  optionButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelOptionBtn: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+  },
+  optionButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  supportButton: {
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  supportButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
   },
 });

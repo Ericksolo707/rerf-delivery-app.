@@ -1,3 +1,15 @@
+/**
+ * WarehouseScreen.tsx - Pantalla 19 Apartado de Bodega Personal (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 19 del boceto Excalidraw con:
+ * - Header: "Mi Bodega" con botones [ ! ] y [ -> ]
+ * - Campo: "Buscar"
+ * - Indicador: "Total de productos: [X]"
+ * - Lista de tarjetas con Nombre, Almacenaje, Destino, Descripción.
+ * - Botón inferior: [ Solicitar almacenaje ]
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
@@ -9,12 +21,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
 import { WarehouseItem } from '../../types';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
-
-import { ModuleBannerHeader } from '../../components/ModuleBannerHeader';
 import { RerfColors } from '../../constants/theme';
 
 export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>> = ({ navigation }) => {
@@ -29,95 +38,68 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
 
   const renderItem = ({ item }: { item: WarehouseItem }) => (
     <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.codeBadge}>
-          <Ionicons name="barcode-outline" size={16} color={RerfColors.logisticsBlue} />
-          <Text style={styles.codeText}>{item.storage_code}</Text>
-        </View>
-
-        <View style={[
-          styles.statusBadge, 
-          { backgroundColor: item.status === 'almacenado' ? '#D1FAE5' : '#DBEAFE' }
-        ]}>
-          <Text style={[
-            styles.statusText, 
-            { color: item.status === 'almacenado' ? '#065F46' : '#1E40AF' }
-          ]}>
-            {item.status.toUpperCase()}
-          </Text>
-        </View>
+      {/* Cabecera de la tarjeta: Nombre / Almacenaje */}
+      <View style={styles.cardHeaderRow}>
+        <Text style={styles.productName}>{item.product_type}</Text>
+        <Text style={styles.storageCode}>{item.storage_code}</Text>
       </View>
 
-      <Text style={styles.productType}>{item.product_type}</Text>
-      <Text style={styles.description}>{item.description}</Text>
+      <Text style={styles.metaRow}>
+        <Text style={styles.metaLabel}>Destino / Estado: </Text>
+        <Text style={styles.metaValue}>{item.status.toUpperCase()}</Text>
+      </Text>
 
-      <View style={styles.cardFooter}>
-        <View style={styles.tag}>
-          <Ionicons 
-            name={item.material === 'fragil' ? 'wine-outline' : 'shield-outline'} 
-            size={14} 
-            color={item.material === 'fragil' ? '#DC2626' : RerfColors.logisticsBlue} 
-          />
-          <Text style={styles.tagText}>{item.material === 'fragil' ? 'Frágil' : 'Fuerte'}</Text>
-        </View>
-
-        <View style={styles.tag}>
-          <Ionicons 
-            name={item.pickup_method === 'recogida_piloto' ? 'bicycle-outline' : 'person-outline'} 
-            size={14} 
-            color="#475569" 
-          />
-          <Text style={styles.tagText}>
-            {item.pickup_method === 'recogida_piloto' ? 'Recogida por Piloto' : 'Entrega Personal'}
-          </Text>
-        </View>
-      </View>
+      <Text style={styles.descLabel}>Descripción:</Text>
+      <Text style={styles.descValue} numberOfLines={2}>
+        {item.description}
+      </Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Header title="Mi Bodega Personal" rightIcon="business-outline" />
+      <Header title="Mi Bodega" />
 
-      {/* Banner Modular Oficial RerF */}
-      <ModuleBannerHeader
-        title="Mi Bodega Personal"
-        subtitle="Inventario físico y almacenamiento temporal en centros de distribución RerF."
-        iconName="business-outline"
-        accentColor={RerfColors.primaryYellow}
-      />
+      <View style={styles.content}>
+        {/* Campo Buscar */}
+        <View style={styles.searchBox}>
+          <Input
+            placeholder="Buscar"
+            value={search}
+            onChangeText={setSearch}
+            leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
+            containerStyle={{ marginBottom: 0 }}
+          />
+        </View>
 
-      <View style={styles.searchBar}>
-        <Input
-          placeholder="Buscar en mi bodega..."
-          value={search}
-          onChangeText={setSearch}
-          leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
-          containerStyle={{ marginBottom: 0 }}
+        {/* Total de productos */}
+        <Text style={styles.totalProductsText}>
+          Total de productos: {filtered.length}
+        </Text>
+
+        {/* Lista de productos en bodega */}
+        <FlatList
+          data={filtered}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="cube-outline" size={44} color="#94A3B8" />
+              <Text style={styles.emptyText}>No tienes artículos almacenados</Text>
+            </View>
+          }
         />
-      </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cube-outline" size={48} color="#94A3B8" />
-            <Text style={styles.emptyText}>No tienes artículos almacenados en bodega</Text>
-          </View>
-        }
-      />
-
-      {/* Floating Button "Solicitar Almacenaje" */}
-      <View style={styles.floatingAction}>
-        <Button
-          title="Solicitar Almacenaje"
-          variant="yellow"
-          icon={<Ionicons name="add-circle-outline" size={20} color={RerfColors.primaryYellowText} />}
+        {/* Botón inferior: [ Solicitar almacenaje ] */}
+        <TouchableOpacity 
+          style={styles.requestButton}
           onPress={() => navigation.navigate('SolicitudAlmacenaje')}
-        />
+          activeOpacity={0.85}
+        >
+          <Text style={styles.requestButtonText}>Solicitar almacenaje</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -126,95 +108,101 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
-  searchBar: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 6,
+  content: {
+    flex: 1,
+    padding: 16,
+    paddingBottom: 24,
+  },
+  searchBox: {
+    marginBottom: 12,
+  },
+  totalProductsText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 14,
+    paddingHorizontal: 4,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 90,
-    gap: 12,
+    gap: 14,
+    paddingBottom: 20,
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    padding: 14,
     shadowColor: '#000',
-    shadowOpacity: 0.02,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
-  cardHeader: {
+  cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 6,
   },
-  codeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  productName: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+    flex: 1,
   },
-  codeText: {
-    fontSize: 13,
+  storageCode: {
+    fontSize: 12,
     fontWeight: '800',
     color: '#2563EB',
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+  metaRow: {
+    fontSize: 12,
+    marginBottom: 6,
   },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '800',
+  metaLabel: {
+    fontWeight: '700',
+    color: '#64748B',
   },
-  productType: {
-    fontSize: 16,
+  metaValue: {
     fontWeight: '800',
     color: '#0F172A',
-    marginBottom: 4,
   },
-  description: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  tagText: {
+  descLabel: {
     fontSize: 11,
-    color: '#475569',
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 2,
   },
-  floatingAction: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
+  descValue: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 16,
+  },
+  requestButton: {
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  requestButtonText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
   },
   emptyContainer: {
     alignItems: 'center',

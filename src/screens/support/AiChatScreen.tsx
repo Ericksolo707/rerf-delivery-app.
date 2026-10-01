@@ -1,3 +1,14 @@
+/**
+ * AiChatScreen.tsx - Pantalla 23 Visualización de Chat IA (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 23 del boceto Excalidraw con:
+ * - Header: "Chat IA" con botones [ ! ] y [ -> ]
+ * - Burbujas de interacción inteligente sobre guías, estados y logística RerF
+ * - Sugerencias rápidas ("Quiero ver mi último envío", etc.)
+ * - Barra inferior: "Escribir mensaje" + botón circular de envío
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
@@ -15,6 +26,7 @@ import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { ChatMessage } from '../../types';
 import { RootStackScreenProps, MainTabCompositeScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 type AiChatScreenProps = Partial<RootStackScreenProps<'ChatIA'>> & Partial<MainTabCompositeScreenProps<'ChatTab'>>;
 
@@ -29,12 +41,9 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
   };
 
   const quickPrompts = [
-    '¿Cuál es el estado de mi envío?',
-    '¿Cuánto cuesta un flete en Guatemala?',
-    '¿Cuál es la cobertura nacional?',
-    '¿Cómo solicito espacio en bodega?',
-    'Protocolo para envíos frágiles',
-    'Opciones de pago y facturación SAT',
+    'Quiero ver mi último envío',
+    '¿Cuál es el costo estimado por libra?',
+    '¿Cómo funciona el almacenaje en bodega?',
   ];
 
   const renderBubble = ({ item }: { item: ChatMessage }) => {
@@ -42,20 +51,12 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
 
     return (
       <View style={[styles.bubbleWrapper, isBot ? styles.botBubbleWrapper : styles.userBubbleWrapper]}>
-        {isBot && (
-          <View style={styles.botBadge}>
-            <Ionicons name="sparkles" size={14} color="#7C3AED" />
-            <Text style={styles.botName}>Asistente Inteligente RerF</Text>
-          </View>
-        )}
-
         <View style={[styles.bubble, isBot ? styles.botBubble : styles.userBubble]}>
           <Text style={[styles.messageText, isBot ? styles.botText : styles.userText]}>
             {item.message}
           </Text>
         </View>
-
-        <Text style={styles.time}>{item.created_at}</Text>
+        <Text style={styles.time}>{item.created_at || '10:00'}</Text>
       </View>
     );
   };
@@ -66,16 +67,17 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <Header title="Chat IA Logística" showBack={true} rightIcon="sparkles" />
+      <Header title="Chat IA" showBack={true} />
 
       <FlatList
         data={aiMessages}
         keyExtractor={item => item.id}
         renderItem={renderBubble}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
       />
 
-      {/* Sugerencias Rápidas con Scroll Horizontal */}
+      {/* Sugerencias Rápidas estilo Excalidraw */}
       <View style={styles.quickPromptsBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}>
           {quickPrompts.map((prompt, i) => (
@@ -91,22 +93,23 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
         </ScrollView>
       </View>
 
-      {/* Input bar */}
+      {/* Barra de entrada: "Escribir mensaje" + botón circular */}
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Pregúntale a la IA sobre envíos o paquetes..."
+          placeholder="Escribir mensaje"
           placeholderTextColor="#94A3B8"
           value={input}
           onChangeText={setInput}
         />
 
         <TouchableOpacity
-          style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]}
+          style={[styles.circleSendBtn, !input.trim() && styles.sendBtnDisabled]}
           onPress={handleSend}
           disabled={!input.trim()}
+          activeOpacity={0.8}
         >
-          <Ionicons name="send" size={18} color="#FFFFFF" />
+          <Ionicons name="arrow-up" size={20} color="#0F172A" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -116,7 +119,7 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   list: {
     padding: 16,
@@ -124,6 +127,7 @@ const styles = StyleSheet.create({
   },
   bubbleWrapper: {
     maxWidth: '85%',
+    marginBottom: 4,
   },
   botBubbleWrapper: {
     alignSelf: 'flex-start',
@@ -133,42 +137,32 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     alignItems: 'flex-end',
   },
-  botBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-    marginLeft: 4,
-  },
-  botName: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#7C3AED',
-  },
   bubble: {
-    borderRadius: 18,
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
   },
   botBubble: {
-    backgroundColor: '#F3E8FF',
-    borderWidth: 1,
-    borderColor: '#E9D5FF',
+    backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 4,
   },
   userBubble: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#F8FAFC',
     borderBottomRightRadius: 4,
   },
   messageText: {
     fontSize: 14,
     lineHeight: 20,
+    fontWeight: '600',
+    color: '#0F172A',
   },
   botText: {
-    color: '#3B0764',
+    color: '#0F172A',
   },
   userText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   time: {
     fontSize: 10,
@@ -177,55 +171,56 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   quickPromptsBar: {
-    paddingHorizontal: 12,
     paddingVertical: 8,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#E2E8F0',
   },
   promptChip: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#FFFFFF',
   },
   promptChipText: {
-    fontSize: 11,
-    color: '#475569',
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopWidth: 1.5,
+    borderTopColor: '#0F172A',
     gap: 10,
   },
   input: {
     flex: 1,
-    height: 44,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 22,
+    height: 46,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 23,
     paddingHorizontal: 16,
     fontSize: 14,
     color: '#0F172A',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
   },
-  sendBtn: {
+  circleSendBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#7C3AED',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendBtnDisabled: {
-    backgroundColor: '#CBD5E1',
+    opacity: 0.5,
+    backgroundColor: '#E2E8F0',
   },
 });

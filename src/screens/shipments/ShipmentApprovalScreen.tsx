@@ -1,3 +1,17 @@
+/**
+ * ShipmentApprovalScreen.tsx - Pantalla 15 Confirmación Aprobado del Envío (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 15 del boceto Excalidraw con:
+ * - Header: "Realizar Envío" con botones [ ! ] y [ -> ]
+ * - Título: "¡Envío confirmado!"
+ * - Recuadro: "Detalles: Información previa del envío" y Total: Q. [monto]
+ * - Subtítulo: "Seleccionar método de pago:"
+ * - Botones de método de pago:
+ *   [ Efectivo ]           [ Pago contra entrega ]
+ *   [ Tarjeta Déb./Créd. ]
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
@@ -8,150 +22,131 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
 import { PaymentMethod } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEnvio'>> = ({ route, navigation }) => {
   const shipment = route.params?.shipment || {
     tracking_number: 'RERF-98234-GT',
     recipient_name: 'María Fernández',
-    delivery_address: 'Calle Juárez #12, Depto 301',
+    delivery_address: 'Calle Juárez #12, Zona 10',
     description: 'Caja con artículos de cerámica artesanal',
     total_amount: 120.00,
   };
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('contra_entrega');
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('contra_entrega');
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
-  const paymentOptions: { id: PaymentMethod; title: string; desc: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    {
-      id: 'efectivo',
-      title: 'Efectivo',
-      desc: 'Paga al momento de la recolección en punto.',
-      icon: 'cash-outline',
-    },
-    {
-      id: 'contra_entrega',
-      title: 'Pago contra entrega',
-      desc: 'El destinatario paga al recibir el paquete.',
-      icon: 'cube-outline',
-    },
-    {
-      id: 'tarjeta',
-      title: 'Tarjeta Débito / Crédito',
-      desc: 'Cobro digital inmediato y seguro.',
-      icon: 'card-outline',
-    },
-  ];
-
-  const handleFinishPayment = () => {
+  const handleFinish = (): void => {
     setShowSuccessModal(true);
   };
 
   return (
     <View style={styles.container}>
-      <Header title="Aprobación del Envío" showBack={true} />
+      <Header title="Realizar Envío" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Success Header Icon */}
-        <View style={styles.successHeader}>
-          <View style={styles.checkCircle}>
-            <Ionicons name="checkmark" size={36} color="#FFFFFF" />
-          </View>
-          <Text style={styles.successTitle}>¡Envío Confirmado!</Text>
-          <Text style={styles.successSubtitle}>El envío ha sido registrado y aceptado por el sistema.</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Título: ¡Envío confirmado! */}
+        <View style={styles.titleSection}>
+          <Text style={styles.confirmedTitle}>¡Envío confirmado!</Text>
         </View>
 
-        {/* Prior information card */}
-        <View style={styles.card}>
-          <Text style={styles.cardHeaderTitle}>Información previa del envío</Text>
-          
-          <View style={styles.row}>
-            <Text style={styles.label}>Código / Tracking:</Text>
-            <Text style={styles.valCode}>{shipment.tracking_number}</Text>
-          </View>
+        {/* Recuadro grande: Información previa del envío */}
+        <View style={styles.detailsBox}>
+          <Text style={styles.detailsHeaderLabel}>Detalles:</Text>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Para:</Text>
-            <Text style={styles.val}>{shipment.recipient_name}</Text>
-          </View>
+          <View style={styles.innerInfoBox}>
+            <Text style={styles.innerTitle}>Información previa del envío</Text>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Guía:</Text>
+              <Text style={styles.detailValue}>{shipment.tracking_number}</Text>
+            </View>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Destino:</Text>
-            <Text style={styles.val} numberOfLines={2}>{shipment.delivery_address}</Text>
-          </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Destinatario:</Text>
+              <Text style={styles.detailValue}>{shipment.recipient_name}</Text>
+            </View>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Contenido:</Text>
-            <Text style={styles.val}>{shipment.description}</Text>
-          </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Dirección:</Text>
+              <Text style={styles.detailValue} numberOfLines={2}>{shipment.delivery_address}</Text>
+            </View>
 
-          <View style={styles.divider} />
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Descripción:</Text>
+              <Text style={styles.detailValue} numberOfLines={2}>{shipment.description}</Text>
+            </View>
 
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total a pagar:</Text>
-            <Text style={styles.totalVal}>Q {shipment.total_amount?.toFixed(2) || '120.00'}</Text>
+            <View style={styles.divider} />
+
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total:</Text>
+              <Text style={styles.totalValue}>Q {shipment.total_amount?.toFixed(2) || '45.00'}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Payment selector */}
-        <View style={styles.card}>
-          <Text style={styles.cardHeaderTitle}>Confirmar método de pago</Text>
+        {/* Subtítulo: Seleccionar método de pago */}
+        <Text style={styles.paymentSectionTitle}>Seleccionar método de pago:</Text>
 
-          <View style={styles.paymentList}>
-            {paymentOptions.map(opt => (
-              <TouchableOpacity
-                key={opt.id}
-                style={[
-                  styles.paymentCard,
-                  paymentMethod === opt.id && styles.paymentCardActive,
-                ]}
-                onPress={() => setPaymentMethod(opt.id)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.paymentLeft}>
-                  <Ionicons
-                    name={opt.icon}
-                    size={24}
-                    color={paymentMethod === opt.id ? '#2563EB' : '#64748B'}
-                  />
-                  <View>
-                    <Text style={[styles.paymentTitle, paymentMethod === opt.id && styles.paymentTitleActive]}>
-                      {opt.title}
-                    </Text>
-                    <Text style={styles.paymentDesc}>{opt.desc}</Text>
-                  </View>
-                </View>
+        {/* Botones de método de pago Excalidraw */}
+        <View style={styles.paymentButtonsGrid}>
+          {/* Fila 1 */}
+          <View style={styles.paymentRow}>
+            <TouchableOpacity 
+              style={[styles.paymentBtn, selectedMethod === 'efectivo' && styles.paymentBtnActive]}
+              onPress={() => setSelectedMethod('efectivo')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.paymentBtnText, selectedMethod === 'efectivo' && styles.paymentBtnTextActive]}>
+                Efectivo
+              </Text>
+            </TouchableOpacity>
 
-                <Ionicons
-                  name={paymentMethod === opt.id ? 'radio-button-on' : 'radio-button-off'}
-                  size={20}
-                  color={paymentMethod === opt.id ? '#2563EB' : '#CBD5E1'}
-                />
-              </TouchableOpacity>
-            ))}
+            <TouchableOpacity 
+              style={[styles.paymentBtn, selectedMethod === 'contra_entrega' && styles.paymentBtnActive]}
+              onPress={() => setSelectedMethod('contra_entrega')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.paymentBtnText, selectedMethod === 'contra_entrega' && styles.paymentBtnTextActive]}>
+                Pago contra entrega
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <Button
-            title="Confirmar y Finalizar Pedido"
-            variant="yellow"
-            onPress={handleFinishPayment}
-            style={styles.payBtn}
-          />
+          {/* Fila 2 */}
+          <TouchableOpacity 
+            style={[styles.paymentBtn, selectedMethod === 'tarjeta' && styles.paymentBtnActive]}
+            onPress={() => setSelectedMethod('tarjeta')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.paymentBtnText, selectedMethod === 'tarjeta' && styles.paymentBtnTextActive]}>
+              Tarjeta Déb./Créd.
+            </Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Botón de Finalización */}
+        <TouchableOpacity 
+          style={styles.finishButton}
+          onPress={handleFinish}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.finishButtonText}>Aceptar y Finalizar</Text>
+        </TouchableOpacity>
       </ScrollView>
 
-      {/* Success Modal */}
+      {/* Modal de Finalización Exitosa */}
       <ModalDialog
         visible={showSuccessModal}
-        title="¡Guía Generada Exitosamente!"
-        message={`Tu orden ${shipment.tracking_number || ''} ha sido registrada. Puedes seguir su avance en el mapa satelital.`}
-        iconName="paper-plane-outline"
-        iconColor="#10B981"
-        confirmText="Rastrear Guía en GPS"
-        singleButton={false}
+        title="RERF APP"
+        message={`Tu envío ${shipment.tracking_number || ''} ha sido confirmado con éxito. Puedes rastrear su ubicación en el mapa satelital.`}
+        iconName="checkmark-circle-outline"
+        iconColor="#16A34A"
+        confirmText="Ver en GPS"
         cancelText="Ir a Inicio"
         onCancel={() => {
           setShowSuccessModal(false);
@@ -169,74 +164,70 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
-  content: {
-    padding: 16,
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
   },
-  successHeader: {
+  titleSection: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginVertical: 14,
   },
-  checkCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  successTitle: {
-    fontSize: 22,
+  confirmedTitle: {
+    fontSize: 20,
     fontWeight: '900',
     color: '#0F172A',
   },
-  successSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    textAlign: 'center',
-    marginTop: 4,
+  detailsBox: {
+    marginBottom: 20,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
-  },
-  cardHeaderTitle: {
-    fontSize: 15,
+  detailsHeaderLabel: {
+    fontSize: 14,
     fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 14,
+    color: '#0F172A',
+    marginBottom: 8,
   },
-  row: {
+  innerInfoBox: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  innerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#64748B',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  label: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  val: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
-    maxWidth: '65%',
-    textAlign: 'right',
-  },
-  valCode: {
+  detailLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#64748B',
+  },
+  detailValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0F172A',
+    maxWidth: '65%',
+    textAlign: 'right',
   },
   divider: {
     height: 1,
     backgroundColor: '#E2E8F0',
-    marginVertical: 12,
+    marginVertical: 10,
   },
   totalRow: {
     flexDirection: 'row',
@@ -245,52 +236,70 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0F172A',
   },
-  totalVal: {
-    fontSize: 20,
+  totalValue: {
+    fontSize: 18,
     fontWeight: '900',
-    color: '#10B981',
+    color: '#16A34A',
   },
-  paymentList: {
-    gap: 10,
-    marginBottom: 18,
+  paymentSectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
   },
-  paymentCard: {
+  paymentButtonsGrid: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  paymentRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
+    gap: 12,
+  },
+  paymentBtn: {
+    flex: 1,
+    height: 48,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-  },
-  paymentCardActive: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
-  },
-  paymentLeft: {
-    flexDirection: 'row',
+    borderColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
-    flex: 1,
+    paddingHorizontal: 8,
   },
-  paymentTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
+  paymentBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#2563EB',
+    borderWidth: 2,
   },
-  paymentTitleActive: {
+  paymentBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+  },
+  paymentBtnTextActive: {
     color: '#2563EB',
   },
-  paymentDesc: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
+  finishButton: {
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  payBtn: {
-    marginTop: 6,
+  finishButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
   },
 });

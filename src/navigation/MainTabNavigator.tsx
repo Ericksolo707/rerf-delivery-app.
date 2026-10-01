@@ -15,8 +15,8 @@ import { RerfColors } from '../constants/theme';
 
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { WarehouseScreen } from '../screens/warehouse/WarehouseScreen';
+import { TrackingGpsScreen } from '../screens/shipments/TrackingGpsScreen';
 import { ContactSupportScreen } from '../screens/support/ContactSupportScreen';
-import { AiChatScreen } from '../screens/support/AiChatScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -38,22 +38,22 @@ export const MainTabNavigator: React.FC = () => {
           borderTopColor: RerfColors.surfaceCardBorder,
         },
         tabBarActiveTintColor: RerfColors.logisticsBlue,
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarInactiveTintColor: '#64748B',
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '700',
         },
         tabBarIcon: ({ color, focused }: { color: string; size: number; focused: boolean }) => {
-          let iconName: keyof typeof Ionicons.glyphMap = 'home';
+          let iconName: keyof typeof Ionicons.glyphMap = 'menu-outline';
 
           if (route.name === 'InicioTab') {
-            iconName = focused ? 'home' : 'home-outline';
+            iconName = focused ? 'menu' : 'menu-outline';
           } else if (route.name === 'BodegaTab') {
             iconName = focused ? 'cube' : 'cube-outline';
-          } else if (route.name === 'ChatTab') {
-            iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
+          } else if (route.name === 'GpsTab') {
+            iconName = focused ? 'navigate' : 'navigate-outline';
           } else if (route.name === 'ContactoTab') {
-            iconName = focused ? 'call' : 'call-outline';
+            iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
           } else if (route.name === 'PerfilTab') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -65,17 +65,17 @@ export const MainTabNavigator: React.FC = () => {
       <Tab.Screen 
         name="InicioTab" 
         component={HomeScreen} 
-        options={{ tabBarLabel: 'Inicio' }} 
+        options={{ tabBarLabel: 'App' }} 
       />
       <Tab.Screen 
         name="BodegaTab" 
         component={WarehouseScreen} 
-        options={{ tabBarLabel: 'Mi Bodega' }} 
+        options={{ tabBarLabel: 'Mi bodega' }} 
       />
       <Tab.Screen 
-        name="ChatTab" 
-        component={AiChatScreen} 
-        options={{ tabBarLabel: 'Chat IA' }} 
+        name="GpsTab" 
+        component={TrackingGpsScreen} 
+        options={{ tabBarLabel: 'GPS' }} 
       />
       <Tab.Screen 
         name="ContactoTab" 

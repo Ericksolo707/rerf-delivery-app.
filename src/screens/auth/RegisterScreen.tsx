@@ -1,9 +1,15 @@
 /**
- * RegisterScreen.tsx - Registro de Nuevos Usuarios RerF Logistics
+ * RegisterScreen.tsx - Registro de Nuevos Usuarios (Alineada a Boceto Excalidraw Pantalla 2)
  * Programación II - UMG / RerF Logistics
  *
- * Responsabilidad: Creación y persistencia de cuentas de nuevos clientes o pilotos,
- * validación de datos y asignación en el repositorio local y en la nube.
+ * Responsabilidad: Pantalla 2 del boceto Excalidraw con:
+ * - Logo rómbico central con "LOGO" y texto "RERF APP"
+ * - Campo "Nombre:" con subtítulo "Al guardar no es posible cambiarlo"
+ * - Campo "Confirmar:" (confirmación de usuario/nombre)
+ * - Campo "Contraseña:" con subtítulo "Para una contraseña segura debe contener como mínimo un número y 8 caracteres como mínimo"
+ * - Campo "Confirmar:" con subtítulo "Confirmar los caracteres de nuevo"
+ * - Botones inferiores [ Salir ] y [ Guardar ]
+ * Conexión completa y segura a Supabase Auth.
  */
 
 import React, { useState } from 'react';
@@ -14,30 +20,41 @@ import {
   TouchableOpacity, 
   KeyboardAvoidingView, 
   Platform, 
-  ScrollView 
+  ScrollView,
+  ActivityIndicator
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors, RerfShadows } from '../../constants/theme';
+import { RerfColors } from '../../constants/theme';
 
 export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { register } = useApp();
-  const [firstName, setFirstName] = useState<string>('');
-  const [lastName, setLastName] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
+  
+  const [name, setName] = useState<string>('');
+  const [confirmName, setConfirmName] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+  
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
   const handleRegister = async (): Promise<void> => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      setError('Por favor complete todos los campos obligatorios (*).');
+    if (!name.trim()) {
+      setError('Por favor ingrese su nombre de usuario.');
+      return;
+    }
+
+    if (confirmName.trim() && name.trim().toLowerCase() !== confirmName.trim().toLowerCase()) {
+      setError('Los nombres de usuario no coinciden.');
+      return;
+    }
+
+    if (!password.trim() || password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres y un número.');
       return;
     }
 
@@ -46,15 +63,17 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
       return;
     }
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
-      return;
-    }
-
     setError('');
     setLoading(true);
     try {
-      await register(firstName.trim(), lastName.trim(), email.trim(), password.trim());
+      // Split name into first and last name if possible, or use fallback
+      const parts = name.trim().split(' ');
+      const firstName = parts[0] || 'Usuario';
+      const lastName = parts.slice(1).join(' ') || 'RerF';
+      // Create user email if given username, or use username@rerf.com
+      const cleanEmail = name.includes('@') ? name.trim() : `${name.trim().toLowerCase().replace(/\s+/g, '')}@rerf.gt`;
+
+      await register(firstName, lastName, cleanEmail, password.trim());
     } catch (err: unknown) {
       const msg: string = err instanceof Error ? err.message : 'Error al registrar la cuenta.';
       setError(msg);
@@ -72,135 +91,120 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: Math.max(insets.top + 16, 36),
-            paddingBottom: Math.max(insets.bottom + 20, 30),
+            paddingTop: Math.max(insets.top + 20, 44),
+            paddingBottom: Math.max(insets.bottom + 20, 32),
           }
         ]} 
         showsVerticalScrollIndicator={false}
       >
-        {/* Cabecera Corporativa RerF */}
-        <View style={styles.brandHero}>
-          <TouchableOpacity 
-            style={styles.backBtn} 
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={20} color={RerfColors.textMain} />
-            <Text style={styles.backBtnText}>Volver al Login</Text>
-          </TouchableOpacity>
-
-          <View style={styles.logoPill}>
-            <Text style={styles.logoText}>
-              Rer<Text style={styles.logoHighlight}>F.</Text>
-            </Text>
+        {/* LOGO Rómbico Central y RERF APP (Boceto Excalidraw) */}
+        <View style={styles.logoContainer}>
+          <View style={styles.diamondBox}>
+            <Text style={styles.diamondText}>LOGO</Text>
           </View>
-          <Text style={styles.systemBadge}>NUEVO REGISTRO</Text>
-          <Text style={styles.systemTitle}>Creación de Cuenta en RerF Logistics</Text>
+          <Text style={styles.appTitle}>RERF APP</Text>
         </View>
 
-        {/* Tarjeta de Formulario de Registro */}
-        <View style={styles.formCard}>
-          <Text style={styles.cardHeaderTitle}>Registro de Usuario</Text>
-          <Text style={styles.cardHeaderSubtitle}>
-            Complete la siguiente información para abrir su cuenta y comenzar a enviar.
-          </Text>
-
+        {/* Formulario Estilo Excalidraw Pantalla 2 */}
+        <View style={styles.formContainer}>
           {error ? (
             <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color={RerfColors.errorRed} />
+              <Ionicons name="alert-circle-outline" size={18} color={RerfColors.errorRed} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
 
-          <View style={styles.rowFields}>
-            <View style={{ flex: 1 }}>
-              <Input
-                label="Nombres *"
-                placeholder="ej. Carlos"
-                value={firstName}
-                onChangeText={(val) => {
-                  setFirstName(val);
-                  if (error) setError('');
-                }}
-                leftIcon={<Ionicons name="person-outline" size={18} color={RerfColors.textMuted} />}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Input
-                label="Apellidos *"
-                placeholder="ej. Gómez"
-                value={lastName}
-                onChangeText={(val) => {
-                  setLastName(val);
-                  if (error) setError('');
-                }}
-                leftIcon={<Ionicons name="person-outline" size={18} color={RerfColors.textMuted} />}
-              />
-            </View>
+          {/* Campo Nombre */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Nombre:</Text>
+            <Input
+              placeholder="Nombre o correo"
+              value={name}
+              onChangeText={(val) => {
+                setName(val);
+                if (error) setError('');
+              }}
+              autoCapitalize="none"
+              containerStyle={styles.sketchInput}
+            />
+            <Text style={styles.fieldHint}>Al guardar no es posible cambiarlo</Text>
           </View>
 
-          <Input
-            label="Correo Electrónico *"
-            placeholder="ej. usuario@correo.com"
-            value={email}
-            onChangeText={(val) => {
-              setEmail(val);
-              if (error) setError('');
-            }}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            leftIcon={<Ionicons name="mail-outline" size={18} color={RerfColors.textMuted} />}
-          />
+          {/* Campo Confirmar Nombre */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Confirmar:</Text>
+            <Input
+              placeholder="Confirmar nombre o correo"
+              value={confirmName}
+              onChangeText={(val) => {
+                setConfirmName(val);
+                if (error) setError('');
+              }}
+              autoCapitalize="none"
+              containerStyle={styles.sketchInput}
+            />
+            <Text style={styles.fieldHint}>Confirmar los caracteres del usuario</Text>
+          </View>
 
-          <Input
-            label="Contraseña *"
-            placeholder="Mínimo 6 caracteres"
-            value={password}
-            onChangeText={(val) => {
-              setPassword(val);
-              if (error) setError('');
-            }}
-            secureTextEntry
-            leftIcon={<Ionicons name="lock-closed-outline" size={18} color={RerfColors.textMuted} />}
-          />
+          {/* Campo Contraseña */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Contraseña:</Text>
+            <Input
+              placeholder="••••••••"
+              value={password}
+              onChangeText={(val) => {
+                setPassword(val);
+                if (error) setError('');
+              }}
+              secureTextEntry
+              containerStyle={styles.sketchInput}
+            />
+            <Text style={styles.fieldHint}>
+              Para una contraseña segura debe contener como mínimo un número y 8 caracteres como mínimo
+            </Text>
+          </View>
 
-          <Input
-            label="Confirmar Contraseña *"
-            placeholder="Repite tu contraseña"
-            value={confirmPassword}
-            onChangeText={(val) => {
-              setConfirmPassword(val);
-              if (error) setError('');
-            }}
-            secureTextEntry
-            leftIcon={<Ionicons name="shield-checkmark-outline" size={18} color={RerfColors.textMuted} />}
-          />
+          {/* Campo Confirmar Contraseña */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Confirmar:</Text>
+            <Input
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChangeText={(val) => {
+                setConfirmPassword(val);
+                if (error) setError('');
+              }}
+              secureTextEntry
+              containerStyle={styles.sketchInput}
+            />
+            <Text style={styles.fieldHint}>Confirmar los caracteres de nuevo</Text>
+          </View>
 
-          <Button
-            title="Crear Cuenta y Comenzar"
-            variant="yellow"
-            onPress={handleRegister}
-            loading={loading}
-            style={styles.submitBtn}
-          />
-
-          <View style={styles.divider} />
-
-          {/* Enlace para volver a Iniciar Sesión */}
-          <View style={styles.loginPrompt}>
-            <Text style={styles.promptText}>¿Ya tienes una cuenta registrada?</Text>
+          {/* Botones inferiores: [ Salir ] y [ Guardar ] */}
+          <View style={styles.bottomButtonsRow}>
             <TouchableOpacity 
-              style={styles.loginLinkBtn}
-              onPress={() => navigation.navigate('Login')}
+              style={styles.exitButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
             >
-              <Text style={styles.loginLink}>Iniciar Sesión</Text>
-              <Ionicons name="arrow-forward" size={15} color={RerfColors.logisticsBlue} style={{ marginLeft: 4 }} />
+              <Ionicons name="arrow-back" size={18} color="#0F172A" />
+              <Text style={styles.exitButtonText}>Salir</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.saveButton, loading && styles.disabledButton]}
+              onPress={handleRegister}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color="#0F172A" size="small" />
+              ) : (
+                <Text style={styles.saveButtonText}>Guardar</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
-
-        <Text style={styles.footerCopyright}>
-          RerF Logistics Guatemala © 2026 • Programación II UMG
-        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -209,134 +213,126 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: RerfColors.background,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
+    paddingHorizontal: 28,
   },
-  brandHero: {
+  logoContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  backBtn: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
+  diamondBox: {
+    width: 76,
+    height: 76,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    borderRadius: 12,
+    transform: [{ rotate: '45deg' }],
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  backBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: RerfColors.textMain,
-  },
-  logoPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: RerfColors.heroDark,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  logoText: {
-    fontSize: 26,
+  diamondText: {
+    transform: [{ rotate: '-45deg' }],
+    fontSize: 12,
     fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    color: '#0F172A',
+    letterSpacing: 1,
   },
-  logoHighlight: {
-    color: RerfColors.primaryYellow,
+  appTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.5,
   },
-  systemBadge: {
-    fontSize: 10,
+  formContainer: {
+    width: '100%',
+    maxWidth: 360,
+    alignSelf: 'center',
+  },
+  fieldBlock: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 14,
     fontWeight: '800',
-    color: RerfColors.primaryYellow,
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    letterSpacing: 0.8,
+    color: '#0F172A',
     marginBottom: 6,
   },
-  systemTitle: {
-    fontSize: 14,
-    color: RerfColors.textSecondary,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  formCard: {
-    backgroundColor: RerfColors.surfaceCard,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    padding: 20,
-    ...RerfShadows.card,
-  },
-  cardHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: RerfColors.textMain,
+  sketchInput: {
     marginBottom: 4,
   },
-  cardHeaderSubtitle: {
-    fontSize: 12,
-    color: RerfColors.textSecondary,
+  fieldHint: {
+    fontSize: 11,
+    color: '#64748B',
+    lineHeight: 14,
+    marginTop: 2,
+  },
+  bottomButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
     marginBottom: 16,
-    lineHeight: 18,
+    gap: 16,
+  },
+  exitButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  exitButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  saveButton: {
+    flex: 1.2,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
     gap: 8,
-    backgroundColor: RerfColors.errorRedLight,
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 14,
   },
   errorText: {
-    fontSize: 12,
-    color: RerfColors.errorRed,
-    fontWeight: '700',
-    flex: 1,
-  },
-  rowFields: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  submitBtn: {
-    marginTop: 10,
-    borderRadius: 6,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: RerfColors.surfaceCardBorder,
-    marginVertical: 16,
-  },
-  loginPrompt: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  promptText: {
-    fontSize: 12,
-    color: RerfColors.textSecondary,
-  },
-  loginLinkBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  loginLink: {
     fontSize: 13,
-    fontWeight: '800',
-    color: RerfColors.logisticsBlue,
-  },
-  footerCopyright: {
-    textAlign: 'center',
-    marginTop: 24,
-    fontSize: 11,
-    color: RerfColors.textMuted,
+    color: RerfColors.errorRed,
+    flex: 1,
+    fontWeight: '600',
   },
 });

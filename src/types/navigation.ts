@@ -63,9 +63,10 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   InicioTab: undefined;
   BodegaTab: undefined;
-  ChatTab: undefined;
+  GpsTab: undefined;
   ContactoTab: undefined;
   PerfilTab: undefined;
+  ChatTab?: undefined;
 };
 
 /**

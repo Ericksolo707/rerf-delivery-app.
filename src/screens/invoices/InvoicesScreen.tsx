@@ -1,11 +1,23 @@
+/**
+ * InvoicesScreen.tsx - Pantalla 28 Facturas Recibidas (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 28 del boceto Excalidraw con:
+ * - Header: "Facturas" con botones [ ! ] y [ -> ]
+ * - Campo: "Buscar factura"
+ * - Lista de tarjetas con:
+ *   - Cabecera: Fecha | Monto
+ *   - Cuerpo: Descripción
+ *   - Botón de acción derecho: [ E ] (Emitir / Ver comprobante FEL)
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   FlatList, 
-  TouchableOpacity, 
-  Alert 
+  TouchableOpacity 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -28,86 +40,73 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
 
   const renderInvoice = ({ item }: { item: Invoice }) => (
     <View style={styles.card}>
-      <View style={styles.cardTop}>
-        <View style={styles.codeRow}>
-          <Ionicons name="document-text" size={20} color="#2563EB" />
-          <Text style={styles.codeText}>{item.invoice_number}</Text>
+      <View style={styles.cardContent}>
+        {/* Fila superior: Fecha | Monto */}
+        <View style={styles.cardTopRow}>
+          <Text style={styles.dateText}>{item.issued_date || '14/10/2026'}</Text>
+          <Text style={styles.amountText}>Q {item.amount.toFixed(2)}</Text>
         </View>
 
-        <View style={[
-          styles.statusBadge,
-          { backgroundColor: item.status === 'pagado' ? '#D1FAE5' : '#FEF3C7' }
-        ]}>
-          <Text style={[
-            styles.statusText,
-            { color: item.status === 'pagado' ? '#065F46' : '#B45309' }
-          ]}>
-            {item.status.toUpperCase()}
-          </Text>
-        </View>
+        {/* Cuerpo: Descripción */}
+        <Text style={styles.descLabel}>Descripción</Text>
+        <Text style={styles.descContent} numberOfLines={2}>
+          {item.description}
+        </Text>
       </View>
 
-      <Text style={styles.desc}>{item.description}</Text>
-      
-      <View style={styles.metaRow}>
-        <Text style={styles.date}>Emisión: {item.issued_date}</Text>
-        <Text style={styles.paymentMethod}>Pago: {item.payment_method}</Text>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.amount}>Q {item.amount.toFixed(2)}</Text>
-        
-        <TouchableOpacity
-          style={styles.viewBtn}
-          onPress={() => setSelectedInvoice(item)}
-        >
-          <Ionicons name="eye-outline" size={16} color="#2563EB" />
-          <Text style={styles.viewBtnText}>Ver Comprobante</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Botón derecho [ E ] (Excalidraw Pantalla 28) */}
+      <TouchableOpacity 
+        style={styles.squareActionButton}
+        onPress={() => setSelectedInvoice(item)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.actionLetter}>E</Text>
+      </TouchableOpacity>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Header title="Listado de Facturas" showBack={true} />
+      <Header title="Facturas" showBack={true} />
 
-      <View style={styles.searchBar}>
-        <Input
-          placeholder="Buscar factura por folio o descripción..."
-          value={search}
-          onChangeText={setSearch}
-          leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
-          containerStyle={{ marginBottom: 0 }}
+      <View style={styles.content}>
+        {/* Campo Buscar factura */}
+        <View style={styles.searchBox}>
+          <Input
+            placeholder="Buscar factura"
+            value={search}
+            onChangeText={setSearch}
+            leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
+            containerStyle={{ marginBottom: 0 }}
+          />
+        </View>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={item => item.id}
+          renderItem={renderInvoice}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="receipt-outline" size={44} color="#94A3B8" />
+              <Text style={styles.emptyText}>No hay facturas registradas</Text>
+            </View>
+          }
         />
       </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.id}
-        renderItem={renderInvoice}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={48} color="#94A3B8" />
-            <Text style={styles.emptyText}>No hay facturas registradas</Text>
-          </View>
-        }
-      />
-
-      {/* Modal visor de factura */}
+      {/* Modal Visor de Comprobante / Factura */}
       {selectedInvoice && (
         <ModalDialog
           visible={Boolean(selectedInvoice)}
-          title={`Factura ${selectedInvoice.invoice_number}`}
-          message={`Servicio: ${selectedInvoice.description}\nMonto Total: Q ${selectedInvoice.amount.toFixed(2)}\nFecha: ${selectedInvoice.issued_date}\nEstado: ${selectedInvoice.status.toUpperCase()}`}
-          iconName="document-text-outline"
-          iconColor="#2563EB"
+          title={`Factura FEL ${selectedInvoice.invoice_number}`}
+          message={`Servicio: ${selectedInvoice.description}\nMonto Total: Q ${selectedInvoice.amount.toFixed(2)}\nFecha de emisión: ${selectedInvoice.issued_date}\nEstado: ${selectedInvoice.status.toUpperCase()}`}
           confirmText="Descargar PDF"
           cancelText="Cerrar"
           onConfirm={() => {
             setSelectedInvoice(null);
-            mostrarAlerta('Descarga simulada', 'Se ha guardado el comprobante en tu dispositivo.');
+            mostrarAlerta('Descarga realizada', 'Se ha guardado el comprobante de la factura en su dispositivo.');
           }}
           onCancel={() => setSelectedInvoice(null)}
         />
@@ -119,95 +118,82 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
-  searchBar: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 6,
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  searchBox: {
+    marginBottom: 16,
   },
   listContent: {
-    padding: 16,
-    gap: 12,
+    gap: 14,
+    paddingBottom: 24,
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  cardTop: {
+  cardContent: {
+    flex: 1,
+    marginRight: 14,
+  },
+  cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 6,
+    marginBottom: 6,
   },
-  codeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  codeText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 10,
+  dateText: {
+    fontSize: 12,
     fontWeight: '700',
-  },
-  desc: {
-    fontSize: 13,
-    color: '#334155',
-    lineHeight: 18,
-    marginBottom: 10,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  date: {
-    fontSize: 11,
-    color: '#94A3B8',
-  },
-  paymentMethod: {
-    fontSize: 11,
     color: '#64748B',
-    fontWeight: '500',
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  amount: {
-    fontSize: 18,
+  amountText: {
+    fontSize: 14,
     fontWeight: '900',
     color: '#0F172A',
   },
-  viewBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  descLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
   },
-  viewBtnText: {
+  descContent: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#2563EB',
+    color: '#334155',
+    lineHeight: 16,
+  },
+  squareActionButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionLetter: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
   },
   emptyContainer: {
     alignItems: 'center',

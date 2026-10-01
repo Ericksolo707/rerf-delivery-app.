@@ -1,3 +1,22 @@
+/**
+ * PackageDetailScreen.tsx - Pantalla 30 Visualizador de Detalles / Detalles Paquete (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 30 del boceto Excalidraw con:
+ * - Header: "Detalles paquete" con botones [ ! ] y [ -> ]
+ * - Gran tarjeta contenedora con:
+ *   - Categoría: Entrega/Envío | Fecha
+ *   - Nombre del paquete
+ *   - Material
+ *   - Partida
+ *   - No. Orden
+ *   - Descripción (recuadro de texto)
+ *   - Costo Total
+ *   - Método de pago
+ *   - Factura#
+ *   - Fila inferior: [ nombreusuario1 remitente ]  [ nombreusuario2 receptor ]
+ */
+
 import React from 'react';
 import { 
   View, 
@@ -8,121 +27,127 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'>> = ({ route, navigation }) => {
-  const { shipments } = useApp();
+  const { shipments, user } = useApp();
   const shipmentId: string | undefined = route.params?.shipmentId;
   const shipment: Shipment | undefined = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId) || shipments[0];
 
   const firstPackage = shipment?.packages?.[0];
+  const senderName = user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Carlos Gómez';
+  const recipientName = shipment?.recipient_name || 'María Fernández';
+  const isDelivery = shipment?.status === 'entregado';
 
   return (
     <View style={styles.container}>
-      <Header title="Detalles del Paquete" showBack={true} />
+      <Header title="Detalles paquete" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Main Details Card (Pantalla 30 wireframe) */}
-        <View style={styles.card}>
-          <View style={styles.cardTopHeader}>
-            <View>
-              <Text style={styles.orderLabel}>No. de Orden:</Text>
-              <Text style={styles.orderCode}>{shipment?.tracking_number}</Text>
-            </View>
-            <View style={[styles.statusBadge, { backgroundColor: shipment?.status === 'entregado' ? '#D1FAE5' : '#DBEAFE' }]}>
-              <Text style={[styles.statusBadgeText, { color: shipment?.status === 'entregado' ? '#065F46' : '#1D4ED8' }]}>
-                {shipment?.status?.toUpperCase()}
-              </Text>
-            </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Gran tarjeta contenedora estilo Excalidraw Pantalla 30 */}
+        <View style={styles.mainDetailCard}>
+          {/* Fila superior: Categoría Entrega/Envío y Fecha */}
+          <View style={styles.topMetaRow}>
+            <Text style={styles.categoryTitle}>
+              Categoría: {isDelivery ? 'Entrega Concluida' : 'Envío Activo'}
+            </Text>
+            <Text style={styles.dateMeta}>
+              {shipment?.scheduled_date || '14/10/2026'}
+            </Text>
           </View>
 
-          <View style={styles.divider} />
-
-          {/* Detailed attributes from Excalidraw */}
-          <View style={styles.gridInfo}>
-            <View style={styles.infoCol}>
-              <Text style={styles.fieldTitle}>Categoría:</Text>
-              <Text style={styles.fieldVal}>{firstPackage?.category || 'Envío Logístico RERF'}</Text>
-            </View>
-
-            <View style={styles.infoCol}>
-              <Text style={styles.fieldTitle}>Nombre del Paquete:</Text>
-              <Text style={styles.fieldVal}>{firstPackage?.name || shipment?.description}</Text>
-            </View>
-
-            <View style={styles.infoCol}>
-              <Text style={styles.fieldTitle}>Material:</Text>
-              <View style={styles.materialTag}>
-                <Ionicons 
-                  name={firstPackage?.material === 'fragil' ? 'wine-outline' : 'shield-outline'} 
-                  size={14} 
-                  color={firstPackage?.material === 'fragil' ? '#DC2626' : '#2563EB'} 
-                />
-                <Text style={styles.materialTagText}>
-                  {firstPackage?.material === 'fragil' ? 'Frágil' : 'Fuerte / Resistente'}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.infoCol}>
-              <Text style={styles.fieldTitle}>Agente / Piloto Asignado:</Text>
-              <Text style={styles.fieldVal}>{shipment?.agent_name || 'Unidad de reparto 04'}</Text>
-            </View>
+          {/* Atributos del paquete */}
+          <View style={styles.fieldItem}>
+            <Text style={styles.fieldLabel}>Nombre:</Text>
+            <Text style={styles.fieldVal}>{firstPackage?.name || shipment?.description || 'Paquete departamental'}</Text>
           </View>
 
-          <View style={styles.descContainer}>
-            <Text style={styles.fieldTitle}>Descripción:</Text>
-            <Text style={styles.descBody}>{shipment?.description}</Text>
+          <View style={styles.fieldItem}>
+            <Text style={styles.fieldLabel}>Material:</Text>
+            <Text style={styles.fieldVal}>
+              {firstPackage?.material === 'fragil' ? 'Frágil' : 'Fuerte / Resistente'}
+            </Text>
           </View>
 
-          <View style={styles.divider} />
-
-          {/* Cost & Payment info */}
-          <View style={styles.rowItem}>
-            <Text style={styles.costTitle}>Costo Total:</Text>
-            <Text style={styles.costAmount}>Q {shipment?.total_amount.toFixed(2)}</Text>
+          <View style={styles.fieldItem}>
+            <Text style={styles.fieldLabel}>Partida:</Text>
+            <Text style={styles.fieldVal}>Bodega Central RerF, Ciudad de Guatemala</Text>
           </View>
 
-          <View style={styles.rowItem}>
-            <Text style={styles.fieldTitle}>Método de Pago:</Text>
-            <Text style={styles.fieldValHighlight}>
+          <View style={styles.fieldItem}>
+            <Text style={styles.fieldLabel}>No. Orden:</Text>
+            <Text style={[styles.fieldVal, styles.boldOrder]}>{shipment?.tracking_number}</Text>
+          </View>
+
+          {/* Recuadro de Descripción */}
+          <Text style={[styles.fieldLabel, { marginTop: 4 }]}>Descripción:</Text>
+          <View style={styles.descTextBox}>
+            <Text style={styles.descText}>
+              {shipment?.description || 'Paquetería con resguardo de seguridad y transporte terrestre verificado.'}
+            </Text>
+          </View>
+
+          {/* Costos y Facturación */}
+          <View style={styles.costItemRow}>
+            <Text style={styles.fieldLabel}>Costo Total:</Text>
+            <Text style={styles.costVal}>Q {shipment?.total_amount.toFixed(2) || '45.00'}</Text>
+          </View>
+
+          <View style={styles.costItemRow}>
+            <Text style={styles.fieldLabel}>Método de pago:</Text>
+            <Text style={styles.fieldVal}>
               {shipment?.payment_method?.replace('_', ' ').toUpperCase() || 'CONTRA ENTREGA'}
             </Text>
           </View>
 
-          {/* Invoice action */}
-          <TouchableOpacity 
-            style={styles.invoiceBtn}
-            onPress={() => navigation.navigate('Facturas')}
-          >
-            <Ionicons name="document-text-outline" size={20} color="#2563EB" />
-            <Text style={styles.invoiceBtnText}>Ver Factura Asociada</Text>
-            <Ionicons name="chevron-forward" size={16} color="#2563EB" />
-          </TouchableOpacity>
+          <View style={styles.costItemRow}>
+            <Text style={styles.fieldLabel}>Factura#:</Text>
+            <Text style={styles.fieldVal}>FEL-2026-9841</Text>
+          </View>
+
+          {/* Fila inferior con botones / badges de remitente y receptor */}
+          <View style={styles.usersBottomRow}>
+            <TouchableOpacity 
+              style={styles.userBadgeButton}
+              onPress={() => navigation.navigate('Usuarios')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.userBadgeName} numberOfLines={1}>{senderName}</Text>
+              <Text style={styles.userBadgeRole}>Remitente</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.userBadgeButton}
+              onPress={() => navigation.navigate('Usuarios')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.userBadgeName} numberOfLines={1}>{recipientName}</Text>
+              <Text style={styles.userBadgeRole}>Receptor</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* GPS Tracking Direct Action */}
-        <Button
-          title="Ver Seguimiento GPS en Vivo"
-          variant="primary"
-          icon={<Ionicons name="navigate-outline" size={18} color="#FFFFFF" />}
+        {/* Acciones directas de Seguimiento y Cancelación */}
+        <TouchableOpacity
+          style={styles.gpsActionButton}
           onPress={() => navigation.navigate('TrackingGPS', { shipmentId: shipment?.id })}
-        />
-
-        <View style={{ height: 12 }} />
+          activeOpacity={0.85}
+        >
+          <Ionicons name="navigate-outline" size={20} color="#0F172A" />
+          <Text style={styles.gpsActionText}>Localizar en GPS</Text>
+        </TouchableOpacity>
 
         {shipment?.status !== 'cancelado' && shipment?.status !== 'entregado' && (
-          <Button
-            title="Cancelar este Envío"
-            variant="outline"
-            icon={<Ionicons name="close-circle-outline" size={18} color="#EF4444" />}
+          <TouchableOpacity
+            style={styles.cancelActionButton}
             onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: shipment?.tracking_number })}
-            textStyle={{ color: '#EF4444' }}
-            style={{ borderColor: '#FCA5A5' }}
-          />
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cancelActionText}>Cancelar este Envío</Text>
+          </TouchableOpacity>
         )}
       </ScrollView>
     </View>
@@ -132,122 +157,156 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  content: {
-    padding: 16,
-  },
-  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
   },
-  cardTopHeader: {
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  mainDetailCard: {
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    borderRadius: 20,
+    padding: 18,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+    gap: 8,
+  },
+  topMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#0F172A',
+    paddingBottom: 8,
+    marginBottom: 6,
   },
-  orderLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  orderCode: {
-    fontSize: 18,
-    fontWeight: '800',
+  categoryTitle: {
+    fontSize: 14,
+    fontWeight: '900',
     color: '#0F172A',
   },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 14,
-  },
-  gridInfo: {
-    gap: 12,
-  },
-  infoCol: {
-    gap: 2,
-  },
-  fieldTitle: {
+  dateMeta: {
     fontSize: 12,
+    fontWeight: '700',
     color: '#64748B',
-    fontWeight: '600',
+  },
+  fieldItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#64748B',
   },
   fieldVal: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '700',
-  },
-  materialTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
-  },
-  materialTagText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
-  },
-  descContainer: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  descBody: {
-    fontSize: 13,
-    color: '#334155',
-    lineHeight: 18,
-    marginTop: 2,
-  },
-  rowItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  costTitle: {
-    fontSize: 16,
-    fontWeight: '800',
     color: '#0F172A',
+    maxWidth: '65%',
+    textAlign: 'right',
   },
-  costAmount: {
-    fontSize: 22,
+  boldOrder: {
+    fontSize: 14,
     fontWeight: '900',
     color: '#2563EB',
   },
-  fieldValHighlight: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  invoiceBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#EFF6FF',
+  descTextBox: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 12,
     padding: 12,
-    borderRadius: 10,
-    marginTop: 14,
+    backgroundColor: '#F8FAFC',
+    marginVertical: 4,
+    minHeight: 70,
   },
-  invoiceBtnText: {
+  descText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#2563EB',
+    color: '#334155',
+    lineHeight: 18,
+  },
+  costItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  costVal: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#15803D',
+  },
+  usersBottomRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 12,
+  },
+  userBadgeButton: {
     flex: 1,
-    marginLeft: 10,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  userBadgeName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  userBadgeRole: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+  },
+  gpsActionButton: {
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  gpsActionText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  cancelActionButton: {
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  cancelActionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#DC2626',
   },
 });

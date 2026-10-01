@@ -1,3 +1,14 @@
+/**
+ * OrdersScreen.tsx - Pantalla 7 Apartado de Pedidos (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 7 del boceto Excalidraw con:
+ * - Header: "Pedidos" con botones [ ! ] y [ -> ]
+ * - Tarjetas de pedido con división izquierda/derecha:
+ *   - Izquierda: No. usuario, Id pedido, Destino, Productos, Fecha, Estado.
+ *   - Derecha: Botones cuadrados apilados [ L ] (Localizar GPS) y [ R ] (Rastrear Detalle).
+ */
+
 import React from 'react';
 import { 
   View, 
@@ -11,39 +22,58 @@ import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ navigation }) => {
   const { shipments } = useApp();
 
-  const renderOrder = ({ item }: { item: Shipment }) => (
+  const renderOrder = ({ item, index }: { item: Shipment; index: number }) => (
     <View style={styles.card}>
-      <View style={styles.cardContent}>
-        <View style={styles.headerLine}>
-          <Text style={styles.codeText}>{item.tracking_number}</Text>
-          <Text style={styles.priceText}>Q {item.total_amount.toFixed(2)}</Text>
+      {/* Lado izquierdo con información estructurada */}
+      <View style={styles.infoCol}>
+        <View style={styles.userOrderIdRow}>
+          <Text style={styles.orderMetaText}>No. usuario: {100 + index}</Text>
+          <Text style={styles.orderMetaText}>Id pedido: {item.tracking_number}</Text>
         </View>
 
-        <Text style={styles.recipientText}>Destinatario: {item.recipient_name}</Text>
-        <Text style={styles.addressText} numberOfLines={1}>{item.delivery_address}</Text>
-        <Text style={styles.dateText}>Fecha: {item.scheduled_date || item.created_at}</Text>
+        <Text style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Destino: </Text>
+          <Text style={styles.fieldValue} numberOfLines={1}>{item.delivery_address}</Text>
+        </Text>
+
+        <Text style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Productos: </Text>
+          <Text style={styles.fieldValue} numberOfLines={1}>{item.description}</Text>
+        </Text>
+
+        <View style={styles.dateStatusRow}>
+          <Text style={styles.dateText}>Fecha: {item.scheduled_date || '14/10/2026'}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: item.status === 'entregado' ? '#DCFCE7' : '#FEF3C7' }]}>
+            <Text style={[styles.statusBadgeText, { color: item.status === 'entregado' ? '#15803D' : '#B45309' }]}>
+              {item.status.toUpperCase()}
+            </Text>
+          </View>
+        </View>
       </View>
 
-      {/* Excalidraw buttons L / R (Left: Detalle/Ver, Right: Ruta/Tracking) */}
-      <View style={styles.actionButtons}>
+      {/* Lado derecho con botones de acción Excalidraw [ L ] y [ R ] */}
+      <View style={styles.actionsCol}>
+        {/* Botón L (Localizar en GPS) */}
         <TouchableOpacity 
-          style={styles.actionBtn}
-          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+          style={styles.squareActionButton}
+          onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
+          activeOpacity={0.7}
         >
-          <Ionicons name="eye-outline" size={20} color="#2563EB" />
-          <Text style={styles.btnLabel}>Ver</Text>
+          <Text style={styles.actionLetter}>L</Text>
         </TouchableOpacity>
 
+        {/* Botón R (Rastrear / Detalle de Paquete) */}
         <TouchableOpacity 
-          style={[styles.actionBtn, styles.rightBtn]}
-          onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
+          style={styles.squareActionButton}
+          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+          activeOpacity={0.7}
         >
-          <Ionicons name="navigate-outline" size={20} color="#10B981" />
-          <Text style={[styles.btnLabel, { color: '#10B981' }]}>Ruta</Text>
+          <Text style={styles.actionLetter}>R</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -51,22 +81,23 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
 
   return (
     <View style={styles.container}>
-      <Header title="Apartado de Pedidos" showBack={true} />
+      <Header title="Pedidos" showBack={true} />
 
       <FlatList
         data={shipments}
         keyExtractor={item => item.id}
         renderItem={renderOrder}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="cube-outline" size={48} color="#94A3B8" />
-            <Text style={styles.emptyText}>No tienes pedidos registrados en tu cuenta</Text>
+            <Ionicons name="clipboard-outline" size={44} color="#94A3B8" />
+            <Text style={styles.emptyText}>No tienes pedidos registrados</Text>
             <TouchableOpacity 
               style={styles.createBtn}
               onPress={() => navigation.navigate('RealizarEnvio')}
+              activeOpacity={0.8}
             >
-              <Ionicons name="add-circle-outline" size={18} color="#0B132B" />
               <Text style={styles.createBtnText}>Crear Primer Envío</Text>
             </TouchableOpacity>
           </View>
@@ -79,77 +110,97 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   listContent: {
     padding: 16,
-    gap: 12,
+    gap: 14,
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  cardContent: {
+  infoCol: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 14,
+    gap: 4,
   },
-  headerLine: {
+  userOrderIdRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 6,
+    marginBottom: 4,
   },
-  codeText: {
-    fontSize: 14,
+  orderMetaText: {
+    fontSize: 12,
     fontWeight: '800',
     color: '#0F172A',
   },
-  priceText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#2563EB',
-  },
-  recipientText: {
-    fontSize: 13,
-    color: '#334155',
-    fontWeight: '600',
-  },
-  addressText: {
+  fieldRow: {
     fontSize: 12,
+    color: '#334155',
+    lineHeight: 16,
+  },
+  fieldLabel: {
+    fontWeight: '700',
     color: '#64748B',
-    marginTop: 2,
+  },
+  fieldValue: {
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  dateStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
   },
   dateText: {
     fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 4,
+    color: '#64748B',
+    fontWeight: '500',
   },
-  actionButtons: {
-    flexDirection: 'column',
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  actionsCol: {
     gap: 8,
+    alignItems: 'center',
   },
-  actionBtn: {
-    width: 44,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#EFF6FF',
+  squareActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  rightBtn: {
-    backgroundColor: '#ECFDF5',
-  },
-  btnLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#2563EB',
-    marginTop: 1,
+  actionLetter: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -161,18 +212,17 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   createBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7C948',
+    backgroundColor: RerfColors.primaryYellow,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
+    borderRadius: 20,
     marginTop: 8,
   },
   createBtnText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#0B132B',
+    fontWeight: '800',
+    color: '#0F172A',
   },
 });

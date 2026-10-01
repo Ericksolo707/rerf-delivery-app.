@@ -1,3 +1,15 @@
+/**
+ * NotificationsScreen.tsx - Pantalla 5 Notificaciones (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 5 del boceto Excalidraw con:
+ * - Header: "Notificaciones" con acciones [ ! ] y [ -> ]
+ * - Campo de búsqueda: "Buscar"
+ * - Lista de tarjetas con:
+ *   - Fila superior: Fecha | Hora | Estado (Activo / En ruta / Leído)
+ *   - Cuerpo del mensaje: Texto informativo
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
@@ -11,8 +23,8 @@ import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { NotificationItem } from '../../types';
-
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'>> = ({ navigation }) => {
   const { notifications, markNotificationRead } = useApp();
@@ -27,21 +39,23 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
     <TouchableOpacity 
       style={[styles.notifCard, !item.is_read && styles.unreadCard]}
       onPress={() => markNotificationRead(item.id)}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      <View style={styles.notifIconHolder}>
-        <Ionicons 
-          name={item.type === 'envio' ? 'cube-outline' : item.type === 'pago' ? 'cash-outline' : 'notifications-outline'} 
-          size={22} 
-          color={item.type === 'envio' ? '#2563EB' : item.type === 'pago' ? '#10B981' : '#F59E0B'} 
-        />
-      </View>
-      <View style={styles.notifTextContainer}>
-        <View style={styles.notifHeader}>
-          <Text style={styles.notifTitle}>{item.title}</Text>
-          <Text style={styles.notifDate}>{item.date}</Text>
+      {/* Fila superior: Fecha | Hora | Estado */}
+      <View style={styles.topInfoRow}>
+        <Text style={styles.dateText}>{item.date || 'Hoy'}</Text>
+        <Text style={styles.timeText}>{item.is_read ? '14:30' : '09:15'}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: item.is_read ? '#E2E8F0' : '#FEF3C7' }]}>
+          <Text style={[styles.statusText, { color: item.is_read ? '#475569' : '#B45309' }]}>
+            {item.is_read ? 'Leído' : 'Activo'}
+          </Text>
         </View>
-        <Text style={styles.notifMessage}>{item.message}</Text>
+      </View>
+
+      {/* Cuerpo de la tarjeta: Texto Informativo */}
+      <View style={styles.contentBox}>
+        <Text style={styles.informativeTitle}>{item.title}</Text>
+        <Text style={styles.informativeText}>{item.message}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -50,9 +64,10 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
     <View style={styles.container}>
       <Header title="Notificaciones" showBack={true} />
 
+      {/* Campo Buscar */}
       <View style={styles.searchBox}>
         <Input
-          placeholder="Buscar notificación..."
+          placeholder="Buscar"
           value={search}
           onChangeText={setSearch}
           leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
@@ -65,22 +80,14 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
         keyExtractor={item => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-off-outline" size={48} color="#94A3B8" />
-            <Text style={styles.emptyText}>No tienes notificaciones pendientes</Text>
+            <Ionicons name="notifications-off-outline" size={44} color="#94A3B8" />
+            <Text style={styles.emptyText}>No hay notificaciones registradas</Text>
           </View>
         }
       />
-
-      {/* Floating Action Button for IA Chat (from Excalidraw design: Botón IA) */}
-      <TouchableOpacity 
-        style={styles.fabAi} 
-        onPress={() => navigation.navigate('ChatIA')}
-      >
-        <Ionicons name="sparkles" size={24} color="#FFFFFF" />
-        <Text style={styles.fabAiText}>IA</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -88,7 +95,7 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   searchBox: {
     paddingHorizontal: 16,
@@ -97,53 +104,64 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    gap: 12,
+    gap: 14,
   },
   notifCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
     padding: 14,
-    flexDirection: 'row',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   unreadCard: {
-    borderColor: '#93C5FD',
-    backgroundColor: '#F0F7FF',
+    borderColor: '#0F172A',
+    backgroundColor: '#FFFBEB',
   },
-  notifIconHolder: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  notifTextContainer: {
-    flex: 1,
-  },
-  notifHeader: {
+  topInfoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 6,
   },
-  notifTitle: {
-    fontSize: 14,
+  dateText: {
+    fontSize: 12,
     fontWeight: '700',
     color: '#0F172A',
   },
-  notifDate: {
-    fontSize: 11,
-    color: '#94A3B8',
+  timeText: {
+    fontSize: 12,
+    color: '#64748B',
   },
-  notifMessage: {
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  contentBox: {
+    marginTop: 2,
+  },
+  informativeTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  informativeText: {
     fontSize: 12,
     color: '#475569',
-    lineHeight: 16,
+    lineHeight: 18,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -153,26 +171,5 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#94A3B8',
-  },
-  fabAi: {
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-    backgroundColor: '#7C3AED',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 30,
-    gap: 6,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  fabAiText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 14,
   },
 });

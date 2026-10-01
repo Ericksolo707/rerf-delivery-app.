@@ -1,9 +1,18 @@
 /**
- * CreateShipmentScreen.tsx - Registro Oficial de Nuevos Envíos RerF
+ * CreateShipmentScreen.tsx - Pantalla 13 Apartado de realización de envío (Boceto Excalidraw)
  * Programación II - UMG / RerF Logistics
  *
- * Responsabilidad: Formulario operativo de captura de datos de recolección y entrega
- * estructurado en 5 etapas secuenciales según Screenshots 4 y 5 de la plataforma web RerF.
+ * Responsabilidad: Pantalla 13 del boceto Excalidraw con:
+ * - Header: "Realizar Envío" con botones [ ! ] y [ -> ]
+ * - Campos directos:
+ *   - Para: [Usuario]
+ *   - Paquete: [Bodega]
+ *   - Dirección: [_____]
+ *   - Referencia: [_____]
+ *   - Seleccionar Fecha: [ 📅 ]
+ *   - Descripción: [_____]
+ * - Botones inferiores [ Cancelar ] y [ Enviar ]
+ * - Pantalla 14 integrada: Modal "¿Desea confirmar la solicitud?" y confirmación de recepción.
  */
 
 import React, { useState } from 'react';
@@ -16,139 +25,94 @@ import {
   TextInput,
   KeyboardAvoidingView, 
   Platform,
-  Modal,
-  FlatList
+  Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Button } from '../../components/Button';
-import { ModuleBannerHeader } from '../../components/ModuleBannerHeader';
 import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors, RerfShadows } from '../../constants/theme';
-import { 
-  DEPARTAMENTOS_GUATEMALA, 
-  MUNICIPIOS_POR_DEPARTAMENTO, 
-  TIPOS_CONTENIDO_ENVIO, 
-  FORMAS_DE_PAGO 
-} from '../../constants/guatemalaLogistics';
-import { PaymentMethod } from '../../types';
+import { RerfColors } from '../../constants/theme';
+import { DEPARTAMENTOS_GUATEMALA } from '../../constants/guatemalaLogistics';
 
 export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ route, navigation }) => {
-  const { addShipment, warehouseItems, user } = useApp();
+  const { addShipment, warehouseItems, users, user } = useApp();
   const prefilled = route.params?.prefilledRecipient;
 
-  // 1. Origen (Recolección) - Campos limpios por defecto
-  const [senderName, setSenderName] = useState<string>('');
-  const [senderPhone, setSenderPhone] = useState<string>('');
-  const [pickupAddress, setPickupAddress] = useState<string>('');
-  const [pickupReferences, setPickupReferences] = useState<string>('');
+  // Campos Excalidraw Pantalla 13
+  const [recipient, setRecipient] = useState<string>(prefilled || '');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
+  const [reference, setReference] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('Hoy (14/10/2026)');
+  const [description, setDescription] = useState<string>('');
 
-  // 2. Destino (Quién recibe) - Campos limpios por defecto
-  const [recipientName, setRecipientName] = useState<string>(prefilled || '');
-  const [recipientPhone, setRecipientPhone] = useState<string>('');
-
-  // 3. Destino Geográfico
-  const [departamento, setDepartamento] = useState<string>('Guatemala');
-  const [municipio, setMunicipio] = useState<string>('Ciudad de Guatemala');
-  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
-  const [deliveryReferences, setDeliveryReferences] = useState<string>('');
-
-  // 4. Paquete / Contenido
-  const [contentType, setContentType] = useState<string>('Paquetería General');
-  const [weightLbs, setWeightLbs] = useState<string>('');
-  const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<string>('');
-
-  // 5. Pago y Facturación
-  const [paymentForm, setPaymentForm] = useState<string>('Pago Contra Entrega (Efectivo)');
-  const [nit, setNit] = useState<string>('');
-  const [billingInfo, setBillingInfo] = useState<string>('');
-
-  // Modales y control de envío
-  const [modalType, setModalType] = useState<'depto' | 'muni' | 'content' | 'payment' | null>(null);
+  // Modales
+  const [showRecipientModal, setShowRecipientModal] = useState<boolean>(false);
+  const [showWarehouseModal, setShowWarehouseModal] = useState<boolean>(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [showReceivedModal, setShowReceivedModal] = useState<boolean>(false);
   const [errorBanner, setErrorBanner] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [createdShipment, setCreatedShipment] = useState<any>(null);
 
-  // Función auxiliar para evaluación rápida del docente
-  const handleFillDemoData = (): void => {
-    setSenderName('Carlos Gómez');
-    setSenderPhone('44332211');
-    setPickupAddress('Km 15 Ruta al Atlántico, Comercial El Frutal, Local 5');
-    setPickupReferences('A la par de la farmacia, portón gris de metal');
-    setRecipientName('Juan Pérez');
-    setRecipientPhone('55554444');
-    setDepartamento('Guatemala');
-    setMunicipio('Ciudad de Guatemala');
-    setDeliveryAddress('3ra Avenida 4-22 Zona 1');
-    setDeliveryReferences('Frente a la tienda El Sol, portón de metal verde');
-    setContentType('Paquetería General');
-    setWeightLbs('5');
-    setNit('1234567-K');
-    setBillingInfo('Consumidor Final');
-    setErrorBanner('');
-  };
+  const selectedItem = warehouseItems.find(w => w.id === selectedWarehouseId);
 
-  // Lista de municipios dependiente del departamento actual
-  const currentMunicipios: string[] = MUNICIPIOS_POR_DEPARTAMENTO[departamento] || [
-    `Cabecera de ${departamento}`,
-    'Zona Central',
-    'Municipio Norte',
-    'Municipio Sur',
-  ];
-
-  const handleSubmit = async (): Promise<void> => {
-    if (!senderName || !senderPhone || !recipientName || !recipientPhone || !deliveryAddress) {
-      setErrorBanner('Por favor complete todos los datos requeridos de recolección y entrega.');
+  const handleValidateAndPromptConfirm = (): void => {
+    if (!recipient.trim()) {
+      setErrorBanner('Por favor ingrese el destinatario (Para).');
+      return;
+    }
+    if (!address.trim()) {
+      setErrorBanner('Por favor ingrese la dirección de entrega.');
+      return;
+    }
+    if (!description.trim() && !selectedItem) {
+      setErrorBanner('Por favor describa el paquete o seleccione uno de Mi Bodega.');
       return;
     }
 
     setErrorBanner('');
+    setShowConfirmModal(true); // Pantalla 14: ¿Desea confirmar la solicitud?
+  };
+
+  const handleExecuteSend = async (): Promise<void> => {
+    setShowConfirmModal(false);
     setIsSubmitting(true);
 
     try {
-      // Cálculo de tarifa en Quetzales
-      const lbs = parseFloat(weightLbs) || 1;
-      const deptoInfo = DEPARTAMENTOS_GUATEMALA.find(d => d.nombre === departamento);
-      const extraDepto = deptoInfo ? deptoInfo.recargoFleteQ : 10;
-      const baseCost = 35.00 + (lbs > 1 ? (lbs - 1) * 3.50 : 0) + extraDepto;
-
-      // Mapeo seguro a PaymentMethod
-      let mappedPayment: PaymentMethod = 'contra_entrega';
-      if (paymentForm.includes('Efectivo')) mappedPayment = 'efectivo';
-      else if (paymentForm.includes('Tarjeta')) mappedPayment = 'tarjeta';
-      else mappedPayment = 'contra_entrega';
-
       const randomCode = Math.floor(1000 + Math.random() * 9000);
       const trackingNumber = `RERF-${randomCode}`;
-
-      const fullDeliveryAddress = `${departamento}, ${municipio} — ${deliveryAddress}`;
-      const packageDescription = `${contentType} (${lbs} Lbs) • Ref: ${deliveryReferences || 'Sin referencia'}`;
+      const baseCost = selectedItem ? 45.00 : 35.00;
 
       const newShipment = await addShipment({
         tracking_number: trackingNumber,
         sender_id: user?.id || 'usr-001',
-        recipient_name: recipientName,
-        recipient_phone: recipientPhone,
-        delivery_address: fullDeliveryAddress,
-        address_references: deliveryReferences,
-        scheduled_date: new Date().toISOString().split('T')[0],
-        description: packageDescription,
+        recipient_name: recipient.trim(),
+        recipient_phone: '5555-1234',
+        delivery_address: address.trim(),
+        address_references: reference.trim(),
+        scheduled_date: '14/10/2026',
+        description: selectedItem ? `${selectedItem.product_type}: ${description}` : description,
         status: 'aprobado',
         payment_status: 'pendiente',
-        payment_method: mappedPayment,
+        payment_method: 'contra_entrega',
         total_amount: baseCost,
-        warehouse_item_id: selectedWarehouseItem || undefined,
-        agent_name: 'Piloto Juan Carlos Díaz (Unidad #14)',
+        warehouse_item_id: selectedWarehouseId || undefined,
+        agent_name: 'Piloto Juan Carlos (Unidad #12)',
       });
 
+      setCreatedShipment(newShipment);
       setIsSubmitting(false);
-
-      // Redirigir a pantalla de Aprobación
-      navigation.replace('AprobacionEnvio', { shipment: newShipment });
+      setShowReceivedModal(true); // Pantalla 14 Confirmación de solicitud recibida
     } catch {
       setIsSubmitting(false);
-      setErrorBanner('Error al generar la guía. Intente de nuevo.');
+      setErrorBanner('Error al procesar el envío. Intente de nuevo.');
     }
+  };
+
+  const handleContinueToApproved = (): void => {
+    setShowReceivedModal(false);
+    navigation.replace('AprobacionEnvio', { shipment: createdShipment });
   };
 
   return (
@@ -156,406 +120,270 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Header title="Registrar Envío" showBack={true} />
+      <Header title="Realizar Envío" showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Banner Modular Oficial RerF (Screenshot 4) */}
-        <ModuleBannerHeader
-          title="Registrar Nuevo Envío"
-          subtitle="Generación de guías de despacho y captura de datos exactos para distribución nacional."
-          iconName="cube-outline"
-          accentColor={RerfColors.logisticsBlue}
-        />
-
-        {/* Botón opcional para prueba rápida */}
-        <View style={styles.demoFillRow}>
-          <TouchableOpacity 
-            style={styles.demoFillBtn} 
-            onPress={handleFillDemoData}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="document-text-outline" size={14} color={RerfColors.logisticsBlue} />
-            <Text style={styles.demoFillText}>Rellenar datos de prueba</Text>
-          </TouchableOpacity>
-        </View>
-
         {errorBanner ? (
           <View style={styles.errorAlert}>
-            <Ionicons name="alert-circle" size={18} color={RerfColors.errorRed} />
+            <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
             <Text style={styles.errorAlertText}>{errorBanner}</Text>
           </View>
         ) : null}
 
-        {/* 1. ¿Dónde recogemos el paquete? (Origen) */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionTitleRow}>
-            <Ionicons name="location" size={18} color={RerfColors.logisticsBlue} />
-            <Text style={styles.sectionHeading}>1. ¿Dónde recogemos el paquete? (Origen)</Text>
-          </View>
-
-          <View style={styles.fieldsGrid}>
-            <View style={styles.fieldItem}>
-              <Text style={styles.label}>Nombre de quien envía (Remitente)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. Carlos Gómez"
-                placeholderTextColor="#94A3B8"
-                value={senderName}
-                onChangeText={setSenderName}
-              />
-            </View>
-
-            <View style={styles.fieldItem}>
-              <Text style={styles.label}>Teléfono del Remitente</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. 44332211"
-                placeholderTextColor="#94A3B8"
-                keyboardType="phone-pad"
-                value={senderPhone}
-                onChangeText={setSenderPhone}
-              />
-            </View>
-          </View>
-
-          <View style={styles.fullField}>
-            <Text style={styles.label}>Dirección Exacta de Recolección</Text>
+        {/* 1. Campo Para: [Usuario] */}
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Para:</Text>
+          <View style={styles.inputWithAction}>
             <TextInput
-              style={styles.input}
-              placeholder="Ej. Km 15 Ruta al Atlántico, Comercial El Frutal, Local 5"
+              style={styles.textInput}
+              placeholder="Nombre de destinatario"
               placeholderTextColor="#94A3B8"
-              value={pickupAddress}
-              onChangeText={setPickupAddress}
+              value={recipient}
+              onChangeText={setRecipient}
             />
-          </View>
-
-          <View style={styles.fullField}>
-            <Text style={styles.label}>Referencias para el Piloto (Recolección)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej. A la par de la farmacia, portón gris de metal"
-              placeholderTextColor="#94A3B8"
-              value={pickupReferences}
-              onChangeText={setPickupReferences}
-            />
-          </View>
-        </View>
-
-        {/* 2. ¿Quién recibe el paquete? (Destino) */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionTitleRow}>
-            <Ionicons name="person" size={18} color={RerfColors.logisticsBlue} />
-            <Text style={styles.sectionHeading}>2. ¿Quién recibe el paquete? (Destino)</Text>
-          </View>
-
-          <View style={styles.fieldsGrid}>
-            <View style={styles.fieldItem}>
-              <Text style={styles.label}>Nombre Completo</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. Juan Pérez"
-                placeholderTextColor="#94A3B8"
-                value={recipientName}
-                onChangeText={setRecipientName}
-              />
-            </View>
-
-            <View style={styles.fieldItem}>
-              <Text style={styles.label}>Teléfono de Contacto</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. 55554444"
-                placeholderTextColor="#94A3B8"
-                keyboardType="phone-pad"
-                value={recipientPhone}
-                onChangeText={setRecipientPhone}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* 3. ¿A dónde lo enviamos? */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionTitleRow}>
-            <Ionicons name="navigate" size={18} color={RerfColors.logisticsBlue} />
-            <Text style={styles.sectionHeading}>3. ¿A dónde lo enviamos?</Text>
-          </View>
-
-          <View style={styles.fieldsGrid}>
-            <View style={styles.fieldItem}>
-              <Text style={styles.label}>Departamento</Text>
-              <TouchableOpacity
-                style={styles.dropdownTrigger}
-                onPress={() => setModalType('depto')}
-              >
-                <Text style={styles.dropdownValue}>{departamento}</Text>
-                <Ionicons name="chevron-down" size={16} color={RerfColors.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.fieldItem}>
-              <Text style={styles.label}>Municipio</Text>
-              <TouchableOpacity
-                style={styles.dropdownTrigger}
-                onPress={() => setModalType('muni')}
-              >
-                <Text style={styles.dropdownValue}>{municipio}</Text>
-                <Ionicons name="chevron-down" size={16} color={RerfColors.textMuted} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.fullField}>
-            <Text style={styles.label}>Dirección Exacta de Entrega</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej. 3ra Avenida 4-22 Zona 1"
-              placeholderTextColor="#94A3B8"
-              value={deliveryAddress}
-              onChangeText={setDeliveryAddress}
-            />
-          </View>
-
-          <View style={styles.fullField}>
-            <Text style={styles.label}>Referencias para el Motorista (Entrega)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej. Frente a la tienda El Sol, portón de metal verde"
-              placeholderTextColor="#94A3B8"
-              value={deliveryReferences}
-              onChangeText={setDeliveryReferences}
-            />
-          </View>
-        </View>
-
-        {/* 4. ¿Qué estás enviando? */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionTitleRow}>
-            <Ionicons name="cube" size={18} color={RerfColors.logisticsBlue} />
-            <Text style={styles.sectionHeading}>4. ¿Qué estás enviando?</Text>
-          </View>
-
-          <View style={styles.fieldsGrid}>
-            <View style={[styles.fieldItem, { flex: 2 }]}>
-              <Text style={styles.label}>Tipo de Contenido</Text>
-              <TouchableOpacity
-                style={styles.dropdownTrigger}
-                onPress={() => setModalType('content')}
-              >
-                <Text style={styles.dropdownValue} numberOfLines={1}>{contentType}</Text>
-                <Ionicons name="chevron-down" size={16} color={RerfColors.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={[styles.fieldItem, { flex: 1 }]}>
-              <Text style={styles.label}>Peso Estimado</Text>
-              <View style={styles.inputWithSuffix}>
-                <TextInput
-                  style={styles.innerSuffixInput}
-                  value={weightLbs}
-                  onChangeText={setWeightLbs}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor="#94A3B8"
-                />
-                <View style={styles.suffixBadge}>
-                  <Text style={styles.suffixBadgeText}>lbs</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Opción adicional para despacho directo desde bodega si tiene stock */}
-          {warehouseItems.length > 0 && (
-            <View style={styles.warehouseOption}>
-              <Text style={styles.subLabel}>¿Despachar desde Mi Bodega RerF?</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.warehouseList}>
-                <TouchableOpacity
-                  style={[styles.warehouseChip, !selectedWarehouseItem && styles.warehouseChipActive]}
-                  onPress={() => setSelectedWarehouseItem('')}
-                >
-                  <Text style={[styles.warehouseChipText, !selectedWarehouseItem && styles.warehouseChipTextActive]}>
-                    Paquete Físico Nuevo
-                  </Text>
-                </TouchableOpacity>
-                {warehouseItems.map(item => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[styles.warehouseChip, selectedWarehouseItem === item.id && styles.warehouseChipActive]}
-                    onPress={() => {
-                      setSelectedWarehouseItem(item.id);
-                      setContentType(item.product_type);
-                    }}
-                  >
-                    <Text style={[styles.warehouseChipText, selectedWarehouseItem === item.id && styles.warehouseChipTextActive]}>
-                      {item.product_type} ({item.storage_code})
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-        </View>
-
-        {/* 5. Información de Pago */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionTitleRow}>
-            <Ionicons name="card" size={18} color={RerfColors.heroDark} />
-            <Text style={[styles.sectionHeading, { color: RerfColors.heroDark }]}>5. Información de Pago</Text>
-          </View>
-
-          <View style={styles.fullField}>
-            <Text style={styles.label}>Forma de Pago</Text>
-            <TouchableOpacity
-              style={styles.dropdownTrigger}
-              onPress={() => setModalType('payment')}
+            <TouchableOpacity 
+              style={styles.tagButton}
+              onPress={() => setShowRecipientModal(true)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.dropdownValue}>{paymentForm}</Text>
-              <Ionicons name="chevron-down" size={16} color={RerfColors.textMuted} />
+              <Text style={styles.tagButtonText}>Usuario</Text>
             </TouchableOpacity>
           </View>
+        </View>
 
-          <View style={styles.fieldsGrid}>
-            <View style={styles.fieldItem}>
-              <Text style={styles.label}>NIT (Opcional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. 1234567-K"
-                placeholderTextColor="#94A3B8"
-                value={nit}
-                onChangeText={setNit}
-              />
-            </View>
-
-            <View style={styles.fieldItem}>
-              <Text style={styles.label}>Datos de Facturación</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. Consumidor Final"
-                placeholderTextColor="#94A3B8"
-                value={billingInfo}
-                onChangeText={setBillingInfo}
-              />
-            </View>
+        {/* 2. Campo Paquete: [Bodega] */}
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Paquete:</Text>
+          <View style={styles.inputWithAction}>
+            <TextInput
+              style={styles.textInput}
+              placeholder={selectedItem ? `${selectedItem.product_type} (${selectedItem.storage_code})` : "Paquete estándar nuevo"}
+              placeholderTextColor="#94A3B8"
+              editable={false}
+            />
+            <TouchableOpacity 
+              style={styles.tagButton}
+              onPress={() => setShowWarehouseModal(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tagButtonText}>Bodega</Text>
+            </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Botón Acción Principal RerF (Screenshot 4 y 5) */}
-          <Button
-            title="Generar Guía RerF"
-            variant="yellow"
-            icon={<Ionicons name="document-text" size={18} color={RerfColors.primaryYellowText} />}
-            loading={isSubmitting}
-            onPress={handleSubmit}
-            style={styles.generateBtn}
+        {/* 3. Campo Dirección */}
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Dirección:</Text>
+          <TextInput
+            style={styles.textInputFull}
+            placeholder="Zona, calle, número y departamento"
+            placeholderTextColor="#94A3B8"
+            value={address}
+            onChangeText={setAddress}
           />
+        </View>
+
+        {/* 4. Campo Referencia */}
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Referencia:</Text>
+          <TextInput
+            style={styles.textInputFull}
+            placeholder="Puntos de referencia para entrega"
+            placeholderTextColor="#94A3B8"
+            value={reference}
+            onChangeText={setReference}
+          />
+        </View>
+
+        {/* 5. Campo Seleccionar Fecha [ 📅 ] */}
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Seleccionar Fecha:</Text>
+          <TouchableOpacity 
+            style={styles.dateSelector}
+            onPress={() => {
+              const dates = ['Hoy (14/10/2026)', 'Mañana (15/10/2026)', 'Próximo Lunes (19/10/2026)'];
+              const nextIndex = (dates.indexOf(selectedDate) + 1) % dates.length;
+              setSelectedDate(dates[nextIndex]);
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.dateValue}>{selectedDate}</Text>
+            <Ionicons name="calendar-outline" size={20} color="#0F172A" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 6. Campo Descripción */}
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Descripción:</Text>
+          <TextInput
+            style={[styles.textInputFull, styles.textArea]}
+            placeholder="Detalles del paquete, contenido y notas especiales"
+            placeholderTextColor="#94A3B8"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+
+        {/* Botones inferiores Excalidraw: [ Cancelar ] [ Enviar ] */}
+        <View style={styles.bottomButtonsRow}>
+          <TouchableOpacity 
+            style={styles.cancelBtn}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cancelBtnText}>Cancelar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.sendBtn, isSubmitting && styles.disabledBtn]}
+            onPress={handleValidateAndPromptConfirm}
+            disabled={isSubmitting}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.sendBtnText}>Enviar</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Modal Genérico de Selección (Departamentos, Municipios, Tipos, Pago) */}
+      {/* Modal Seleccionar Destinatario Usuario */}
       <Modal
-        visible={modalType !== null}
-        animationType="slide"
+        visible={showRecipientModal}
         transparent={true}
-        onRequestClose={() => setModalType(null)}
+        animationType="fade"
+        onRequestClose={() => setShowRecipientModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {modalType === 'depto' && 'Seleccionar Departamento'}
-                {modalType === 'muni' && `Seleccionar Municipio (${departamento})`}
-                {modalType === 'content' && 'Seleccionar Tipo de Contenido'}
-                {modalType === 'payment' && 'Seleccionar Forma de Pago'}
-              </Text>
-              <TouchableOpacity onPress={() => setModalType(null)}>
-                <Ionicons name="close-circle" size={24} color={RerfColors.textMuted} />
+          <View style={styles.selectorCard}>
+            <Text style={styles.modalTitle}>Seleccionar Usuario de Contacto</Text>
+            <ScrollView style={{ maxHeight: 260 }}>
+              {users.map(u => (
+                <TouchableOpacity
+                  key={u.id}
+                  style={styles.userPickRow}
+                  onPress={() => {
+                    setRecipient(`${u.first_name} ${u.last_name}`);
+                    if (u.address) setAddress(u.address);
+                    setShowRecipientModal(false);
+                  }}
+                >
+                  <Text style={styles.userPickName}>{u.first_name} {u.last_name}</Text>
+                  <Text style={styles.userPickEmail}>{u.email}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity 
+              style={styles.closeModalBtn}
+              onPress={() => setShowRecipientModal(false)}
+            >
+              <Text style={styles.closeModalText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Seleccionar Bodega */}
+      <Modal
+        visible={showWarehouseModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowWarehouseModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.selectorCard}>
+            <Text style={styles.modalTitle}>Despachar desde Mi Bodega</Text>
+            <ScrollView style={{ maxHeight: 260 }}>
+              <TouchableOpacity
+                style={[styles.userPickRow, !selectedWarehouseId && styles.activePickRow]}
+                onPress={() => {
+                  setSelectedWarehouseId('');
+                  setShowWarehouseModal(false);
+                }}
+              >
+                <Text style={styles.userPickName}>Paquete Estándar Nuevo (Sin Bodega)</Text>
+              </TouchableOpacity>
+              {warehouseItems.map(item => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.userPickRow, selectedWarehouseId === item.id && styles.activePickRow]}
+                  onPress={() => {
+                    setSelectedWarehouseId(item.id);
+                    setDescription(item.description);
+                    setShowWarehouseModal(false);
+                  }}
+                >
+                  <Text style={styles.userPickName}>{item.product_type} ({item.storage_code})</Text>
+                  <Text style={styles.userPickEmail}>{item.description}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity 
+              style={styles.closeModalBtn}
+              onPress={() => setShowWarehouseModal(false)}
+            >
+              <Text style={styles.closeModalText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Pantalla 14 Modal 1: ¿Desea confirmar la solicitud? [ X ] [ ✓ ] */}
+      <Modal
+        visible={showConfirmModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.sketchConfirmCard}>
+            <Text style={styles.sketchAppName}>RERF APP</Text>
+            <Text style={styles.sketchPromptText}>¿Desea confirmar la solicitud?</Text>
+            
+            <View style={styles.sketchConfirmActionsRow}>
+              {/* Botón [ X ] Rojo */}
+              <TouchableOpacity 
+                style={[styles.sketchSquareBtn, styles.redSquareBtn]}
+                onPress={() => setShowConfirmModal(false)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={24} color="#DC2626" />
+              </TouchableOpacity>
+
+              {/* Botón [ ✓ ] Verde */}
+              <TouchableOpacity 
+                style={[styles.sketchSquareBtn, styles.greenSquareBtn]}
+                onPress={handleExecuteSend}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="checkmark" size={24} color="#16A34A" />
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
 
-            {modalType === 'depto' && (
-              <FlatList
-                data={DEPARTAMENTOS_GUATEMALA}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[styles.modalOption, departamento === item.nombre && styles.modalOptionActive]}
-                    onPress={() => {
-                      setDepartamento(item.nombre);
-                      const defaultMuni = MUNICIPIOS_POR_DEPARTAMENTO[item.nombre]?.[0] || `Cabecera de ${item.nombre}`;
-                      setMunicipio(defaultMuni);
-                      setModalType(null);
-                    }}
-                  >
-                    <Text style={[styles.modalOptionText, departamento === item.nombre && styles.modalOptionTextActive]}>
-                      {item.nombre}
-                    </Text>
-                    <Text style={styles.modalOptionSub}>
-                      {item.recargoFleteQ === 0 ? 'Hub Central' : `+Q${item.recargoFleteQ}`}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-
-            {modalType === 'muni' && (
-              <FlatList
-                data={currentMunicipios}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[styles.modalOption, municipio === item && styles.modalOptionActive]}
-                    onPress={() => {
-                      setMunicipio(item);
-                      setModalType(null);
-                    }}
-                  >
-                    <Text style={[styles.modalOptionText, municipio === item && styles.modalOptionTextActive]}>
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-
-            {modalType === 'content' && (
-              <FlatList
-                data={TIPOS_CONTENIDO_ENVIO}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[styles.modalOption, contentType === item && styles.modalOptionActive]}
-                    onPress={() => {
-                      setContentType(item);
-                      setModalType(null);
-                    }}
-                  >
-                    <Text style={[styles.modalOptionText, contentType === item && styles.modalOptionTextActive]}>
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-
-            {modalType === 'payment' && (
-              <FlatList
-                data={FORMAS_DE_PAGO}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[styles.modalOption, paymentForm === item && styles.modalOptionActive]}
-                    onPress={() => {
-                      setPaymentForm(item);
-                      setModalType(null);
-                    }}
-                  >
-                    <Text style={[styles.modalOptionText, paymentForm === item && styles.modalOptionTextActive]}>
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
+      {/* Pantalla 14 Modal 2: "Tu gestión de envío fue recibida..." [ ✓ ] */}
+      <Modal
+        visible={showReceivedModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleContinueToApproved}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.sketchConfirmCard}>
+            <Text style={styles.sketchAppName}>RERF APP</Text>
+            <Text style={styles.sketchReceivedText}>
+              Tu gestión de envío fue recibida, en breve obtendrás una confirmación.
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.sketchSquareBtn, styles.greenSquareBtn, { marginTop: 16 }]}
+              onPress={handleContinueToApproved}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="checkmark" size={24} color="#16A34A" />
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -566,241 +394,247 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: RerfColors.background,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
+    padding: 20,
     paddingBottom: 40,
-  },
-  demoFillRow: {
-    marginHorizontal: 16,
-    marginBottom: 10,
-    alignItems: 'flex-end',
-  },
-  demoFillBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: RerfColors.logisticsBlueLight,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: RerfColors.logisticsBlueBorder,
-  },
-  demoFillText: {
-    fontSize: 11,
-    color: RerfColors.logisticsBlue,
-    fontWeight: '700',
   },
   errorAlert: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: RerfColors.errorRedLight,
+    backgroundColor: '#FEF2F2',
     padding: 12,
-    borderRadius: 8,
-    marginHorizontal: 16,
-    marginBottom: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
   },
   errorAlertText: {
-    color: RerfColors.errorRed,
     fontSize: 12,
+    color: '#DC2626',
     fontWeight: '700',
     flex: 1,
   },
-  sectionCard: {
-    backgroundColor: RerfColors.surfaceCard,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 14,
-    ...RerfShadows.card,
+  fieldRow: {
+    marginBottom: 16,
   },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  sectionHeading: {
+  fieldLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: RerfColors.logisticsBlue,
+    color: '#0F172A',
+    marginBottom: 6,
   },
-  fieldsGrid: {
+  inputWithAction: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 10,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    height: 48,
   },
-  fieldItem: {
+  textInput: {
     flex: 1,
-  },
-  fullField: {
-    marginBottom: 10,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: RerfColors.textMain,
-    marginBottom: 6,
-  },
-  subLabel: {
-    fontSize: 11,
+    height: '100%',
+    paddingHorizontal: 8,
+    fontSize: 14,
+    color: '#0F172A',
     fontWeight: '600',
-    color: RerfColors.textSecondary,
-    marginBottom: 6,
-    marginTop: 8,
   },
-  input: {
-    height: 42,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    fontSize: 13,
-    color: RerfColors.textMain,
+  tagButton: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  tagButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  textInputFull: {
+    height: 48,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '600',
     backgroundColor: '#FFFFFF',
   },
-  dropdownTrigger: {
-    height: 42,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    backgroundColor: '#FFFFFF',
+  textArea: {
+    height: 80,
+    paddingTop: 10,
+    textAlignVertical: 'top',
+  },
+  dateSelector: {
+    height: 48,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 12,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  dropdownValue: {
-    fontSize: 13,
-    color: RerfColors.textMain,
-    fontWeight: '600',
-    flex: 1,
-  },
-  inputWithSuffix: {
-    height: 42,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    borderRadius: 6,
     backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
   },
-  innerSuffixInput: {
-    flex: 1,
-    height: '100%',
-    paddingHorizontal: 10,
-    fontSize: 13,
+  dateValue: {
+    fontSize: 14,
     fontWeight: '700',
-    color: RerfColors.textMain,
+    color: '#0F172A',
   },
-  suffixBadge: {
-    backgroundColor: RerfColors.surfaceSubtle,
-    height: '100%',
-    paddingHorizontal: 10,
+  bottomButtonsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 20,
+  },
+  cancelBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
-    borderLeftWidth: 1,
-    borderLeftColor: RerfColors.surfaceCardBorder,
   },
-  suffixBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: RerfColors.textSecondary,
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  warehouseOption: {
-    marginTop: 6,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+  sendBtn: {
+    flex: 1.2,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  warehouseList: {
-    flexDirection: 'row',
+  sendBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  warehouseChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: RerfColors.surfaceSubtle,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    marginRight: 8,
-  },
-  warehouseChipActive: {
-    backgroundColor: RerfColors.logisticsBlueLight,
-    borderColor: RerfColors.logisticsBlue,
-  },
-  warehouseChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: RerfColors.textSecondary,
-  },
-  warehouseChipTextActive: {
-    color: RerfColors.logisticsBlue,
-    fontWeight: '700',
-  },
-  generateBtn: {
-    marginTop: 14,
-    borderRadius: 6,
+  disabledBtn: {
+    opacity: 0.6,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    maxHeight: '70%',
-    padding: 16,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: RerfColors.surfaceCardBorder,
-    marginBottom: 8,
+    padding: 24,
+  },
+  selectorCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    padding: 20,
   },
   modalTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
-    color: RerfColors.textMain,
+    color: '#0F172A',
+    marginBottom: 14,
+    textAlign: 'center',
   },
-  modalOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+  userPickRow: {
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  modalOptionActive: {
-    backgroundColor: RerfColors.logisticsBlueLight,
-    borderRadius: 6,
+  activePickRow: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    borderRadius: 8,
   },
-  modalOptionText: {
+  userPickName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  userPickEmail: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  closeModalBtn: {
+    marginTop: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    alignItems: 'center',
+  },
+  closeModalText: {
     fontSize: 13,
-    color: RerfColors.textMain,
-    fontWeight: '500',
+    fontWeight: '700',
+    color: '#0F172A',
   },
-  modalOptionTextActive: {
-    color: RerfColors.logisticsBlue,
-    fontWeight: '800',
+  sketchConfirmCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  modalOptionSub: {
-    fontSize: 11,
-    color: RerfColors.textMuted,
-    fontWeight: '600',
+  sketchAppName: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  sketchPromptText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#334155',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  sketchReceivedText: {
+    fontSize: 14,
+    color: '#334155',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  sketchConfirmActionsRow: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  sketchSquareBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  redSquareBtn: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+  },
+  greenSquareBtn: {
+    borderColor: '#16A34A',
+    backgroundColor: '#DCFCE7',
   },
 });

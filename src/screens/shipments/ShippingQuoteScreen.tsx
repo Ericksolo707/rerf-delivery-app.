@@ -1,9 +1,15 @@
 /**
- * ShippingQuoteScreen.tsx - Calculadora de Tarifas y Proyección de Costos
+ * ShippingQuoteScreen.tsx - Pantalla 26 Cotizador de Envío (Boceto Excalidraw)
  * Programación II - UMG / RerF Logistics
  *
- * Responsabilidad: Cotización en tiempo real de fletes en Quetzales (Q)
- * y peso en Libras (Lbs.) para distribución nacional en Guatemala (Screenshot 3).
+ * Responsabilidad: Pantalla 26 del boceto Excalidraw con:
+ * - Header: "Cotizador" con botones [ ! ] y [ -> ]
+ * - Rombito central "LOGO" + "Cotizador RERF APP"
+ * - Campo: "Cantidad:"
+ * - Campo: "Peso estimado (kg/lb):"
+ * - Selector: "Material:" [ Frágil ] [ Fuerte ]
+ * - Campo de salida: "Total estimado:"
+ * - Botón inferior: [ Cotizar ]
  */
 
 import React, { useState } from 'react';
@@ -12,325 +18,115 @@ import {
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity, 
-  TextInput,
-  Modal,
-  FlatList
+  TextInput, 
+  TouchableOpacity 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Button } from '../../components/Button';
-import { ModuleBannerHeader } from '../../components/ModuleBannerHeader';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors, RerfShadows } from '../../constants/theme';
-import { DEPARTAMENTOS_GUATEMALA, DepartamentoInfo } from '../../constants/guatemalaLogistics';
+import { RerfColors } from '../../constants/theme';
 
 export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = ({ navigation }) => {
-  // Estado del formulario
-  const [origen, setOrigen] = useState<string>('Guatemala');
-  const [destino, setDestino] = useState<string>('');
-  const [pesoLbs, setPesoLbs] = useState<string>('1');
-  const [valorMercanciaQ, setValorMercanciaQ] = useState<string>('0');
+  const [quantity, setQuantity] = useState<string>('1');
+  const [weight, setWeight] = useState<string>('5');
+  const [material, setMaterial] = useState<'fragil' | 'fuerte'>('fragil');
+  const [totalEstimated, setTotalEstimated] = useState<string>('Q 45.00');
 
-  // Estado del modal de selección de departamento
-  const [pickerTarget, setPickerTarget] = useState<'origen' | 'destino' | null>(null);
+  const handleCotizar = (): void => {
+    const qty = parseInt(quantity, 10) || 1;
+    const w = parseFloat(weight) || 1;
+    const materialSurcharge = material === 'fragil' ? 15.00 : 5.00;
+    const baseRate = 25.00;
+    const weightRate = w > 1 ? (w - 1) * 3.50 : 0;
+    const total = (baseRate + weightRate + materialSurcharge) * qty;
 
-  // Estado del cálculo
-  interface CostProjection {
-    origen: string;
-    destino: string;
-    pesoLbs: number;
-    valorMercanciaQ: number;
-    fleteBaseQ: number;
-    costoPorPesoQ: number;
-    seguroMercanciaQ: number;
-    recargoRegionalQ: number;
-    totalQ: number;
-  }
-
-  const [projection, setProjection] = useState<CostProjection | null>(null);
-  const [formError, setFormError] = useState<string>('');
-
-  const handleCalculate = (): void => {
-    if (!origen) {
-      setFormError('Por favor selecciona el origen de recolección.');
-      return;
-    }
-    if (!destino) {
-      setFormError('Por favor selecciona el departamento de destino.');
-      return;
-    }
-
-    const lbs = parseFloat(pesoLbs) || 1;
-    const valor = parseFloat(valorMercanciaQ) || 0;
-
-    // Lógica tarifaria oficial Guatemala:
-    // Flete base dentro de la misma región Q25.00
-    const fleteBaseQ = 25.00;
-    // Cada libra después de la 1era: Q3.50 / lb
-    const costoPorPesoQ = lbs > 1 ? (lbs - 1) * 3.50 : 0;
-    // Seguro de mercancía: 1.5% del valor declarado (mínimo Q5.00 si valor > 0)
-    const seguroMercanciaQ = valor > 0 ? Math.max(5.00, valor * 0.015) : 0;
-    
-    // Recargo por distancia geográfica departamental
-    const infoDestino = DEPARTAMENTOS_GUATEMALA.find(d => d.nombre === destino);
-    const recargoRegionalQ = infoDestino ? infoDestino.recargoFleteQ : 15.00;
-
-    const totalQ = fleteBaseQ + costoPorPesoQ + seguroMercanciaQ + recargoRegionalQ;
-
-    setFormError('');
-    setProjection({
-      origen,
-      destino,
-      pesoLbs: lbs,
-      valorMercanciaQ: valor,
-      fleteBaseQ,
-      costoPorPesoQ,
-      seguroMercanciaQ,
-      recargoRegionalQ,
-      totalQ,
-    });
-  };
-
-  const handleSelectDepartamento = (nombre: string): void => {
-    if (pickerTarget === 'origen') {
-      setOrigen(nombre);
-    } else if (pickerTarget === 'destino') {
-      setDestino(nombre);
-    }
-    setPickerTarget(null);
+    setTotalEstimated(`Q ${total.toFixed(2)}`);
   };
 
   return (
     <View style={styles.container}>
-      <Header title="Calculadora de Tarifas" showBack={true} />
+      <Header title="Cotizador" showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Banner Modular Oficial RerF (Screenshot 3) */}
-        <ModuleBannerHeader
-          title="Calculadora de Tarifas"
-          subtitle="Módulo operativo para la cotización de fletes y proyección de costos netos."
-          iconName="calculator-outline"
-          accentColor={RerfColors.primaryYellow}
-        />
-
-        {/* Tarjeta de Formulario de Cotización */}
-        <View style={styles.card}>
-          {/* Sección 1: Ruta Nacional de Distribución */}
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="map-outline" size={18} color={RerfColors.logisticsBlue} />
-            <Text style={styles.sectionTitle}>Ruta Nacional de Distribución</Text>
+        {/* LOGO Rómbico Central y Cotizador RERF APP */}
+        <View style={styles.logoContainer}>
+          <Text style={styles.cotizadorHeaderTitle}>Cotizador</Text>
+          <Text style={styles.cotizadorHeaderSubtitle}>RERF APP</Text>
+          <View style={styles.diamondBox}>
+            <Text style={styles.diamondText}>LOGO</Text>
           </View>
-
-          <View style={styles.fieldGrid}>
-            {/* Origen */}
-            <View style={styles.fieldCol}>
-              <Text style={styles.fieldLabel}>
-                <Ionicons name="location" size={13} color="#EF4444" /> Origen (Recolección)
-              </Text>
-              <TouchableOpacity
-                style={styles.selectTrigger}
-                onPress={() => setPickerTarget('origen')}
-                activeOpacity={0.7}
-              >
-                <Text style={origen ? styles.selectValueText : styles.selectPlaceholderText}>
-                  {origen || 'Selecciona origen...'}
-                </Text>
-                <Ionicons name="chevron-down" size={16} color={RerfColors.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Destino */}
-            <View style={styles.fieldCol}>
-              <Text style={styles.fieldLabel}>
-                <Ionicons name="flag" size={13} color="#10B981" /> Destino (Entrega)
-              </Text>
-              <TouchableOpacity
-                style={styles.selectTrigger}
-                onPress={() => setPickerTarget('destino')}
-                activeOpacity={0.7}
-              >
-                <Text style={destino ? styles.selectValueText : styles.selectPlaceholderText}>
-                  {destino || 'Selecciona destino...'}
-                </Text>
-                <Ionicons name="chevron-down" size={16} color={RerfColors.textMuted} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Sección 2: Métricas del Paquete */}
-          <View style={[styles.sectionHeaderRow, { marginTop: 16 }]}>
-            <Ionicons name="cube-outline" size={18} color={RerfColors.logisticsBlue} />
-            <Text style={styles.sectionTitle}>Métricas del Paquete</Text>
-          </View>
-
-          <View style={styles.fieldGrid}>
-            {/* Peso */}
-            <View style={styles.fieldCol}>
-              <Text style={styles.fieldLabel}>Peso del Paquete</Text>
-              <View style={styles.inputWithSuffix}>
-                <TextInput
-                  style={styles.innerInput}
-                  value={pesoLbs}
-                  onChangeText={setPesoLbs}
-                  keyboardType="numeric"
-                  placeholder="1"
-                  placeholderTextColor="#94A3B8"
-                />
-                <View style={styles.suffixBadge}>
-                  <Text style={styles.suffixBadgeText}>Lbs.</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Costo Mercancía */}
-            <View style={styles.fieldCol}>
-              <Text style={styles.fieldLabel}>Costo de la Mercancía (Valor)</Text>
-              <View style={styles.inputWithPrefix}>
-                <View style={styles.prefixBadge}>
-                  <Text style={styles.prefixBadgeText}>Q</Text>
-                </View>
-                <TextInput
-                  style={styles.innerInput}
-                  value={valorMercanciaQ}
-                  onChangeText={setValorMercanciaQ}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor="#94A3B8"
-                />
-              </View>
-            </View>
-          </View>
-
-          {formError ? (
-            <Text style={styles.errorText}>{formError}</Text>
-          ) : null}
-
-          {/* Botón CTA Amarillo Corporativo */}
-          <Button
-            title="Calcular y Guardar Cotización"
-            icon={<Ionicons name="calculator-outline" size={18} color={RerfColors.primaryYellowText} />}
-            variant="yellow"
-            onPress={handleCalculate}
-            style={styles.calcButton}
-          />
         </View>
 
-        {/* Tarjeta de Proyección de Costos (Screenshot 3) */}
-        <View style={styles.projectionCard}>
-          <View style={styles.projectionHeader}>
-            <Ionicons name="receipt-outline" size={18} color={RerfColors.logisticsBlue} />
-            <Text style={styles.sectionTitle}>Proyección de Costos</Text>
-          </View>
-
-          {!projection ? (
-            <View style={styles.emptyProjection}>
-              <View style={styles.emptyReceiptIcon}>
-                <Ionicons name="receipt-outline" size={44} color="#CBD5E1" />
-              </View>
-              <Text style={styles.emptyProjectionTitle}>Listo para calcular</Text>
-              <Text style={styles.emptyProjectionSubtitle}>
-                Ingresa la ruta y métricas del paquete para generar la proyección de costos de distribución.
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.receiptContainer}>
-              <View style={styles.routePill}>
-                <Text style={styles.routePillText}>
-                  {projection.origen} a {projection.destino}
-                </Text>
-              </View>
-
-              <View style={styles.costItemRow}>
-                <Text style={styles.costItemLabel}>Flete Base Nacional:</Text>
-                <Text style={styles.costItemValue}>Q {projection.fleteBaseQ.toFixed(2)}</Text>
-              </View>
-
-              <View style={styles.costItemRow}>
-                <Text style={styles.costItemLabel}>
-                  Tarifa por Peso ({projection.pesoLbs} Lbs):
-                </Text>
-                <Text style={styles.costItemValue}>Q {projection.costoPorPesoQ.toFixed(2)}</Text>
-              </View>
-
-              <View style={styles.costItemRow}>
-                <Text style={styles.costItemLabel}>Seguro de Mercancía:</Text>
-                <Text style={styles.costItemValue}>Q {projection.seguroMercanciaQ.toFixed(2)}</Text>
-              </View>
-
-              <View style={styles.costItemRow}>
-                <Text style={styles.costItemLabel}>Recargo Departamental ({projection.destino}):</Text>
-                <Text style={styles.costItemValue}>Q {projection.recargoRegionalQ.toFixed(2)}</Text>
-              </View>
-
-              <View style={styles.receiptDivider} />
-
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total Proyectado:</Text>
-                <Text style={styles.totalValue}>Q {projection.totalQ.toFixed(2)}</Text>
-              </View>
-
-              <Button
-                title="Registrar Envío con esta Cotización"
-                icon={<Ionicons name="document-text-outline" size={18} color="#FFFFFF" />}
-                variant="blue"
-                onPress={() => navigation.navigate('RealizarEnvio')}
-                style={styles.proceedButton}
-              />
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      {/* Modal Selector de Departamento de Guatemala */}
-      <Modal
-        visible={pickerTarget !== null}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setPickerTarget(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Seleccionar {pickerTarget === 'origen' ? 'Origen (Recolección)' : 'Destino (Entrega)'}
-              </Text>
-              <TouchableOpacity onPress={() => setPickerTarget(null)}>
-                <Ionicons name="close-circle" size={24} color={RerfColors.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={DEPARTAMENTOS_GUATEMALA}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const isSelected = (pickerTarget === 'origen' ? origen : destino) === item.nombre;
-                return (
-                  <TouchableOpacity
-                    style={[styles.modalItem, isSelected && styles.modalItemSelected]}
-                    onPress={() => handleSelectDepartamento(item.nombre)}
-                  >
-                    <View style={styles.modalItemLeft}>
-                      <Ionicons 
-                        name="location-outline" 
-                        size={18} 
-                        color={isSelected ? RerfColors.logisticsBlue : RerfColors.textMuted} 
-                      />
-                      <Text style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>
-                        {item.nombre}
-                      </Text>
-                    </View>
-                    <Text style={styles.modalItemZona}>
-                      {item.recargoFleteQ === 0 ? 'Hub Central' : `+Q${item.recargoFleteQ}`}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              }}
+        {/* Formulario Estilo Boceto Pantalla 26 */}
+        <View style={styles.formContainer}>
+          {/* 1. Cantidad */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Cantidad:</Text>
+            <TextInput
+              style={styles.textInput}
+              value={quantity}
+              onChangeText={setQuantity}
+              keyboardType="numeric"
+              placeholder="1"
             />
           </View>
+
+          {/* 2. Peso estimado (kg/lb) */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Peso estimado (kg/lb):</Text>
+            <TextInput
+              style={styles.textInput}
+              value={weight}
+              onChangeText={setWeight}
+              keyboardType="numeric"
+              placeholder="5"
+            />
+          </View>
+
+          {/* 3. Material: [ Frágil ] [ Fuerte ] */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Material:</Text>
+            <View style={styles.toggleRow}>
+              <TouchableOpacity
+                style={[styles.toggleBtn, material === 'fragil' && styles.toggleBtnActive]}
+                onPress={() => setMaterial('fragil')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.toggleBtnText, material === 'fragil' && styles.toggleBtnTextActive]}>
+                  Frágil
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.toggleBtn, material === 'fuerte' && styles.toggleBtnActive]}
+                onPress={() => setMaterial('fuerte')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.toggleBtnText, material === 'fuerte' && styles.toggleBtnTextActive]}>
+                  Fuerte
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 4. Total estimado */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Total estimado:</Text>
+            <View style={styles.totalBox}>
+              <Text style={styles.totalText}>{totalEstimated}</Text>
+            </View>
+          </View>
+
+          {/* Botón [ Cotizar ] */}
+          <TouchableOpacity
+            style={styles.cotizarBtn}
+            onPress={handleCotizar}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.cotizarBtnText}>Cotizar</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </ScrollView>
     </View>
   );
 };
@@ -338,286 +134,127 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: RerfColors.background,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
-    paddingBottom: 32,
+    padding: 24,
+    paddingBottom: 40,
   },
-  card: {
-    backgroundColor: RerfColors.surfaceCard,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    ...RerfShadows.card,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
+  logoContainer: {
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    marginBottom: 24,
   },
-  sectionTitle: {
+  cotizadorHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  cotizadorHeaderSubtitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: RerfColors.logisticsBlue,
+    color: '#64748B',
+    marginBottom: 12,
   },
-  fieldGrid: {
+  diamondBox: {
+    width: 60,
+    height: 60,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    borderRadius: 10,
+    transform: [{ rotate: '45deg' }],
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginVertical: 14,
+  },
+  diamondText: {
+    transform: [{ rotate: '-45deg' }],
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.5,
+  },
+  formContainer: {
+    gap: 16,
+  },
+  fieldBlock: {
+    gap: 6,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  textInput: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '600',
+    backgroundColor: '#FFFFFF',
+    height: 48,
+  },
+  toggleRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  fieldCol: {
+  toggleBtn: {
     flex: 1,
-  },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: RerfColors.textMain,
-    marginBottom: 6,
-  },
-  selectTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 44,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    borderRadius: 6,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-  },
-  selectValueText: {
-    fontSize: 13,
-    color: RerfColors.textMain,
-    fontWeight: '600',
-  },
-  selectPlaceholderText: {
-    fontSize: 13,
-    color: '#94A3B8',
-  },
-  inputWithSuffix: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 44,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    borderRadius: 6,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-  },
-  suffixBadge: {
-    backgroundColor: RerfColors.surfaceSubtle,
-    height: '100%',
-    paddingHorizontal: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    borderLeftWidth: 1,
-    borderLeftColor: RerfColors.surfaceCardBorder,
   },
-  suffixBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: RerfColors.textSecondary,
+  toggleBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#2563EB',
+    borderWidth: 2,
   },
-  inputWithPrefix: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 44,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    borderRadius: 6,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-  },
-  prefixBadge: {
-    backgroundColor: RerfColors.surfaceSubtle,
-    height: '100%',
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: RerfColors.surfaceCardBorder,
-  },
-  prefixBadgeText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: RerfColors.textSecondary,
-  },
-  innerInput: {
-    flex: 1,
-    height: '100%',
-    paddingHorizontal: 10,
+  toggleBtnText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: RerfColors.textMain,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  errorText: {
-    fontSize: 12,
-    color: RerfColors.errorRed,
-    marginTop: 10,
-    fontWeight: '600',
+  toggleBtnTextActive: {
+    color: '#2563EB',
   },
-  calcButton: {
-    marginTop: 18,
-    borderRadius: 6,
-  },
-  projectionCard: {
-    backgroundColor: RerfColors.surfaceCard,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    padding: 16,
-    marginHorizontal: 16,
-    ...RerfShadows.card,
-  },
-  projectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: RerfColors.surfaceCardBorder,
-  },
-  emptyProjection: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  emptyReceiptIcon: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+  totalBox: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
     backgroundColor: '#F8FAFC',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    paddingHorizontal: 14,
   },
-  emptyProjectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: RerfColors.textMain,
-    marginBottom: 6,
-  },
-  emptyProjectionSubtitle: {
-    fontSize: 12,
-    color: RerfColors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: 20,
-  },
-  receiptContainer: {
-    paddingVertical: 4,
-  },
-  routePill: {
-    alignSelf: 'flex-start',
-    backgroundColor: RerfColors.logisticsBlueLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 14,
-  },
-  routePillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: RerfColors.logisticsBlue,
-  },
-  costItemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  costItemLabel: {
-    fontSize: 12,
-    color: RerfColors.textSecondary,
-  },
-  costItemValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: RerfColors.textMain,
-  },
-  receiptDivider: {
-    height: 1,
-    backgroundColor: RerfColors.surfaceCardBorder,
-    marginVertical: 12,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  totalLabel: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: RerfColors.textMain,
-  },
-  totalValue: {
-    fontSize: 22,
+  totalText: {
+    fontSize: 16,
     fontWeight: '900',
-    color: RerfColors.logisticsBlue,
+    color: '#15803D',
   },
-  proceedButton: {
-    borderRadius: 6,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    maxHeight: '70%',
-    padding: 16,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  cotizarBtn: {
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: RerfColors.surfaceCardBorder,
-    marginBottom: 8,
+    marginTop: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  modalTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: RerfColors.textMain,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  modalItemSelected: {
-    backgroundColor: RerfColors.logisticsBlueLight,
-    borderRadius: 6,
-  },
-  modalItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  modalItemText: {
-    fontSize: 14,
-    color: RerfColors.textMain,
-    fontWeight: '500',
-  },
-  modalItemTextSelected: {
-    color: RerfColors.logisticsBlue,
-    fontWeight: '800',
-  },
-  modalItemZona: {
-    fontSize: 11,
-    color: RerfColors.textMuted,
-    fontWeight: '600',
+  cotizarBtnText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
   },
 });

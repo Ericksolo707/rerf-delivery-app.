@@ -1,3 +1,16 @@
+/**
+ * MenuScreen.tsx - Pantalla 25 Visualización del Menú (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 25 del boceto Excalidraw con:
+ * - Header: "Menú" con botones [ ! ] y [ -> ]
+ * - Lista de opciones del menú con insignias rectangulares:
+ *   - [ Co ] Cotizador de envío
+ *   - [ Gps ] Consultar llegada o estado
+ *   - [ Fel ] Listado de Facturas
+ *   - [ Dcs ] Listado de todos los paquetes
+ */
+
 import React from 'react';
 import { 
   View, 
@@ -8,96 +21,54 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-
 import { RootStackScreenProps } from '../../types/navigation';
 
-interface MenuItem {
-  id: string;
-  title: string;
-  subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  screen: 'Cotizador' | 'TrackingGPS' | 'Facturas' | 'DesglosePaquetes';
-}
-
 export const MenuScreen: React.FC<RootStackScreenProps<'Menu'>> = ({ navigation }) => {
-  const menuItems: MenuItem[] = [
+  const menuOptions = [
     {
-      id: 'cotizador',
+      badge: 'Co',
       title: 'Cotizador de envío',
-      subtitle: 'Calcula el costo por peso y tipo de material',
-      icon: 'calculator-outline',
-      color: '#2563EB',
-      screen: 'Cotizador',
+      onPress: () => navigation.navigate('Cotizador'),
     },
     {
-      id: 'llegada',
+      badge: 'Gps',
       title: 'Consultar llegada o estado',
-      subtitle: 'Seguimiento por GPS y mapa en vivo',
-      icon: 'navigate-outline',
-      color: '#10B981',
-      screen: 'TrackingGPS',
+      onPress: () => navigation.navigate('TrackingGPS'),
     },
     {
-      id: 'facturas',
-      title: 'Listado de facturas',
-      subtitle: 'Consulta y descarga comprobantes de pago',
-      icon: 'document-text-outline',
-      color: '#F59E0B',
-      screen: 'Facturas',
+      badge: 'Fel',
+      title: 'Listado de Facturas',
+      onPress: () => navigation.navigate('Facturas'),
     },
     {
-      id: 'todos_paquetes',
+      badge: 'Dcs',
       title: 'Listado de todos los paquetes',
-      subtitle: 'Histórico y desglose de todos los pedidos',
-      icon: 'cube-outline',
-      color: '#8B5CF6',
-      screen: 'DesglosePaquetes',
+      onPress: () => navigation.navigate('DesglosePaquetes'),
     },
   ];
 
-  const handleNavigate = (screen: MenuItem['screen']): void => {
-    switch (screen) {
-      case 'Cotizador':
-        navigation.navigate('Cotizador');
-        break;
-      case 'TrackingGPS':
-        navigation.navigate('TrackingGPS');
-        break;
-      case 'Facturas':
-        navigation.navigate('Facturas');
-        break;
-      case 'DesglosePaquetes':
-        navigation.navigate('DesglosePaquetes');
-        break;
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <Header title="Menú de Opciones" showBack={true} />
+      <Header title="Menú" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.sectionTitle}>Servicios y Herramientas</Text>
-
-        <View style={styles.list}>
-          {menuItems.map(item => (
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.optionsList}>
+          {menuOptions.map((opt, index) => (
             <TouchableOpacity
-              key={item.id}
-              style={styles.card}
-              onPress={() => handleNavigate(item.screen)}
+              key={index}
+              style={styles.menuRow}
+              onPress={opt.onPress}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconHolder, { backgroundColor: `${item.color}15` }]}>
-                <Ionicons name={item.icon} size={26} color={item.color} />
+              {/* Insignia rectangular izquierda con abreviatura (Co, Gps, Fel, Dcs) */}
+              <View style={styles.badgeBox}>
+                <Text style={styles.badgeText}>{opt.badge}</Text>
               </View>
 
-              <View style={styles.textHolder}>
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
-              </View>
+              {/* Título de la opción */}
+              <Text style={styles.optionTitle}>{opt.title}</Text>
 
-              <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
           ))}
         </View>
@@ -109,55 +80,49 @@ export const MenuScreen: React.FC<RootStackScreenProps<'Menu'>> = ({ navigation 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  content: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 14,
-    marginTop: 4,
-  },
-  list: {
-    gap: 12,
-  },
-  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingTop: 24,
+  },
+  optionsList: {
+    gap: 16,
+  },
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     gap: 14,
     shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
   },
-  iconHolder: {
+  badgeBox: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  textHolder: {
-    flex: 1,
-  },
-  itemTitle: {
+  badgeText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '900',
     color: '#0F172A',
   },
-  itemSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
+  optionTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
   },
 });

@@ -1,111 +1,121 @@
+/**
+ * UserSearchScreen.tsx - Pantalla 9 Búsqueda de Usuarios (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 9 del boceto Excalidraw con:
+ * - Header: "Usuarios" con botones [ ! ] y [ -> ]
+ * - Campo de búsqueda: "Buscar"
+ * - Lista de usuarios con avatar circular y nombre
+ * - Barra de botones: [ Favoritos ⭐ ]  [ Listado ]
+ * - Sección "Recientes" con recuadros que contienen [ foto ] y nombre de usuario
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity, 
-  Image 
+  TouchableOpacity 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
-import { Avatar } from '../../components/Avatar';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ navigation }) => {
   const { users } = useApp();
   const [search, setSearch] = useState<string>('');
-
-  const favorites = users.filter(u => u.is_favorite);
-  const suggested = users.filter(u => !u.is_favorite);
 
   const filteredUsers = search.trim()
     ? users.filter(u =>
         `${u.first_name} ${u.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase())
       )
-    : null;
+    : users;
 
-  const renderUserCard = (user: UserProfile) => (
-    <TouchableOpacity
-      key={user.id}
-      style={styles.userCard}
-      onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
-      activeOpacity={0.7}
-    >
-      <Avatar 
-        firstName={user.first_name} 
-        lastName={user.last_name} 
-        role={user.role} 
-        size={46} 
-      />
-
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{user.first_name} {user.last_name}</Text>
-        <Text style={styles.userEmail}>{user.email}</Text>
-        <Text style={styles.userBio} numberOfLines={1}>{user.bio || 'Sin descripción'}</Text>
-      </View>
-
-      {user.is_favorite && (
-        <Ionicons name="star" size={18} color="#F59E0B" style={{ marginLeft: 6 }} />
-      )}
-      <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
-    </TouchableOpacity>
-  );
+  const recentUsers = users.slice(0, 4);
 
   return (
     <View style={styles.container}>
-      <Header title="Búsqueda de Usuarios" showBack={true} />
+      <Header title="Usuarios" showBack={true} />
 
-      <View style={styles.searchBar}>
-        <Input
-          placeholder="Buscar personas o empresas..."
-          value={search}
-          onChangeText={setSearch}
-          leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
-          containerStyle={{ marginBottom: 0 }}
-        />
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Campo Buscar */}
+        <View style={styles.searchBox}>
+          <Input
+            placeholder="Buscar"
+            value={search}
+            onChangeText={setSearch}
+            leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
+            containerStyle={{ marginBottom: 0 }}
+          />
+        </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {filteredUsers ? (
-          <View>
-            <Text style={styles.sectionTitle}>Resultados ({filteredUsers.length})</Text>
-            <View style={styles.list}>
-              {filteredUsers.map(renderUserCard)}
-            </View>
-          </View>
-        ) : (
-          <>
-            {/* Sección Favoritos (Excalidraw) */}
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <Ionicons name="star" size={18} color="#F59E0B" />
-                <Text style={styles.sectionTitle}>Favoritos</Text>
+        {/* Lista de Usuarios (avatar circular + nombre) */}
+        <View style={styles.usersList}>
+          {filteredUsers.slice(0, 5).map((user) => (
+            <TouchableOpacity
+              key={user.id}
+              style={styles.userRow}
+              onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
+              activeOpacity={0.7}
+            >
+              <View style={styles.circleAvatar}>
+                <Ionicons name="person-outline" size={20} color="#0F172A" />
               </View>
-              <TouchableOpacity onPress={() => navigation.navigate('ListadoUsuarios')}>
-                <Text style={styles.seeAll}>Ver directorio</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.list}>
-              {favorites.map(renderUserCard)}
-            </View>
-
-            {/* Sección Sugeridos (Excalidraw) */}
-            <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-              <View style={styles.sectionTitleRow}>
-                <Ionicons name="people-outline" size={18} color="#2563EB" />
-                <Text style={styles.sectionTitle}>Sugeridos</Text>
+              <View style={styles.userRowInfo}>
+                <Text style={styles.userRowName}>{user.first_name} {user.last_name}</Text>
+                <Text style={styles.userRowEmail}>{user.email}</Text>
               </View>
-            </View>
-            <View style={styles.list}>
-              {suggested.map(renderUserCard)}
-            </View>
-          </>
-        )}
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Barra de Botones [ Favoritos ⭐ ]  [ Listado ] */}
+        <View style={styles.buttonsBarRow}>
+          <TouchableOpacity 
+            style={styles.pillButton}
+            onPress={() => navigation.navigate('ListadoUsuarios')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.pillButtonText}>Favoritos</Text>
+            <Ionicons name="star" size={16} color="#EAB308" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.pillButton}
+            onPress={() => navigation.navigate('ListadoUsuarios')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.pillButtonText}>Listado</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Sección "Recientes" con tarjetas [ Foto ] [ Foto ] */}
+        <Text style={styles.recentsSectionTitle}>Recientes</Text>
+
+        <View style={styles.recentsGrid}>
+          {recentUsers.map((user) => (
+            <TouchableOpacity 
+              key={user.id}
+              style={styles.recentUserCard}
+              onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.recentFotoCircle}>
+                <Text style={styles.recentFotoText}>foto</Text>
+              </View>
+              <Text style={styles.recentUserName} numberOfLines={1}>
+                {user.first_name} {user.last_name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </ScrollView>
     </View>
   );
@@ -114,70 +124,121 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  searchBox: {
+    marginBottom: 16,
+  },
+  usersList: {
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    gap: 12,
+  },
+  circleAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#F8FAFC',
   },
-  searchBar: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 6,
+  userRowInfo: {
+    flex: 1,
   },
-  content: {
-    padding: 16,
+  userRowName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  sectionHeader: {
+  userRowEmail: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  buttonsBarRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 24,
   },
-  sectionTitleRow: {
+  pillButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
   },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+  pillButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
     color: '#0F172A',
   },
-  seeAll: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#2563EB',
+  recentsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 12,
   },
-  list: {
-    gap: 10,
-  },
-  userCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 12,
+  recentsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+  recentUserCard: {
+    width: '47%',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  userInfo: {
-    flex: 1,
+  recentFotoCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    marginBottom: 10,
   },
-  userName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  userEmail: {
+  recentFotoText: {
     fontSize: 12,
+    fontWeight: '700',
     color: '#64748B',
   },
-  userBio: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
+  recentUserName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
   },
 });

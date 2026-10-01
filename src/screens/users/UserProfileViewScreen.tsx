@@ -1,20 +1,30 @@
+/**
+ * UserProfileViewScreen.tsx - Pantalla 10 Visualización de perfiles, guardado y reporte (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 10 del boceto Excalidraw con:
+ * - Header: "Usuarios" con botones [ ! ] y [ -> ]
+ * - Círculo grande de "foto"
+ * - Campos de texto: Nombre, Alias, Correo
+ * - Recuadro de "Descripción:"
+ * - Botones inferiores [ Guardar usuario ] y [ Reportar Usuario ]
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
-  Image, 
-  Alert 
+  TouchableOpacity 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
-import { Avatar } from '../../components/Avatar';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsuario'>> = ({ route, navigation }) => {
   const { toggleFavoriteUser, reportUser } = useApp();
@@ -22,10 +32,10 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
     id: 'usr-002',
     first_name: 'María',
     last_name: 'Fernández',
-    email: 'maria.f@correo.com',
-    phone: '+52 55 9876 5432',
-    address: 'Calle Juárez #12',
-    bio: 'Vendedora de artesanías y artículos para el hogar. Recibo paquetes de 9am a 6pm.',
+    email: 'maria.f@rerf.gt',
+    phone: '+502 5598-5432',
+    address: 'Zona 10, Ciudad de Guatemala',
+    bio: 'Distribuidora departamental y comercio electrónico verificado.',
     role: 'cliente',
     is_favorite: true,
   };
@@ -41,87 +51,78 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
 
   const handleConfirmReport = () => {
     setShowReportModal(false);
-    reportUser(targetUser.id, 'Contenido inapropiado o comportamiento sospechoso');
+    reportUser(targetUser.id, 'Reporte de usuario por conducta inapropiada');
     setReportSuccess(true);
   };
 
   return (
     <View style={styles.container}>
-      <Header title="Perfil de Usuario" showBack={true} />
+      <Header title="Usuarios" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* User Card */}
-        <View style={styles.card}>
-          <View style={styles.avatarContainer}>
-            <Avatar
-              firstName={targetUser.first_name}
-              lastName={targetUser.last_name}
-              role={targetUser.role}
-              size={90}
-            />
-            {isFav && (
-              <View style={styles.favBadge}>
-                <Ionicons name="star" size={16} color="#FFFFFF" />
-              </View>
-            )}
-          </View>
-
-          <Text style={styles.name}>{targetUser.first_name} {targetUser.last_name}</Text>
-          <Text style={styles.email}>{targetUser.email}</Text>
-
-          <View style={styles.divider} />
-
-          <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>Descripción / Información:</Text>
-            <Text style={styles.bioText}>{targetUser.bio || 'Este usuario no ha agregado una descripción pública.'}</Text>
-          </View>
-
-          <View style={styles.detailsRow}>
-            <Ionicons name="call-outline" size={18} color="#64748B" />
-            <Text style={styles.detailsText}>{targetUser.phone || 'Teléfono no visible'}</Text>
-          </View>
-
-          <View style={styles.detailsRow}>
-            <Ionicons name="location-outline" size={18} color="#64748B" />
-            <Text style={styles.detailsText}>{targetUser.address || 'Ubicación restringida'}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Círculo central grande de foto */}
+        <View style={styles.avatarSection}>
+          <View style={styles.largeFotoCircle}>
+            <Text style={styles.largeFotoText}>foto</Text>
           </View>
         </View>
 
-        {/* Action Buttons from Excalidraw */}
-        <View style={styles.actionButtons}>
-          <Button
-            title={isFav ? 'Quitar de Favoritos' : 'Guardar Usuario (Favorito)'}
-            variant={isFav ? 'secondary' : 'primary'}
-            icon={<Ionicons name={isFav ? 'star' : 'star-outline'} size={18} color={isFav ? '#F59E0B' : '#FFFFFF'} />}
+        {/* Datos del usuario */}
+        <View style={styles.infoFieldsContainer}>
+          <Text style={styles.infoLine}>
+            <Text style={styles.infoLabel}>Nombre: </Text>
+            {targetUser.first_name} {targetUser.last_name}
+          </Text>
+
+          <Text style={styles.infoLine}>
+            <Text style={styles.infoLabel}>Alias: </Text>
+            @{targetUser.first_name.toLowerCase()}{targetUser.last_name.toLowerCase()}
+          </Text>
+
+          <Text style={styles.infoLine}>
+            <Text style={styles.infoLabel}>Correo: </Text>
+            {targetUser.email}
+          </Text>
+        </View>
+
+        {/* Recuadro de Descripción */}
+        <View style={styles.descCard}>
+          <Text style={styles.descTitle}>Descripción {targetUser.first_name}:</Text>
+          <Text style={styles.descText}>
+            {targetUser.bio || 'Sin descripción adicional registrada por el usuario.'}
+          </Text>
+        </View>
+
+        {/* Botones inferiores en fila: [ Guardar usuario ]  [ Reportar Usuario ] */}
+        <View style={styles.bottomButtonsRow}>
+          <TouchableOpacity 
+            style={[styles.actionButton, isFav ? styles.savedButton : styles.saveButton]}
             onPress={handleToggleFav}
-          />
+            activeOpacity={0.8}
+          >
+            <Ionicons name={isFav ? 'star' : 'star-outline'} size={18} color="#0F172A" />
+            <Text style={styles.actionButtonText}>
+              {isFav ? 'Usuario Guardado' : 'Guardar usuario'}
+            </Text>
+          </TouchableOpacity>
 
-          <Button
-            title="Realizar Envío a este Usuario"
-            variant="success"
-            icon={<Ionicons name="paper-plane-outline" size={18} color="#FFFFFF" />}
-            onPress={() => navigation.navigate('RealizarEnvio', { prefilledRecipient: `${targetUser.first_name} ${targetUser.last_name}` })}
-          />
-
-          <Button
-            title="Reportar Usuario"
-            variant="outline"
-            icon={<Ionicons name="flag-outline" size={18} color="#EF4444" />}
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.reportButton]}
             onPress={() => setShowReportModal(true)}
-            style={{ borderColor: '#FCA5A5' }}
-            textStyle={{ color: '#EF4444' }}
-          />
+            activeOpacity={0.8}
+          >
+            <Ionicons name="flag-outline" size={18} color="#DC2626" />
+            <Text style={[styles.actionButtonText, { color: '#DC2626' }]}>Reportar Usuario</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
       {/* Modal Reporte */}
       <ModalDialog
         visible={showReportModal}
-        title="¿Reportar este Usuario?"
-        message={`¿Deseas enviar un reporte a moderación sobre la cuenta de ${targetUser.first_name}? Nuestro equipo investigará el caso.`}
-        iconName="flag-outline"
-        iconColor="#EF4444"
-        confirmText="Confirmar Reporte"
+        title="¿Reportar Usuario?"
+        message={`¿Deseas enviar un reporte a moderación sobre la cuenta de ${targetUser.first_name}?`}
+        confirmText="Confirmar"
         cancelText="Cancelar"
         onConfirm={handleConfirmReport}
         onCancel={() => setShowReportModal(false)}
@@ -131,9 +132,7 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
       <ModalDialog
         visible={reportSuccess}
         title="Reporte Enviado"
-        message="Hemos recibido tu reporte. Gracias por colaborar en mantener una comunidad segura."
-        iconName="checkmark-circle-outline"
-        iconColor="#10B981"
+        message="Hemos recibido tu reporte. El equipo de moderación revisará la cuenta."
         confirmText="Entendido"
         singleButton={true}
         onConfirm={() => setReportSuccess(false)}
@@ -145,87 +144,104 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  content: {
-    padding: 16,
-  },
-  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+  },
+  scrollContent: {
     padding: 24,
+    paddingBottom: 36,
+  },
+  avatarSection: {
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20,
+    marginVertical: 20,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 14,
-  },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 3,
-    borderColor: '#EFF6FF',
-  },
-  favBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#F59E0B',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  largeFotoCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 2,
+    borderColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  name: {
-    fontSize: 20,
+  largeFotoText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  infoFieldsContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+    gap: 8,
+  },
+  infoLine: {
+    fontSize: 15,
+    color: '#0F172A',
+    fontWeight: '600',
+  },
+  infoLabel: {
+    fontWeight: '800',
+    color: '#475569',
+  },
+  descCard: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  descTitle: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#0F172A',
+    marginBottom: 6,
   },
-  email: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    width: '100%',
-    marginVertical: 16,
-  },
-  infoSection: {
-    width: '100%',
-    marginBottom: 14,
-  },
-  infoTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  bioText: {
+  descText: {
     fontSize: 13,
     color: '#334155',
     lineHeight: 18,
   },
-  detailsRow: {
+  bottomButtonsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    width: '100%',
-    marginTop: 6,
-  },
-  detailsText: {
-    fontSize: 13,
-    color: '#475569',
-  },
-  actionButtons: {
     gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+  },
+  saveButton: {
+    backgroundColor: RerfColors.primaryYellow,
+  },
+  savedButton: {
+    backgroundColor: '#FEF08A',
+  },
+  reportButton: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
   },
 });

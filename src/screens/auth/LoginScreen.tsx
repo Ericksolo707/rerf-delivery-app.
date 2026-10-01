@@ -1,8 +1,14 @@
 /**
- * LoginScreen.tsx - Inicio de Sesión Corporativo RerF Logistics
+ * LoginScreen.tsx - Inicio de Sesión Corporativo RerF (Alineada a Boceto Excalidraw Pantalla 1)
  * Programación II - UMG / RerF Logistics
  *
- * Responsabilidad: Autenticación de usuarios y acceso directo para el Administrador base.
+ * Responsabilidad: Pantalla 1 del boceto Excalidraw con:
+ * - Logo rómbico central con "LOGO" y texto "RERF APP"
+ * - Campos redondeados de Usuario y Contraseña
+ * - Botón "Ingresar"
+ * - Texto "¿No tienes usuario?"
+ * - Botón "Registrarse"
+ * Conexión completa y segura a Supabase Auth.
  */
 
 import React, { useState } from 'react';
@@ -13,15 +19,15 @@ import {
   TouchableOpacity, 
   KeyboardAvoidingView, 
   Platform, 
-  ScrollView 
+  ScrollView,
+  ActivityIndicator
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors, RerfShadows } from '../../constants/theme';
+import { RerfColors } from '../../constants/theme';
 
 export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -57,40 +63,31 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
         contentContainerStyle={[
           styles.scrollContent, 
           { 
-            paddingTop: Math.max(insets.top + 20, 44),
-            paddingBottom: Math.max(insets.bottom + 20, 32)
+            paddingTop: Math.max(insets.top + 30, 60),
+            paddingBottom: Math.max(insets.bottom + 24, 36)
           }
         ]} 
         showsVerticalScrollIndicator={false}
       >
-        {/* Cabecera Corporativa RerF */}
-        <View style={styles.brandHero}>
-          <View style={styles.logoPill}>
-            <Text style={styles.logoText}>
-              Rer<Text style={styles.logoHighlight}>F.</Text>
-            </Text>
+        {/* LOGO Rómbico Central y RERF APP (Boceto Excalidraw) */}
+        <View style={styles.logoContainer}>
+          <View style={styles.diamondBox}>
+            <Text style={styles.diamondText}>LOGO</Text>
           </View>
-          <Text style={styles.systemBadge}>SISTEMA DE GESTIÓN LOGÍSTICA</Text>
-          <Text style={styles.systemTitle}>Distribución Inteligente a Nivel Nacional</Text>
+          <Text style={styles.appTitle}>RERF APP</Text>
         </View>
 
-        {/* Tarjeta de Formulario de Inicio de Sesión */}
-        <View style={styles.formCard}>
-          <Text style={styles.cardHeaderTitle}>Iniciar Sesión</Text>
-          <Text style={styles.cardHeaderSubtitle}>
-            Ingrese su correo electrónico y contraseña para acceder a la plataforma.
-          </Text>
-
+        {/* Formulario de Entrada */}
+        <View style={styles.formContainer}>
           {error ? (
             <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color={RerfColors.errorRed} />
+              <Ionicons name="alert-circle-outline" size={18} color={RerfColors.errorRed} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
 
           <Input
-            label="Correo Electrónico"
-            placeholder="ejemplo@correo.com"
+            placeholder="Usuario"
             value={email}
             onChangeText={(val) => {
               setEmail(val);
@@ -98,47 +95,46 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
             }}
             autoCapitalize="none"
             keyboardType="email-address"
-            leftIcon={<Ionicons name="mail-outline" size={18} color={RerfColors.textMuted} />}
+            containerStyle={styles.sketchInputContainer}
           />
 
           <Input
-            label="Contraseña"
-            placeholder="••••••••"
+            placeholder="Contraseña"
             value={password}
             onChangeText={(val) => {
               setPassword(val);
               if (error) setError('');
             }}
             secureTextEntry
-            leftIcon={<Ionicons name="lock-closed-outline" size={18} color={RerfColors.textMuted} />}
+            containerStyle={styles.sketchInputContainer}
           />
 
-          <Button
-            title="Ingresar a la Plataforma"
-            variant="yellow"
+          {/* Botón Ingresar */}
+          <TouchableOpacity 
+            style={[styles.primaryButton, loading && styles.disabledButton]}
             onPress={handleLogin}
-            loading={loading}
-            style={styles.submitBtn}
-          />
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <ActivityIndicator color="#0F172A" size="small" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Ingresar</Text>
+            )}
+          </TouchableOpacity>
 
-          <View style={styles.divider} />
-
-          {/* Enlace para registrar nueva cuenta */}
-          <View style={styles.registerPrompt}>
-            <Text style={styles.promptText}>¿No tienes una cuenta aún?</Text>
+          {/* Sección Registro */}
+          <View style={styles.registerSection}>
+            <Text style={styles.questionText}>¿No tienes usuario?</Text>
             <TouchableOpacity 
-              style={styles.registerLinkBtn}
+              style={styles.secondaryButton}
               onPress={() => navigation.navigate('Register')}
+              activeOpacity={0.85}
             >
-              <Text style={styles.registerLink}>Registrar nuevo usuario</Text>
-              <Ionicons name="arrow-forward" size={15} color={RerfColors.logisticsBlue} style={{ marginLeft: 4 }} />
+              <Text style={styles.secondaryButtonText}>Registrarse</Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        <Text style={styles.footerCopyright}>
-          RerF Logistics Guatemala © 2026 • Programación II UMG
-        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -147,118 +143,119 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: RerfColors.background,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 30,
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 32,
   },
-  brandHero: {
+  logoContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 36,
   },
-  logoPill: {
-    flexDirection: 'row',
+  diamondBox: {
+    width: 86,
+    height: 86,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    borderRadius: 14,
+    transform: [{ rotate: '45deg' }],
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: RerfColors.heroDark,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 10,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 26,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  logoText: {
-    fontSize: 26,
+  diamondText: {
+    transform: [{ rotate: '-45deg' }],
+    fontSize: 13,
     fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    color: '#0F172A',
+    letterSpacing: 1,
   },
-  logoHighlight: {
-    color: RerfColors.primaryYellow,
+  appTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.5,
   },
-  systemBadge: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: RerfColors.primaryYellow,
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    letterSpacing: 0.8,
-    marginBottom: 6,
+  formContainer: {
+    width: '100%',
+    maxWidth: 340,
+    alignSelf: 'center',
   },
-  systemTitle: {
-    fontSize: 14,
-    color: RerfColors.textSecondary,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  formCard: {
-    backgroundColor: RerfColors.surfaceCard,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    padding: 20,
-    ...RerfShadows.card,
-  },
-  cardHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: RerfColors.textMain,
-    marginBottom: 4,
-  },
-  cardHeaderSubtitle: {
-    fontSize: 12,
-    color: RerfColors.textSecondary,
+  sketchInputContainer: {
     marginBottom: 16,
-    lineHeight: 18,
+  },
+  primaryButton: {
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  disabledButton: {
+    opacity: 0.65,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  registerSection: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  questionText: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  secondaryButton: {
+    width: '100%',
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
     gap: 8,
-    backgroundColor: RerfColors.errorRedLight,
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 14,
   },
   errorText: {
-    fontSize: 12,
-    color: RerfColors.errorRed,
-    fontWeight: '700',
-    flex: 1,
-  },
-  submitBtn: {
-    marginTop: 8,
-    borderRadius: 6,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: RerfColors.surfaceCardBorder,
-    marginVertical: 16,
-  },
-  registerPrompt: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  promptText: {
-    fontSize: 12,
-    color: RerfColors.textSecondary,
-  },
-  registerLinkBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  registerLink: {
     fontSize: 13,
-    fontWeight: '800',
-    color: RerfColors.logisticsBlue,
-  },
-  footerCopyright: {
-    textAlign: 'center',
-    marginTop: 24,
-    fontSize: 11,
-    color: RerfColors.textMuted,
+    color: RerfColors.errorRed,
+    flex: 1,
+    fontWeight: '600',
   },
 });

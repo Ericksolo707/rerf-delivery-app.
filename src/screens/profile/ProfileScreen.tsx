@@ -1,160 +1,173 @@
+/**
+ * ProfileScreen.tsx - Pantalla 24 Visualización y Edición de Perfil (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 24 del boceto Excalidraw con:
+ * - Header: "Perfil" con botones [ ! ] y [ -> ]
+ * - Círculo grande de "foto" con nombre de usuario abajo
+ * - Filas de campos con botón "editar" en cada una:
+ *   - Correo
+ *   - Teléfono
+ *   - Dirección
+ *   - Referencias
+ * - Botón inferior: [ Guardar ]
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
-  Image, 
-  TouchableOpacity, 
-  Alert 
+  TextInput, 
+  TouchableOpacity 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
-import { ModalDialog } from '../../components/ModalDialog';
-import { Avatar } from '../../components/Avatar';
 import { useApp } from '../../context/AppContext';
-
 import { MainTabCompositeScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> = ({ navigation }) => {
-  const { user, updateProfile, logout } = useApp();
+  const { user, updateProfile } = useApp();
 
-  const [phone, setPhone] = useState<string>(user?.phone || '');
-  const [address, setAddress] = useState<string>(user?.address || '');
-  const [references, setReferences] = useState<string>(user?.address_references || '');
-  const [bio, setBio] = useState<string>(user?.bio || '');
+  const [phone, setPhone] = useState<string>(user?.phone || '+502 5598-1234');
+  const [address, setAddress] = useState<string>(user?.address || 'Zona 10, Ciudad de Guatemala');
+  const [references, setReferences] = useState<string>(user?.address_references || 'Frente a plaza comercial');
+  const [editingField, setEditingField] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
-  const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
 
   const handleSave = async (): Promise<void> => {
     await updateProfile({
       phone,
       address,
       address_references: references,
-      bio,
     });
+    setEditingField(null);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
+  const username = user?.first_name 
+    ? `${user.first_name}${user.last_name || ''}`.toLowerCase().replace(/\s+/g, '') 
+    : 'nombredeusuario1234';
+
   return (
     <View style={styles.container}>
-      <Header 
-        title="Perfil de Usuario" 
-        rightIcon="log-out-outline" 
-        onRightPress={() => setShowLogoutModal(true)} 
-      />
+      <Header title="Perfil" />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Profile Card / Generic Avatar */}
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarWrapper}>
-            <Avatar 
-              firstName={user?.first_name} 
-              lastName={user?.last_name} 
-              role={user?.role} 
-              size={88} 
-            />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Sección de Foto y Nombre de Usuario */}
+        <View style={styles.avatarSection}>
+          <View style={styles.largeFotoCircle}>
+            <Text style={styles.largeFotoText}>foto</Text>
           </View>
-
-          <Text style={styles.userName}>{user?.first_name} {user?.last_name}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Rol: {user?.role ? user.role.toUpperCase() : 'CLIENTE'}</Text>
-          </View>
+          <Text style={styles.usernameTitle}>{username}</Text>
         </View>
 
         {savedSuccess && (
           <View style={styles.successBanner}>
-            <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.successText}>Perfil actualizado correctamente</Text>
+            <Ionicons name="checkmark-circle-outline" size={18} color="#15803D" />
+            <Text style={styles.successText}>Perfil guardado correctamente</Text>
           </View>
         )}
 
-        {/* Edit fields */}
-        <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>Datos de Contacto y Envío</Text>
+        {/* Lista de campos con botón "editar" en cada fila (Excalidraw Pantalla 24) */}
+        <View style={styles.fieldsContainer}>
+          {/* Fila Correo */}
+          <View style={styles.profileFieldRow}>
+            <View style={styles.fieldInfoCol}>
+              <Text style={styles.fieldLabel}>Correo:</Text>
+              <Text style={styles.fieldValue}>{user?.email || 'usuario@rerf.gt'}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.editBtn} 
+              onPress={() => setEditingField(editingField === 'email' ? null : 'email')}
+            >
+              <Text style={styles.editBtnText}>editar</Text>
+            </TouchableOpacity>
+          </View>
 
-          <Input
-            label="Correo Electrónico (No modificable)"
-            value={user?.email}
-            editable={false}
-            leftIcon={<Ionicons name="mail-outline" size={18} color="#94A3B8" />}
-            style={styles.readOnlyInput}
-          />
+          {/* Fila Teléfono */}
+          <View style={styles.profileFieldRow}>
+            <View style={styles.fieldInfoCol}>
+              <Text style={styles.fieldLabel}>Teléfono:</Text>
+              {editingField === 'phone' ? (
+                <TextInput
+                  style={styles.inlineInput}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  autoFocus
+                />
+              ) : (
+                <Text style={styles.fieldValue}>{phone}</Text>
+              )}
+            </View>
+            <TouchableOpacity 
+              style={styles.editBtn} 
+              onPress={() => setEditingField(editingField === 'phone' ? null : 'phone')}
+            >
+              <Text style={styles.editBtnText}>editar</Text>
+            </TouchableOpacity>
+          </View>
 
-          <Input
-            label="Teléfono de Contacto"
-            placeholder="+52 55 0000 0000"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            leftIcon={<Ionicons name="call-outline" size={18} color="#64748B" />}
-          />
+          {/* Fila Dirección */}
+          <View style={styles.profileFieldRow}>
+            <View style={styles.fieldInfoCol}>
+              <Text style={styles.fieldLabel}>Dirección:</Text>
+              {editingField === 'address' ? (
+                <TextInput
+                  style={styles.inlineInput}
+                  value={address}
+                  onChangeText={setAddress}
+                  autoFocus
+                />
+              ) : (
+                <Text style={styles.fieldValue}>{address}</Text>
+              )}
+            </View>
+            <TouchableOpacity 
+              style={styles.editBtn} 
+              onPress={() => setEditingField(editingField === 'address' ? null : 'address')}
+            >
+              <Text style={styles.editBtnText}>editar</Text>
+            </TouchableOpacity>
+          </View>
 
-          <Input
-            label="Dirección Principal"
-            placeholder="Calle, Número, Colonia"
-            value={address}
-            onChangeText={setAddress}
-            leftIcon={<Ionicons name="location-outline" size={18} color="#64748B" />}
-          />
-
-          <Input
-            label="Referencias del Domicilio"
-            placeholder="Color de fachada, entre calles, referencias"
-            value={references}
-            onChangeText={setReferences}
-            multiline
-            numberOfLines={2}
-            leftIcon={<Ionicons name="information-circle-outline" size={18} color="#64748B" />}
-          />
-
-          <Input
-            label="Nota Personal / Bio"
-            placeholder="Describe detalles sobre tus envíos o negocio"
-            value={bio}
-            onChangeText={setBio}
-            multiline
-            numberOfLines={2}
-            leftIcon={<Ionicons name="document-text-outline" size={18} color="#64748B" />}
-          />
-
-          <Button
-            title="Guardar Cambios"
-            onPress={handleSave}
-            variant="primary"
-            style={styles.saveBtn}
-          />
+          {/* Fila Referencias */}
+          <View style={styles.profileFieldRow}>
+            <View style={styles.fieldInfoCol}>
+              <Text style={styles.fieldLabel}>Referencias:</Text>
+              {editingField === 'references' ? (
+                <TextInput
+                  style={styles.inlineInput}
+                  value={references}
+                  onChangeText={setReferences}
+                  autoFocus
+                />
+              ) : (
+                <Text style={styles.fieldValue}>{references}</Text>
+              )}
+            </View>
+            <TouchableOpacity 
+              style={styles.editBtn} 
+              onPress={() => setEditingField(editingField === 'references' ? null : 'references')}
+            >
+              <Text style={styles.editBtnText}>editar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Action button for logout */}
-        <Button
-          title="Cerrar Sesión"
-          variant="outline"
-          onPress={() => setShowLogoutModal(true)}
-          style={styles.logoutBtn}
-          textStyle={{ color: '#EF4444' }}
-        />
+        {/* Botón inferior: [ Guardar ] */}
+        <TouchableOpacity 
+          style={styles.saveButton}
+          onPress={handleSave}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.saveButtonText}>Guardar</Text>
+        </TouchableOpacity>
       </ScrollView>
-
-      {/* Pantalla 4: Modal de confirmación de Cerrar Sesión */}
-      <ModalDialog
-        visible={showLogoutModal}
-        title="¿Cerrar sesión?"
-        message="¿Estás seguro que deseas salir de tu cuenta de RERF APP?"
-        iconName="log-out-outline"
-        iconColor="#EF4444"
-        confirmText="Aceptar"
-        cancelText="Cancelar"
-        onConfirm={() => {
-          setShowLogoutModal(false);
-          logout();
-        }}
-        onCancel={() => setShowLogoutModal(false)}
-      />
     </View>
   );
 };
@@ -162,107 +175,125 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  content: {
-    padding: 18,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    marginBottom: 20,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  avatarWrapper: {
-    position: 'relative',
-    marginBottom: 12,
+  scrollContent: {
+    padding: 24,
+    paddingBottom: 40,
   },
-  avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
-    borderColor: '#EFF6FF',
+  avatarSection: {
+    alignItems: 'center',
+    marginVertical: 20,
   },
-  cameraBtn: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#2563EB',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  largeFotoCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  userName: {
-    fontSize: 20,
+  largeFotoText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  usernameTitle: {
+    fontSize: 16,
     fontWeight: '800',
     color: '#0F172A',
-  },
-  userEmail: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  badge: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 10,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2563EB',
   },
   successBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    borderRadius: 12,
     padding: 12,
-    borderRadius: 10,
+    marginBottom: 18,
     gap: 8,
-    marginBottom: 16,
   },
   successText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#065F46',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 16,
-  },
-  cardSectionTitle: {
-    fontSize: 15,
+    color: '#15803D',
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 14,
   },
-  readOnlyInput: {
-    backgroundColor: '#F1F5F9',
+  fieldsContainer: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 28,
+  },
+  profileFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  fieldInfoCol: {
+    flex: 1,
+    marginRight: 10,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '800',
     color: '#64748B',
+    marginBottom: 2,
   },
-  saveBtn: {
-    marginTop: 10,
+  fieldValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
   },
-  logoutBtn: {
-    borderColor: '#FCA5A5',
-    marginBottom: 30,
+  inlineInput: {
+    height: 38,
+    borderWidth: 1,
+    borderColor: '#2563EB',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    fontSize: 14,
+    color: '#0F172A',
+    backgroundColor: '#EFF6FF',
+  },
+  editBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  editBtnText: {
+    fontSize: 12,
+    color: '#64748B',
+    textDecorationLine: 'underline',
+  },
+  saveButton: {
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  saveButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
   },
 });

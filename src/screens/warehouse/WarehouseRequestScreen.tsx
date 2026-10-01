@@ -1,42 +1,59 @@
+/**
+ * WarehouseRequestScreen.tsx - Pantalla 20 Solicitud de almacenaje de paquete (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 20 del boceto Excalidraw con:
+ * - Header: "Almacenaje" con botones [ ! ] y [ -> ]
+ * - Campo: "Tipo de producto:"
+ * - Campo: "Descripción:"
+ * - Selector: "Material:" [ Frágil ] [ Fuerte ]
+ * - Selector: "Método de recogida:" [ Entrega personal ] [ Recogida por piloto ]
+ * - Botones inferiores [ Cancelar solicitud ] y [ Enviar solicitud ]
+ */
+
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
+  TextInput,
   TouchableOpacity 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
 import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 import { MaterialType, PickupMethod } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors } from '../../constants/theme';
 
 export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlmacenaje'>> = ({ navigation }) => {
   const { addWarehouseItem, user } = useApp();
 
   const [productType, setProductType] = useState<string>('');
   const [description, setDescription] = useState<string>('');
-  const [material, setMaterial] = useState<MaterialType>('fuerte');
+  const [material, setMaterial] = useState<MaterialType>('fragil');
   const [pickupMethod, setPickupMethod] = useState<PickupMethod>('entrega_personal');
   
-  const [error, setError] = useState<string>('');
+  const [errorBanner, setErrorBanner] = useState<string>('');
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
   const handleSubmit = async (): Promise<void> => {
-    if (!productType.trim() || !description.trim()) {
-      setError('Por favor llena los campos requeridos.');
+    if (!productType.trim()) {
+      setErrorBanner('Por favor ingrese el tipo de producto.');
       return;
     }
-    setError('');
+    if (!description.trim()) {
+      setErrorBanner('Por favor ingrese la descripción del paquete.');
+      return;
+    }
 
+    setErrorBanner('');
     await addWarehouseItem({
       user_id: user?.id || 'usr-001',
-      product_type: productType,
-      description,
+      product_type: productType.trim(),
+      description: description.trim(),
       material,
       pickup_method: pickupMethod,
       status: 'almacenado',
@@ -47,123 +64,119 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
 
   return (
     <View style={styles.container}>
-      <Header title="Solicitud de Almacenaje" showBack={true} />
+      <Header title="Almacenaje" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Nuevo Paquete en Bodega</Text>
-          <Text style={styles.cardSubtitle}>
-            Guarda tus productos en nuestras bodegas para despachos rápidos en cualquier momento.
-          </Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {errorBanner ? (
+          <View style={styles.errorAlert}>
+            <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
+            <Text style={styles.errorAlertText}>{errorBanner}</Text>
+          </View>
+        ) : null}
 
-          {error ? <Text style={styles.errorBanner}>{error}</Text> : null}
-
-          <Input
-            label="Tipo de Producto *"
-            placeholder="ej. Calzado, Electrónicos, Repuestos"
+        {/* 1. Tipo de producto */}
+        <View style={styles.fieldBlock}>
+          <Text style={styles.fieldLabel}>Tipo de producto:</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="ej. Mercadería, Ropa, Electrónicos"
+            placeholderTextColor="#94A3B8"
             value={productType}
             onChangeText={setProductType}
-            leftIcon={<Ionicons name="cube-outline" size={18} color="#64748B" />}
           />
+        </View>
 
-          <Input
-            label="Descripción y Contenido *"
-            placeholder="Detalles sobre cantidad, dimensiones o empaque..."
+        {/* 2. Descripción */}
+        <View style={styles.fieldBlock}>
+          <Text style={styles.fieldLabel}>Descripción:</Text>
+          <TextInput
+            style={[styles.textInput, styles.textArea]}
+            placeholder="Detalles sobre dimensiones, peso aproximado o empaque"
+            placeholderTextColor="#94A3B8"
             value={description}
             onChangeText={setDescription}
             multiline
-            numberOfLines={3}
-            leftIcon={<Ionicons name="document-text-outline" size={18} color="#64748B" />}
+            numberOfLines={4}
           />
+        </View>
 
-          {/* Material: Frágil / Fuerte (Excalidraw) */}
-          <Text style={styles.sectionLabel}>Material</Text>
-          <View style={styles.choiceRow}>
-            <TouchableOpacity
-              style={[styles.choiceBtn, material === 'fragil' && styles.choiceBtnActive]}
+        {/* 3. Material: [ Frágil ] [ Fuerte ] */}
+        <View style={styles.fieldBlock}>
+          <Text style={styles.fieldLabel}>Material:</Text>
+          <View style={styles.toggleRow}>
+            <TouchableOpacity 
+              style={[styles.toggleBtn, material === 'fragil' && styles.toggleBtnActive]}
               onPress={() => setMaterial('fragil')}
+              activeOpacity={0.8}
             >
-              <Ionicons 
-                name="wine-outline" 
-                size={18} 
-                color={material === 'fragil' ? '#DC2626' : '#64748B'} 
-              />
-              <Text style={[styles.choiceText, material === 'fragil' && { color: '#DC2626', fontWeight: '700' }]}>
+              <Text style={[styles.toggleBtnText, material === 'fragil' && styles.toggleBtnTextActive]}>
                 Frágil
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.choiceBtn, material === 'fuerte' && styles.choiceBtnActive]}
+            <TouchableOpacity 
+              style={[styles.toggleBtn, material === 'fuerte' && styles.toggleBtnActive]}
               onPress={() => setMaterial('fuerte')}
+              activeOpacity={0.8}
             >
-              <Ionicons 
-                name="shield-outline" 
-                size={18} 
-                color={material === 'fuerte' ? '#2563EB' : '#64748B'} 
-              />
-              <Text style={[styles.choiceText, material === 'fuerte' && { color: '#2563EB', fontWeight: '700' }]}>
-                Fuerte / Resistente
+              <Text style={[styles.toggleBtnText, material === 'fuerte' && styles.toggleBtnTextActive]}>
+                Fuerte
               </Text>
             </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Método de recogida: Entrega personal / Recogida por piloto (Excalidraw) */}
-          <Text style={styles.sectionLabel}>Método de Recogida</Text>
-          <View style={styles.choiceRow}>
-            <TouchableOpacity
-              style={[styles.choiceBtn, pickupMethod === 'entrega_personal' && styles.choiceBtnActive]}
+        {/* 4. Método de recogida: [ Entrega personal ] [ Recogida por piloto ] */}
+        <View style={styles.fieldBlock}>
+          <Text style={styles.fieldLabel}>Método de recogida:</Text>
+          <View style={styles.toggleRow}>
+            <TouchableOpacity 
+              style={[styles.toggleBtn, pickupMethod === 'entrega_personal' && styles.toggleBtnActive]}
               onPress={() => setPickupMethod('entrega_personal')}
+              activeOpacity={0.8}
             >
-              <Ionicons 
-                name="walk-outline" 
-                size={18} 
-                color={pickupMethod === 'entrega_personal' ? '#2563EB' : '#64748B'} 
-              />
-              <Text style={[styles.choiceText, pickupMethod === 'entrega_personal' && styles.choiceTextActive]}>
-                Entrega Personal
+              <Text style={[styles.toggleBtnText, pickupMethod === 'entrega_personal' && styles.toggleBtnTextActive]}>
+                Entrega personal
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.choiceBtn, pickupMethod === 'recogida_piloto' && styles.choiceBtnActive]}
+            <TouchableOpacity 
+              style={[styles.toggleBtn, pickupMethod === 'recogida_piloto' && styles.toggleBtnActive]}
               onPress={() => setPickupMethod('recogida_piloto')}
+              activeOpacity={0.8}
             >
-              <Ionicons 
-                name="bicycle-outline" 
-                size={18} 
-                color={pickupMethod === 'recogida_piloto' ? '#2563EB' : '#64748B'} 
-              />
-              <Text style={[styles.choiceText, pickupMethod === 'recogida_piloto' && styles.choiceTextActive]}>
-                Recogida por Piloto
+              <Text style={[styles.toggleBtnText, pickupMethod === 'recogida_piloto' && styles.toggleBtnTextActive]}>
+                Recogida por piloto
               </Text>
             </TouchableOpacity>
           </View>
+        </View>
 
-          <View style={styles.buttonRow}>
-            <Button
-              title="Cancelar Solicitud"
-              variant="secondary"
-              onPress={() => navigation.goBack()}
-              style={styles.cancelBtn}
-            />
-            <Button
-              title="Enviar Solicitud"
-              variant="primary"
-              onPress={handleSubmit}
-              style={styles.submitBtn}
-            />
-          </View>
+        {/* Botones inferiores: [ Cancelar solicitud ] [ Enviar solicitud ] */}
+        <View style={styles.bottomButtonsRow}>
+          <TouchableOpacity 
+            style={styles.cancelButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cancelButtonText}>Cancelar solicitud</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.sendButton}
+            onPress={handleSubmit}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.sendButtonText}>Enviar solicitud</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
       {/* Confirmation Modal */}
       <ModalDialog
         visible={showSuccessModal}
-        title="¡Solicitud de Bodega Registrada!"
-        message="Tu artículo ha sido dado de alta en tu bodega personal. Puedes asignarlo a un envío en cualquier momento."
-        iconName="checkmark-circle"
-        iconColor="#10B981"
+        title="RERF APP"
+        message="Tu solicitud de almacenaje ha sido recibida y el código de ubicación fue asignado a tu inventario."
         confirmText="Ver Mi Bodega"
         singleButton={true}
         onConfirm={() => {
@@ -178,85 +191,116 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  content: {
-    padding: 16,
-  },
-  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+  },
+  scrollContent: {
     padding: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    paddingBottom: 40,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-    marginBottom: 18,
-  },
-  errorBanner: {
-    backgroundColor: '#FEE2E2',
-    color: '#DC2626',
-    padding: 10,
-    borderRadius: 8,
-    fontSize: 13,
-    marginBottom: 14,
-    textAlign: 'center',
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  choiceRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 18,
-  },
-  choiceBtn: {
-    flex: 1,
+  errorAlert: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
   },
-  choiceBtnActive: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
-  },
-  choiceText: {
+  errorAlertText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  choiceTextActive: {
-    color: '#2563EB',
+    color: '#DC2626',
     fontWeight: '700',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 10,
-  },
-  cancelBtn: {
     flex: 1,
   },
-  submitBtn: {
-    flex: 1.5,
+  fieldBlock: {
+    marginBottom: 18,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '600',
+    backgroundColor: '#FFFFFF',
+    height: 48,
+  },
+  textArea: {
+    height: 100,
+    paddingTop: 12,
+    textAlignVertical: 'top',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  toggleBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  toggleBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#2563EB',
+    borderWidth: 2,
+  },
+  toggleBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+  },
+  toggleBtnTextActive: {
+    color: '#2563EB',
+  },
+  bottomButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  cancelButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  sendButton: {
+    flex: 1.2,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
   },
 });

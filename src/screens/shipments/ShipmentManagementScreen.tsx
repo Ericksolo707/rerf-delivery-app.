@@ -1,3 +1,14 @@
+/**
+ * ShipmentManagementScreen.tsx - Pantalla 12 Envío y Gestión de Paquete (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 12 del boceto Excalidraw con:
+ * - Header: "Enviar paquete" con botones [ ! ] y [ -> ]
+ * - Cuadrícula 2x2 de botones de gestión logística:
+ *   [ Realizar envío ]        [ Cancelar envío ]
+ *   [ Revisar Pendientes ]    [ Consultar ]
+ */
+
 import React from 'react';
 import { 
   View, 
@@ -10,55 +21,65 @@ import { Header } from '../../components/Header';
 import { RootStackScreenProps } from '../../types/navigation';
 
 export const ShipmentManagementScreen: React.FC<RootStackScreenProps<'GestionEnvio'>> = ({ navigation }) => {
-  const actions = [
-    {
-      title: 'Realizar envío',
-      icon: 'paper-plane-outline' as const,
-      color: '#2563EB',
-      onPress: () => navigation.navigate('RealizarEnvio'),
-    },
-    {
-      title: 'Cancelar envío',
-      icon: 'close-circle-outline' as const,
-      color: '#EF4444',
-      onPress: () => navigation.navigate('CancelarEnvio'),
-    },
-    {
-      title: 'Revisar Pendientes',
-      icon: 'time-outline' as const,
-      color: '#F59E0B',
-      onPress: () => navigation.navigate('Entregas'),
-    },
-    {
-      title: 'Consultar',
-      icon: 'search-circle-outline' as const,
-      color: '#10B981',
-      onPress: () => navigation.navigate('DesglosePaquetes'),
-    },
-  ];
-
   return (
     <View style={styles.container}>
-      <Header title="Gestión de Paquetes" showBack={true} />
+      <Header title="Enviar paquete" showBack={true} />
 
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Acciones de Envío</Text>
-        <Text style={styles.sectionSubtitle}>Selecciona el trámite logístico que deseas realizar:</Text>
-
-        <View style={styles.grid}>
-          {actions.map((act, index) => (
+        <View style={styles.gridContainer}>
+          {/* Fila 1 */}
+          <View style={styles.gridRow}>
+            {/* Realizar envío */}
             <TouchableOpacity
-              key={index}
               style={styles.actionCard}
-              onPress={act.onPress}
+              onPress={() => navigation.navigate('RealizarEnvio')}
               activeOpacity={0.8}
             >
-              <View style={[styles.iconBox, { backgroundColor: `${act.color}15` }]}>
-                <Ionicons name={act.icon} size={36} color={act.color} />
+              <View style={styles.iconCircle}>
+                <Ionicons name="paper-plane-outline" size={32} color="#0F172A" />
               </View>
-              <Text style={styles.actionTitle}>{act.title}</Text>
+              <Text style={styles.actionText}>Realizar envío</Text>
             </TouchableOpacity>
-          ))}
+
+            {/* Cancelar envío */}
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => navigation.navigate('CancelarEnvio')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.iconCircle}>
+                <Ionicons name="close-circle-outline" size={32} color="#0F172A" />
+              </View>
+              <Text style={styles.actionText}>Cancelar envío</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Fila 2 */}
+          <View style={styles.gridRow}>
+            {/* Revisar Pendientes */}
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => navigation.navigate('Entregas')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.iconCircle}>
+                <Ionicons name="time-outline" size={32} color="#0F172A" />
+              </View>
+              <Text style={styles.actionText}>Revisar Pendientes</Text>
+            </TouchableOpacity>
+
+            {/* Consultar */}
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => navigation.navigate('DesglosePaquetes')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.iconCircle}>
+                <Ionicons name="search-outline" size={32} color="#0F172A" />
+              </View>
+              <Text style={styles.actionText}>Consultar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -68,59 +89,51 @@ export const ShipmentManagementScreen: React.FC<RootStackScreenProps<'GestionEnv
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   content: {
-    padding: 24,
+    padding: 20,
     flex: 1,
     justifyContent: 'center',
   },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  gridContainer: {
     gap: 16,
-    justifyContent: 'center',
+  },
+  gridRow: {
+    flexDirection: 'row',
+    gap: 16,
   },
   actionCard: {
-    width: '45%',
-    aspectRatio: 1,
+    flex: 1,
+    aspectRatio: 1.05,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  iconBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    borderColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  actionTitle: {
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  actionText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontWeight: '800',
+    color: '#0F172A',
     textAlign: 'center',
   },
 });

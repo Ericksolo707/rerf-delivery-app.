@@ -1,12 +1,14 @@
 /**
- * Header.tsx - Barra Superior Corporativa RerF
+ * Header.tsx - Barra Superior Institucional RerF (Alineada al boceto Excalidraw)
  * Programación II - UMG
  *
- * Responsabilidad: Desplegar la barra de navegación superior con la identidad
- * corporativa "RerF.", botón de retroceso y acciones rápidas.
+ * Responsabilidad: Desplegar la barra de navegación superior según el boceto Excalidraw:
+ * - Izquierda: Botón de retroceso (si showBack) o Título de la pantalla.
+ * - Derecha: Botón de alerta / notificaciones (!) y botón de salida ([->) con
+ *   modal de confirmación "¿Cerrar sesión?" (Pantalla 4).
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +16,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types/navigation';
 import { RerfColors } from '../constants/theme';
+import { useApp } from '../context/AppContext';
+import { ModalDialog } from './ModalDialog';
 
 interface HeaderProps {
   title: string;
@@ -23,6 +27,7 @@ interface HeaderProps {
   onRightPress?: () => void;
   showNotification?: boolean;
   isDark?: boolean;
+  hideExcalidrawActions?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -33,9 +38,12 @@ export const Header: React.FC<HeaderProps> = ({
   onRightPress,
   showNotification = false,
   isDark = false,
+  hideExcalidrawActions = false,
 }) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { logout } = useApp();
+  const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
 
   const topInset = Math.max(
     insets.top,
@@ -44,68 +52,103 @@ export const Header: React.FC<HeaderProps> = ({
 
   const textColor = isDark ? '#FFFFFF' : RerfColors.textMain;
   const iconColor = isDark ? '#FFFFFF' : RerfColors.textMain;
-  const bgColor = isDark ? RerfColors.heroDark : RerfColors.surfaceCard;
+  const bgColor = isDark ? RerfColors.heroDark : '#FFFFFF';
   const borderColor = isDark ? RerfColors.heroDarkBorder : RerfColors.surfaceCardBorder;
 
+  const handleLogout = (): void => {
+    setShowLogoutModal(false);
+    logout();
+  };
+
   return (
-    <View 
-      style={[
-        styles.container, 
-        { 
-          backgroundColor: bgColor, 
-          borderBottomColor: borderColor,
-          paddingTop: topInset,
-          height: 56 + topInset,
-        }
-      ]}
-    >
-      <View style={styles.leftContainer}>
-        {showBack ? (
-          <TouchableOpacity 
-            style={styles.iconButton} 
-            onPress={onBack || (() => navigation.goBack())}
-          >
-            <Ionicons name="arrow-back" size={24} color={iconColor} />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.logoBadge}>
-            <View style={styles.yellowBox}>
-              <Ionicons name="cube" size={16} color="#111827" />
-            </View>
-            <Text style={[styles.logoText, { color: textColor }]}>
-              Rer<Text style={{ color: RerfColors.primaryYellow }}>F.</Text>
-            </Text>
-          </View>
-        )}
+    <>
+      <View 
+        style={[
+          styles.container, 
+          { 
+            backgroundColor: bgColor, 
+            borderBottomColor: borderColor,
+            paddingTop: topInset,
+            height: 56 + topInset,
+          }
+        ]}
+      >
+        {/* Lado Izquierdo: Retroceso o Título */}
+        <View style={styles.leftContainer}>
+          {showBack ? (
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={onBack || (() => navigation.goBack())}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="arrow-back" size={24} color={iconColor} />
+            </TouchableOpacity>
+          ) : null}
+
+          <Text style={[styles.title, { color: textColor }]} numberOfLines={1}>
+            {title}
+          </Text>
+        </View>
+
+        {/* Lado Derecho: Acciones fijas de Excalidraw [ ! ] y [ -> ] */}
+        <View style={styles.rightContainer}>
+          {hideExcalidrawActions ? (
+            <>
+              {showNotification && (
+                <TouchableOpacity 
+                  style={styles.sketchButton}
+                  onPress={() => navigation.navigate('Notificaciones')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.exclamationText, { color: textColor }]}>!</Text>
+                </TouchableOpacity>
+              )}
+              {rightIcon && (
+                <TouchableOpacity style={styles.sketchButton} onPress={onRightPress} activeOpacity={0.7}>
+                  <Ionicons name={rightIcon} size={18} color={iconColor} />
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Botón de Alerta / Notificaciones (!) */}
+              <TouchableOpacity 
+                style={styles.sketchButton}
+                onPress={() => navigation.navigate('Notificaciones')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.exclamationText, { color: textColor }]}>!</Text>
+              </TouchableOpacity>
+
+              {/* Botón de Salir / Cerrar Sesión ([->]) */}
+              <TouchableOpacity 
+                style={styles.sketchButton}
+                onPress={() => setShowLogoutModal(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="exit-outline" size={18} color={iconColor} />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </View>
 
-      <Text style={[styles.title, { color: textColor }]} numberOfLines={1}>
-        {title}
-      </Text>
-
-      <View style={styles.rightContainer}>
-        {showNotification && (
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => navigation.navigate('Notificaciones')}
-          >
-            <Ionicons name="notifications-outline" size={22} color={iconColor} />
-            <View style={styles.badgeDot} />
-          </TouchableOpacity>
-        )}
-        {rightIcon && (
-          <TouchableOpacity style={styles.iconButton} onPress={onRightPress}>
-            <Ionicons name={rightIcon} size={22} color={iconColor} />
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
+      {/* Modal de confirmación Pantalla 4: Cerrar Sesión */}
+      <ModalDialog
+        visible={showLogoutModal}
+        title="RERF APP"
+        message="¿Cerrar sesión?"
+        confirmText="Aceptar"
+        cancelText="Cancelar"
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    height: 60,
     borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -115,50 +158,37 @@ const styles = StyleSheet.create({
   leftContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    minWidth: 90,
-  },
-  logoBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flex: 1,
     gap: 8,
   },
-  yellowBox: {
-    width: 26,
-    height: 26,
-    borderRadius: 6,
-    backgroundColor: RerfColors.primaryYellow,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-    flex: 1,
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.2,
   },
   rightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    minWidth: 90,
+    gap: 8,
   },
   iconButton: {
-    padding: 6,
-    marginLeft: 8,
-    position: 'relative',
+    padding: 4,
+    marginRight: 4,
   },
-  badgeDot: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: RerfColors.errorRed,
+  sketchButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  exclamationText: {
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 18,
   },
 });

@@ -1,4 +1,14 @@
-import React, { useState } from 'react';
+/**
+ * DeliveriesScreen.tsx - Pantalla 8 Apartado de Entregas Activas y Pendientes (Boceto Excalidraw)
+ * Programación II - UMG / RerF Logistics
+ *
+ * Responsabilidad: Pantalla 8 del boceto Excalidraw con:
+ * - Header: "Entregas" con botones [ ! ] y [ -> ]
+ * - Sección 1: "Activas ->" con tarjetas y botones [ L ] y [ R ]
+ * - Sección 2: "Pendientes [count] ->" con tarjetas y botones [ L ], [ X ] y [ R ]
+ */
+
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -14,60 +24,106 @@ import { RootStackScreenProps } from '../../types/navigation';
 
 export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ navigation }) => {
   const { shipments } = useApp();
-  const [activeTab, setActiveTab] = useState<'activas' | 'pendientes'>('activas');
 
-  const activeDeliveries = shipments.filter(s => s.status === 'en_camino');
+  const activeDeliveries = shipments.filter(s => s.status === 'en_camino' || s.status === 'entregado');
   const pendingDeliveries = shipments.filter(s => s.status === 'pendiente');
 
-  const displayedList = activeTab === 'activas' ? activeDeliveries : pendingDeliveries;
-
-  const renderCard = (item: Shipment) => (
+  const renderActiveCard = (item: Shipment, index: number) => (
     <View key={item.id} style={styles.card}>
-      <View style={styles.cardInfo}>
-        <View style={styles.topRow}>
-          <Text style={styles.codeTitle}>{item.tracking_number}</Text>
-          <View style={[
-            styles.statusTag, 
-            { backgroundColor: item.status === 'en_camino' ? '#DBEAFE' : '#FEF3C7' }
-          ]}>
-            <Text style={[
-              styles.statusText, 
-              { color: item.status === 'en_camino' ? '#1D4ED8' : '#B45309' }
-            ]}>
-              {item.status === 'en_camino' ? 'En camino' : 'Pendiente'}
+      {/* Lado izquierdo con información */}
+      <View style={styles.infoCol}>
+        <View style={styles.metaRow}>
+          <Text style={styles.metaText}>No. usuario: {200 + index}</Text>
+          <Text style={styles.metaText}>Id entrega: {item.tracking_number}</Text>
+        </View>
+
+        <Text style={styles.fieldLine}>
+          <Text style={styles.label}>Destino: </Text>
+          <Text style={styles.value} numberOfLines={1}>{item.delivery_address}</Text>
+        </Text>
+
+        <Text style={styles.fieldLine}>
+          <Text style={styles.label}>Productos: </Text>
+          <Text style={styles.value} numberOfLines={1}>{item.description}</Text>
+        </Text>
+
+        <View style={styles.bottomInfoRow}>
+          <Text style={styles.dateText}>Fecha: {item.scheduled_date || '14/10/2026'}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: item.status === 'entregado' ? '#DCFCE7' : '#DBEAFE' }]}>
+            <Text style={[styles.statusBadgeText, { color: item.status === 'entregado' ? '#15803D' : '#1E40AF' }]}>
+              {item.status.toUpperCase()}
             </Text>
           </View>
         </View>
-
-        <Text style={styles.desc}>{item.description}</Text>
-        <Text style={styles.dest}>Para: {item.recipient_name}</Text>
-        <Text style={styles.address} numberOfLines={1}>{item.delivery_address}</Text>
       </View>
 
-      {/* Buttons L / R / X from wireframe */}
-      <View style={styles.buttonsColumn}>
+      {/* Lado derecho: Botones [ L ] y [ R ] */}
+      <View style={styles.actionsCol}>
         <TouchableOpacity 
-          style={styles.iconBtn}
-          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
-        >
-          <Ionicons name="document-text-outline" size={18} color="#2563EB" />
-          <Text style={styles.btnSmallLabel}>Info</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.iconBtn, styles.gpsBtn]}
+          style={styles.squareActionButton}
           onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
+          activeOpacity={0.7}
         >
-          <Ionicons name="navigate-outline" size={18} color="#10B981" />
-          <Text style={[styles.btnSmallLabel, { color: '#10B981' }]}>GPS</Text>
+          <Text style={styles.actionLetter}>L</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[styles.iconBtn, styles.cancelBtn]}
-          onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: item.id })}
+          style={styles.squareActionButton}
+          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+          activeOpacity={0.7}
         >
-          <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
-          <Text style={[styles.btnSmallLabel, { color: '#EF4444' }]}>Anular</Text>
+          <Text style={styles.actionLetter}>R</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderPendingCard = (item: Shipment, index: number) => (
+    <View key={item.id} style={styles.card}>
+      {/* Lado izquierdo */}
+      <View style={styles.infoCol}>
+        <View style={styles.metaRow}>
+          <Text style={styles.metaText}>No. usuario: {300 + index}</Text>
+          <Text style={styles.metaText}>Id: {item.tracking_number}</Text>
+        </View>
+
+        <Text style={styles.fieldLine}>
+          <Text style={styles.label}>Destino: </Text>
+          <Text style={styles.value} numberOfLines={1}>{item.delivery_address}</Text>
+        </Text>
+
+        <Text style={styles.fieldLine}>
+          <Text style={styles.label}>Productos: </Text>
+          <Text style={styles.value} numberOfLines={1}>{item.description}</Text>
+        </Text>
+
+        <Text style={styles.dateText}>Fecha programada: {item.scheduled_date || '15/10/2026'}</Text>
+      </View>
+
+      {/* Lado derecho: Botones [ L ], [ X ] y [ R ] */}
+      <View style={styles.actionsCol}>
+        <TouchableOpacity 
+          style={styles.squareActionButton}
+          onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.actionLetter}>L</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.squareActionButton, styles.cancelSquareButton]}
+          onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: item.id })}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.actionLetter, styles.cancelLetter]}>X</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.squareActionButton}
+          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.actionLetter}>R</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -75,38 +131,45 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
 
   return (
     <View style={styles.container}>
-      <Header title="Entregas Activas y Pendientes" showBack={true} />
+      <Header title="Entregas" showBack={true} />
 
-      {/* Selector de pestañas */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'activas' && styles.activeTabButton]}
-          onPress={() => setActiveTab('activas')}
-        >
-          <Text style={[styles.tabText, activeTab === 'activas' && styles.activeTabText]}>
-            Activas ({activeDeliveries.length})
-          </Text>
-        </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* SECCIÓN 1: Activas -> */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Activas</Text>
+          <Ionicons name="arrow-forward" size={18} color="#0F172A" />
+        </View>
 
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'pendientes' && styles.activeTabButton]}
-          onPress={() => setActiveTab('pendientes')}
-        >
-          <Text style={[styles.tabText, activeTab === 'pendientes' && styles.activeTabText]}>
-            Pendientes ({pendingDeliveries.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.cardsList}>
+          {activeDeliveries.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No hay entregas activas en tránsito.</Text>
+            </View>
+          ) : (
+            activeDeliveries.map(renderActiveCard)
+          )}
+        </View>
 
-      <ScrollView contentContainerStyle={styles.listContent}>
-        {displayedList.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="car-outline" size={48} color="#94A3B8" />
-            <Text style={styles.emptyText}>No hay entregas en esta sección</Text>
+        {/* SECCIÓN 2: Pendientes [count] -> */}
+        <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
+          <View style={styles.pendingTitleGroup}>
+            <Text style={styles.sectionTitle}>Pendientes</Text>
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>{pendingDeliveries.length}</Text>
+            </View>
           </View>
-        ) : (
-          displayedList.map(renderCard)
-        )}
+          <Ionicons name="arrow-forward" size={18} color="#0F172A" />
+        </View>
+
+        <View style={styles.cardsList}>
+          {pendingDeliveries.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No hay entregas pendientes de asignación.</Text>
+            </View>
+          ) : (
+            pendingDeliveries.map(renderPendingCard)
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -115,115 +178,150 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  pendingTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  countBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#F8FAFC',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    gap: 10,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  activeTabButton: {
-    backgroundColor: '#2563EB',
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  activeTabText: {
-    color: '#FFFFFF',
-  },
-  listContent: {
-    padding: 16,
-    gap: 12,
+  cardsList: {
+    gap: 14,
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    padding: 14,
     flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  cardInfo: {
+  infoCol: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 14,
+    gap: 4,
   },
-  topRow: {
+  metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 6,
+    marginBottom: 4,
   },
-  codeTitle: {
-    fontSize: 14,
+  metaText: {
+    fontSize: 12,
     fontWeight: '800',
     color: '#0F172A',
   },
-  statusTag: {
+  fieldLine: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 16,
+  },
+  label: {
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  value: {
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  bottomInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  dateText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
   },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
+  statusBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
   },
-  desc: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  dest: {
-    fontSize: 12,
-    color: '#475569',
-  },
-  address: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  buttonsColumn: {
+  actionsCol: {
     gap: 6,
+    alignItems: 'center',
   },
-  iconBtn: {
-    width: 44,
-    height: 36,
+  squareActionButton: {
+    width: 34,
+    height: 34,
     borderRadius: 8,
-    backgroundColor: '#EFF6FF',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  gpsBtn: {
-    backgroundColor: '#ECFDF5',
-  },
-  cancelBtn: {
+  cancelSquareButton: {
+    borderColor: '#DC2626',
     backgroundColor: '#FEF2F2',
   },
-  btnSmallLabel: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#2563EB',
+  actionLetter: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
   },
-  emptyContainer: {
+  cancelLetter: {
+    color: '#DC2626',
+  },
+  emptyCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
     alignItems: 'center',
-    marginTop: 60,
-    gap: 12,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#94A3B8',
   },
 });
