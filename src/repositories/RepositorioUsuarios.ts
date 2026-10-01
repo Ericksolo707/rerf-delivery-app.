@@ -82,11 +82,25 @@ export class RepositorioUsuarios {
   public async validarCredenciales(email: string, pass: string): Promise<UserProfile | null> {
     await this.inicializarPersistencia();
 
-    const cleanEmail = email.trim().toLowerCase();
+    const inputIdentifier = email.trim();
     const cleanPass = pass.trim();
 
-    if (!cleanEmail || !cleanPass) {
-      throw new Error('Por favor complete su correo electrónico y contraseña.');
+    if (!inputIdentifier || !cleanPass) {
+      throw new Error('Por favor complete su usuario o correo y contraseña.');
+    }
+
+    // Si el usuario ingresó un nombre de usuario en vez de correo, resolver su correo
+    let cleanEmail = inputIdentifier.toLowerCase();
+    if (!cleanEmail.includes('@')) {
+      const match = this.directorio.find(
+        (u) => u.first_name.toLowerCase() === cleanEmail ||
+               `${u.first_name}${u.last_name || ''}`.toLowerCase().replace(/\s+/g, '') === cleanEmail
+      );
+      if (match) {
+        cleanEmail = match.email.toLowerCase();
+      } else {
+        cleanEmail = `${cleanEmail.replace(/\s+/g, '')}@rerf.gt`;
+      }
     }
 
     // 1. Autenticación con Supabase Auth
@@ -99,7 +113,7 @@ export class RepositorioUsuarios {
 
         if (authError) {
           if (authError.message.includes('Invalid login credentials')) {
-            throw new Error('Correo o contraseña incorrectos. Verifique sus datos o regístrese si es nuevo.');
+            throw new Error('Usuario, correo o contraseña incorrectos. Verifique sus datos o regístrese si es nuevo.');
           }
           if (authError.message.includes('Email not confirmed')) {
             // La contraseña es correcta (Supabase valida la contraseña antes de chequear confirmación).
@@ -111,9 +125,12 @@ export class RepositorioUsuarios {
               profileData = res.data;
             } catch {}
 
+            const rawName = profileData?.first_name || localUser?.first_name || cleanEmail.split('@')[0];
+            const cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
+
             const resolvedUser: UserProfile = {
               id: profileData?.id || localUser?.id || `usr-${Date.now()}`,
-              first_name: profileData?.first_name || localUser?.first_name || cleanEmail.split('@')[0],
+              first_name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
               last_name: profileData?.last_name || localUser?.last_name || '',
               email: cleanEmail,
               phone: profileData?.phone || localUser?.phone || '',
@@ -163,9 +180,11 @@ export class RepositorioUsuarios {
           }
 
           if (!userProfile) {
+            const rawName = authData.user.user_metadata?.first_name || cleanEmail.split('@')[0];
+            const cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
             userProfile = {
               id: userId,
-              first_name: authData.user.user_metadata?.first_name || cleanEmail.split('@')[0],
+              first_name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
               last_name: authData.user.user_metadata?.last_name || '',
               email: authData.user.email || cleanEmail,
               role: (authData.user.user_metadata?.role as any) || 'cliente',
@@ -204,9 +223,13 @@ export class RepositorioUsuarios {
     }
 
     // 2. Fallback offline: validar contra credenciales guardadas en este dispositivo
-    const expectedPass = this.credenciales[cleanEmail];
+    const expectedPass = this.credenciales[cleanEmail] || this.credenciales[inputIdentifier.toLowerCase()];
     if (expectedPass && expectedPass === cleanPass) {
-      const foundUser = this.directorio.find((u) => u.email.toLowerCase() === cleanEmail);
+      const foundUser = this.directorio.find(
+        (u) => u.email.toLowerCase() === cleanEmail ||
+               u.email.toLowerCase() === inputIdentifier.toLowerCase() ||
+               u.first_name.toLowerCase() === inputIdentifier.toLowerCase()
+      );
       if (foundUser) {
         this.usuarioActual = { ...foundUser };
         await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));

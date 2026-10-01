@@ -11,7 +11,7 @@
  * - Modales Pantalla 18: Confirmación "¿Desea cancelar el pedido/paquete?" y "Tu envío fue cancelado con éxito"
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -19,7 +19,10 @@ import {
   ScrollView, 
   TextInput,
   TouchableOpacity,
-  Modal
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -30,6 +33,33 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'>> = ({ route, navigation }) => {
   const { cancelShipment } = useApp();
   const initialCode = route.params?.shipmentId || '';
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  const handleInputFocus = (offsetY: number) => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: offsetY, animated: true });
+    }, 120);
+  };
 
   const [trackingCode, setTrackingCode] = useState<string>(initialCode);
   const [reason, setReason] = useState<string>('');
@@ -65,10 +95,24 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       <Header title="Cancelar Envío" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 40,
+          }
+        ]} 
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {errorBanner ? (
           <View style={styles.errorAlert}>
             <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
@@ -85,6 +129,7 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
             placeholderTextColor="#94A3B8"
             value={trackingCode}
             onChangeText={setTrackingCode}
+            onFocus={() => handleInputFocus(50)}
             autoCapitalize="characters"
           />
         </View>
@@ -98,6 +143,7 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
             placeholderTextColor="#94A3B8"
             value={reason}
             onChangeText={setReason}
+            onFocus={() => handleInputFocus(140)}
             multiline
             numberOfLines={5}
           />
@@ -191,7 +237,7 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

@@ -94,12 +94,24 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
     setError('');
     setLoading(true);
     try {
-      // Split name into first and last name if possible, or use fallback
-      const parts = name.trim().split(' ');
-      const firstName = parts[0] || 'Usuario';
-      const lastName = parts.slice(1).join(' ') || 'RerF';
-      // Create user email if given username, or use username@rerf.com
-      const cleanEmail = name.includes('@') ? name.trim() : `${name.trim().toLowerCase().replace(/\s+/g, '')}@rerf.gt`;
+      // Separar nombre o limpiar si el usuario ingresó un correo electrónico
+      let firstName = 'Usuario';
+      let lastName = '';
+      let cleanEmail = '';
+
+      if (name.includes('@')) {
+        cleanEmail = name.trim().toLowerCase();
+        const localPart = cleanEmail.split('@')[0];
+        const segments = localPart.split(/[._-]/).filter(Boolean);
+        firstName = segments[0] ? segments[0].charAt(0).toUpperCase() + segments[0].slice(1) : 'Usuario';
+        lastName = segments.slice(1).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+      } else {
+        const parts = name.trim().split(' ').filter(Boolean);
+        firstName = parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : 'Usuario';
+        lastName = parts.slice(1).join(' ');
+        const usernameSlug = name.trim().toLowerCase().replace(/\s+/g, '');
+        cleanEmail = `${usernameSlug}@rerf.gt`;
+      }
 
       await register(firstName, lastName, cleanEmail, password.trim());
     } catch (err: unknown) {

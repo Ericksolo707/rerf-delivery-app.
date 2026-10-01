@@ -8,6 +8,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   UserProfile, 
   Shipment, 
@@ -77,9 +78,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   
-  const [notifications, setNotifications] = useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(MOCK_CHAT_MESSAGES);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>(MOCK_AI_MESSAGES);
+
+  // Cargar notificaciones persistidas y aisladas específicamente para el usuario en sesión
+  useEffect(() => {
+    async function cargarNotificacionesUsuario(): Promise<void> {
+      if (!user) {
+        setNotifications([]);
+        return;
+      }
+      try {
+        const storageKey = `@rerf_notifications_${user.id}`;
+        const guardadasRaw = await AsyncStorage.getItem(storageKey);
+        if (guardadasRaw) {
+          setNotifications(JSON.parse(guardadasRaw));
+        } else if (user.role === 'admin') {
+          // El Administrador inicia con notificaciones del sistema de prueba
+          setNotifications(MOCK_NOTIFICATIONS);
+          await AsyncStorage.setItem(storageKey, JSON.stringify(MOCK_NOTIFICATIONS));
+        } else {
+          // Nuevo usuario registrado: Bandeja de notificaciones 100% limpia
+          setNotifications([]);
+        }
+      } catch (err) {
+        console.warn('Error cargando notificaciones del usuario:', err);
+        setNotifications([]);
+      }
+    }
+
+    cargarNotificacionesUsuario();
+  }, [user?.id, user?.role]);
+
+  // Guardar notificaciones del usuario en AsyncStorage
+  const persistirNotificaciones = async (lista: NotificationItem[]): Promise<void> => {
+    setNotifications(lista);
+    if (user) {
+      try {
+        await AsyncStorage.setItem(`@rerf_notifications_${user.id}`, JSON.stringify(lista));
+      } catch (err) {
+        console.warn('Error persistiendo notificaciones:', err);
+      }
+    }
+  };
 
   // Filtrado de envíos: cada usuario solo ve sus propios movimientos. El Administrador ve todos.
   const userShipments = React.useMemo(() => {
@@ -165,6 +207,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await repositorioUsuarios.cerrarSesion();
     setUser(null);
     setIsAuthenticated(false);
+    setNotifications([]);
   };
 
   const updateProfile = async (data: Partial<UserProfile>): Promise<void> => {
@@ -192,7 +235,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       date: 'Hace un momento',
       is_read: false,
     };
-    setNotifications(prev => [nuevaNotificacion, ...prev]);
+    await persistirNotificaciones([nuevaNotificacion, ...notifications]);
 
     return nuevoEnvio;
   };
@@ -221,9 +264,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const markNotificationRead = (id: string): void => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
-    );
+    const actualizadas = notifications.map(n => (n.id === id ? { ...n, is_read: true } : n));
+    persistirNotificaciones(actualizadas);
   };
 
   const toggleFavoriteUser = async (userId: string): Promise<void> => {

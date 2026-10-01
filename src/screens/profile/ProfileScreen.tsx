@@ -49,9 +49,15 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
-  const username = user?.first_name 
-    ? `${user.first_name}${user.last_name || ''}`.toLowerCase().replace(/\s+/g, '') 
-    : 'nombredeusuario1234';
+  const username = React.useMemo(() => {
+    if (!user) return 'usuario';
+    if (user.first_name && !user.first_name.includes('@')) {
+      return `${user.first_name}${user.last_name ? ` ${user.last_name}` : ''}`.trim();
+    }
+    const raw = user.first_name || user.email || 'usuario';
+    const base = raw.split('@')[0].replace(/[._-]/g, ' ');
+    return base.charAt(0).toUpperCase() + base.slice(1);
+  }, [user]);
 
   return (
     <View style={styles.container}>

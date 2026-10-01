@@ -11,14 +11,17 @@
  * - Botones inferiores [ Cancelar solicitud ] y [ Enviar solicitud ]
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   TextInput,
-  TouchableOpacity 
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -30,6 +33,33 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlmacenaje'>> = ({ navigation }) => {
   const { addWarehouseItem, user } = useApp();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  const handleInputFocus = (offsetY: number) => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: offsetY, animated: true });
+    }, 120);
+  };
 
   const [productType, setProductType] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -63,10 +93,24 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       <Header title="Almacenaje" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 40,
+          }
+        ]} 
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {errorBanner ? (
           <View style={styles.errorAlert}>
             <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
@@ -83,6 +127,7 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
             placeholderTextColor="#94A3B8"
             value={productType}
             onChangeText={setProductType}
+            onFocus={() => handleInputFocus(50)}
           />
         </View>
 
@@ -95,6 +140,7 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
             placeholderTextColor="#94A3B8"
             value={description}
             onChangeText={setDescription}
+            onFocus={() => handleInputFocus(140)}
             multiline
             numberOfLines={4}
           />
@@ -184,7 +230,7 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
           navigation.goBack();
         }}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

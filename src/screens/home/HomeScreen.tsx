@@ -28,7 +28,18 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({ navigation }) => {
   const { user } = useApp();
-  const userName = user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'usuario';
+  
+  // Nombre limpio y profesional para la bienvenida (sin dominio @correo.com)
+  const displayName = React.useMemo(() => {
+    if (!user) return 'Usuario';
+    if (user.first_name && !user.first_name.includes('@')) {
+      const last = user.last_name && user.last_name !== 'RerF' ? ` ${user.last_name}` : '';
+      return `${user.first_name}${last}`.trim();
+    }
+    const raw = user.first_name || user.email || 'usuario';
+    const base = raw.split('@')[0].replace(/[._-]/g, ' ');
+    return base.charAt(0).toUpperCase() + base.slice(1);
+  }, [user]);
 
   // Carrusel interactivo para "Animación / Muestra de Servicios"
   const services = [
@@ -67,7 +78,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
     <View style={styles.container}>
       {/* Header Excalidraw: "Bienvenido [usuario]" con [ ! ] y [ -> ] */}
       <Header 
-        title={`Bienvenido ${userName}`} 
+        title={`Bienvenido ${displayName}`} 
       />
 
       <ScrollView 

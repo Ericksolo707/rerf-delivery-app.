@@ -15,7 +15,7 @@
  * - Pantalla 14 integrada: Modal "¿Desea confirmar la solicitud?" y confirmación de recepción.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -25,7 +25,8 @@ import {
   TextInput,
   KeyboardAvoidingView, 
   Platform,
-  Modal
+  Modal,
+  Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -36,6 +37,33 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ route, navigation }) => {
   const { addShipment, warehouseItems, users, user } = useApp();
   const prefilled = route.params?.prefilledRecipient;
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  const handleInputFocus = (offsetY: number) => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: offsetY, animated: true });
+    }, 120);
+  };
 
   // Campos Excalidraw Pantalla 13
   const [recipient, setRecipient] = useState<string>(prefilled || '');
@@ -117,11 +145,22 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   return (
     <KeyboardAvoidingView 
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <Header title="Realizar Envío" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 100 : 40,
+          }
+        ]} 
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {errorBanner ? (
           <View style={styles.errorAlert}>
             <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
@@ -139,6 +178,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
               placeholderTextColor="#94A3B8"
               value={recipient}
               onChangeText={setRecipient}
+              onFocus={() => handleInputFocus(40)}
             />
             <TouchableOpacity 
               style={styles.tagButton}
@@ -179,6 +219,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             placeholderTextColor="#94A3B8"
             value={address}
             onChangeText={setAddress}
+            onFocus={() => handleInputFocus(140)}
           />
         </View>
 
@@ -191,6 +232,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             placeholderTextColor="#94A3B8"
             value={reference}
             onChangeText={setReference}
+            onFocus={() => handleInputFocus(220)}
           />
         </View>
 
@@ -220,6 +262,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             placeholderTextColor="#94A3B8"
             value={description}
             onChangeText={setDescription}
+            onFocus={() => handleInputFocus(300)}
             multiline
             numberOfLines={3}
           />
