@@ -109,7 +109,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     cargarNotificacionesUsuario();
-  }, [user?.id, user?.role]);
+  }, [user]);
 
   // Guardar notificaciones del usuario en AsyncStorage
   const persistirNotificaciones = async (lista: NotificationItem[]): Promise<void> => {
