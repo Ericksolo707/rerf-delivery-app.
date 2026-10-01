@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
+import { Avatar } from '../../components/Avatar';
 import { useApp } from '../../context/AppContext';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
@@ -57,11 +58,15 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
       <Header title="Perfil" />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Sección de Foto y Nombre de Usuario */}
+        {/* Sección de Foto con Iniciales y Nombre de Usuario */}
         <View style={styles.avatarSection}>
-          <View style={styles.largeFotoCircle}>
-            <Text style={styles.largeFotoText}>foto</Text>
-          </View>
+          <Avatar 
+            firstName={user?.first_name} 
+            lastName={user?.last_name} 
+            role={user?.role} 
+            size={100} 
+            style={styles.avatarStyle} 
+          />
           <Text style={styles.usernameTitle}>{username}</Text>
         </View>
 
@@ -185,22 +190,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 20,
   },
-  largeFotoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 2,
-    borderColor: RerfColors.primaryYellow,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: RerfColors.primaryYellowLight,
+  avatarStyle: {
     marginBottom: 12,
-    ...RerfShadows.card,
-  },
-  largeFotoText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: RerfColors.primaryYellowHover,
+    borderWidth: 3,
+    borderColor: RerfColors.primaryYellow,
+    ...RerfShadows.cardHover,
   },
   usernameTitle: {
     fontSize: 16,

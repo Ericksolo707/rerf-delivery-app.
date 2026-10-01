@@ -12,7 +12,7 @@
  * Conexión completa y segura a Supabase Auth.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -21,7 +21,8 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  Keyboard
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +34,7 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { register } = useApp();
+  const scrollViewRef = useRef<ScrollView>(null);
   
   const [name, setName] = useState<string>('');
   const [confirmName, setConfirmName] = useState<string>('');
@@ -41,6 +43,32 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
   
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  const handleInputFocus = (offsetY: number) => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: offsetY, animated: true });
+    }, 120);
+  };
 
   const handleRegister = async (): Promise<void> => {
     if (!name.trim()) {
@@ -85,22 +113,28 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <ScrollView 
+        ref={scrollViewRef}
         contentContainerStyle={[
           styles.scrollContent,
+          keyboardHeight > 0 && { justifyContent: 'flex-start' },
           {
-            paddingTop: Math.max(insets.top + 20, 44),
-            paddingBottom: Math.max(insets.bottom + 20, 32),
+            paddingTop: Math.max(insets.top + 20, 36),
+            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : Math.max(insets.bottom + 20, 36),
           }
         ]} 
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* LOGO Rómbico Central y RERF APP (Boceto Excalidraw) */}
+        {/* LOGO Corporativo RerF (Modelo Anterior) y RERF APP */}
         <View style={styles.logoContainer}>
-          <View style={styles.diamondBox}>
-            <Text style={styles.diamondText}>LOGO</Text>
+          <View style={styles.logoPill}>
+            <Text style={styles.logoText}>
+              Rer<Text style={styles.logoHighlight}>F.</Text>
+            </Text>
           </View>
           <Text style={styles.appTitle}>RERF APP</Text>
         </View>
@@ -124,6 +158,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
                 setName(val);
                 if (error) setError('');
               }}
+              onFocus={() => handleInputFocus(70)}
               autoCapitalize="none"
               containerStyle={styles.sketchInput}
             />
@@ -140,6 +175,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
                 setConfirmName(val);
                 if (error) setError('');
               }}
+              onFocus={() => handleInputFocus(140)}
               autoCapitalize="none"
               containerStyle={styles.sketchInput}
             />
@@ -156,6 +192,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
                 setPassword(val);
                 if (error) setError('');
               }}
+              onFocus={() => handleInputFocus(210)}
               secureTextEntry
               containerStyle={styles.sketchInput}
             />
@@ -174,6 +211,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
                 setConfirmPassword(val);
                 if (error) setError('');
               }}
+              onFocus={() => handleInputFocus(280)}
               secureTextEntry
               containerStyle={styles.sketchInput}
             />
@@ -222,25 +260,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  diamondBox: {
-    width: 76,
-    height: 76,
-    borderWidth: 2.5,
-    borderColor: RerfColors.primaryYellow,
-    borderRadius: 12,
-    transform: [{ rotate: '45deg' }],
-    justifyContent: 'center',
+  logoPill: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: RerfColors.heroDark,
-    marginBottom: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: RerfColors.primaryYellow,
+    marginBottom: 12,
     ...RerfShadows.cardHover,
   },
-  diamondText: {
-    transform: [{ rotate: '-45deg' }],
-    fontSize: 12,
+  logoText: {
+    fontSize: 28,
     fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  logoHighlight: {
     color: RerfColors.primaryYellow,
-    letterSpacing: 1,
   },
   appTitle: {
     fontSize: 20,

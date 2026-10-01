@@ -11,7 +11,7 @@
  * Conexión completa y segura a Supabase Auth.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -20,7 +20,8 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  Keyboard
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,10 +33,37 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { login } = useApp();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  const handleInputFocus = (offsetY: number) => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: offsetY, animated: true });
+    }, 120);
+  };
 
   const handleLogin = async (): Promise<void> => {
     if (!email.trim() || !password.trim()) {
@@ -57,22 +85,28 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <ScrollView 
+        ref={scrollViewRef}
         contentContainerStyle={[
           styles.scrollContent, 
+          keyboardHeight > 0 && { justifyContent: 'flex-start' },
           { 
-            paddingTop: Math.max(insets.top + 30, 60),
-            paddingBottom: Math.max(insets.bottom + 24, 36)
+            paddingTop: Math.max(insets.top + 24, 44),
+            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : Math.max(insets.bottom + 24, 40)
           }
         ]} 
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* LOGO Rómbico Central y RERF APP (Boceto Excalidraw) */}
+        {/* LOGO Corporativo RerF (Modelo Anterior) y RERF APP */}
         <View style={styles.logoContainer}>
-          <View style={styles.diamondBox}>
-            <Text style={styles.diamondText}>LOGO</Text>
+          <View style={styles.logoPill}>
+            <Text style={styles.logoText}>
+              Rer<Text style={styles.logoHighlight}>F.</Text>
+            </Text>
           </View>
           <Text style={styles.appTitle}>RERF APP</Text>
         </View>
@@ -93,6 +127,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
               setEmail(val);
               if (error) setError('');
             }}
+            onFocus={() => handleInputFocus(90)}
             autoCapitalize="none"
             keyboardType="email-address"
             containerStyle={styles.sketchInputContainer}
@@ -105,6 +140,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
               setPassword(val);
               if (error) setError('');
             }}
+            onFocus={() => handleInputFocus(160)}
             secureTextEntry
             containerStyle={styles.sketchInputContainer}
           />
@@ -154,25 +190,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 36,
   },
-  diamondBox: {
-    width: 86,
-    height: 86,
-    borderWidth: 2.5,
-    borderColor: RerfColors.primaryYellow,
-    borderRadius: 14,
-    transform: [{ rotate: '45deg' }],
-    justifyContent: 'center',
+  logoPill: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: RerfColors.heroDark,
-    marginBottom: 26,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: RerfColors.primaryYellow,
+    marginBottom: 14,
     ...RerfShadows.cardHover,
   },
-  diamondText: {
-    transform: [{ rotate: '-45deg' }],
-    fontSize: 13,
+  logoText: {
+    fontSize: 32,
     fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  logoHighlight: {
     color: RerfColors.primaryYellow,
-    letterSpacing: 1,
   },
   appTitle: {
     fontSize: 22,

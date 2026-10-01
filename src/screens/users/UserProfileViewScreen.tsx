@@ -21,6 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { ModalDialog } from '../../components/ModalDialog';
+import { Avatar } from '../../components/Avatar';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
@@ -60,11 +61,15 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
       <Header title="Usuarios" showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Círculo central grande de foto */}
+        {/* Círculo central con Iniciales del Usuario */}
         <View style={styles.avatarSection}>
-          <View style={styles.largeFotoCircle}>
-            <Text style={styles.largeFotoText}>foto</Text>
-          </View>
+          <Avatar 
+            firstName={targetUser.first_name} 
+            lastName={targetUser.last_name} 
+            role={targetUser.role} 
+            size={100} 
+            style={styles.avatarStyle} 
+          />
         </View>
 
         {/* Datos del usuario */}
@@ -154,21 +159,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 20,
   },
-  largeFotoCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 2,
+  avatarStyle: {
+    borderWidth: 3,
     borderColor: RerfColors.primaryYellow,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: RerfColors.primaryYellowLight,
-    ...RerfShadows.card,
-  },
-  largeFotoText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: RerfColors.primaryYellowHover,
+    ...RerfShadows.cardHover,
   },
   infoFieldsContainer: {
     alignItems: 'center',

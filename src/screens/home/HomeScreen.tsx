@@ -79,10 +79,10 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
           <Text style={styles.appTitle}>RERF APP</Text>
         </View>
 
-        {/* Sección: "Animación / Muestra de Servicios" */}
+        {/* Sección: "Nuestros servicios" */}
         <View style={styles.showcaseCard}>
           <View style={styles.showcaseHeader}>
-            <Text style={styles.showcaseLabel}>Animación / Muestra de Servicios</Text>
+            <Text style={styles.showcaseLabel}>Nuestros servicios</Text>
             <View style={styles.dotIndicatorRow}>
               {services.map((_, idx) => (
                 <View 
