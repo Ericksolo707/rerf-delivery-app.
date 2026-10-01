@@ -21,7 +21,6 @@ import {
   TextInput, 
   TouchableOpacity 
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';

@@ -32,7 +32,6 @@ import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
-import { DEPARTAMENTOS_GUATEMALA } from '../../constants/guatemalaLogistics';
 
 export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ route, navigation }) => {
   const { addShipment, warehouseItems, users, user } = useApp();

@@ -20,7 +20,6 @@ import {
   ScrollView, 
   TouchableOpacity 
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { ModalDialog } from '../../components/ModalDialog';
 import { PaymentMethod } from '../../types';

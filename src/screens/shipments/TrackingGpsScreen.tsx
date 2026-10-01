@@ -17,9 +17,7 @@ import {
   Text, 
   StyleSheet, 
   TextInput, 
-  TouchableOpacity,
-  ScrollView,
-  Linking
+  TouchableOpacity
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';

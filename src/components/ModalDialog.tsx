@@ -3,8 +3,7 @@ import {
   Modal, 
   View, 
   Text, 
-  StyleSheet, 
-  TouchableOpacity 
+  StyleSheet 
 } from 'react-native';
 import { Button } from './Button';
 import { Ionicons } from '@expo/vector-icons';

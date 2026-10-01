@@ -22,7 +22,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
-import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
