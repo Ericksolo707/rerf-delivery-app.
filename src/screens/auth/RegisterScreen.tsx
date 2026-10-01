@@ -125,17 +125,15 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView 
         ref={scrollViewRef}
         contentContainerStyle={[
           styles.scrollContent,
-          keyboardHeight > 0 && { justifyContent: 'flex-start' },
           {
-            paddingTop: Math.max(insets.top + 20, 36),
-            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : Math.max(insets.bottom + 20, 36),
+            paddingTop: Math.max(insets.top + 20, 32),
+            paddingBottom: keyboardHeight > 0 ? 50 : Math.max(insets.bottom + 20, 30),
           }
         ]} 
         keyboardShouldPersistTaps="handled"
@@ -170,7 +168,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
                 setName(val);
                 if (error) setError('');
               }}
-              onFocus={() => handleInputFocus(70)}
+              onFocus={() => handleInputFocus(20)}
               autoCapitalize="none"
               containerStyle={styles.sketchInput}
             />
@@ -187,7 +185,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
                 setConfirmName(val);
                 if (error) setError('');
               }}
-              onFocus={() => handleInputFocus(140)}
+              onFocus={() => handleInputFocus(50)}
               autoCapitalize="none"
               containerStyle={styles.sketchInput}
             />
@@ -204,7 +202,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
                 setPassword(val);
                 if (error) setError('');
               }}
-              onFocus={() => handleInputFocus(210)}
+              onFocus={() => handleInputFocus(80)}
               secureTextEntry
               containerStyle={styles.sketchInput}
             />
@@ -223,7 +221,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
                 setConfirmPassword(val);
                 if (error) setError('');
               }}
-              onFocus={() => handleInputFocus(280)}
+              onFocus={() => handleInputFocus(110)}
               secureTextEntry
               containerStyle={styles.sketchInput}
             />

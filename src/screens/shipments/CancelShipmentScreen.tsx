@@ -97,8 +97,8 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
   return (
     <KeyboardAvoidingView 
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <Header title="Cancelar Envío" showBack={true} />
 
@@ -107,7 +107,7 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 40,
+            paddingBottom: keyboardHeight > 0 ? 50 : 30,
           }
         ]} 
         keyboardShouldPersistTaps="handled"
@@ -129,7 +129,6 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
             placeholderTextColor="#94A3B8"
             value={trackingCode}
             onChangeText={setTrackingCode}
-            onFocus={() => handleInputFocus(50)}
             autoCapitalize="characters"
           />
         </View>
@@ -143,7 +142,7 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
             placeholderTextColor="#94A3B8"
             value={reason}
             onChangeText={setReason}
-            onFocus={() => handleInputFocus(140)}
+            onFocus={() => handleInputFocus(60)}
             multiline
             numberOfLines={5}
           />
