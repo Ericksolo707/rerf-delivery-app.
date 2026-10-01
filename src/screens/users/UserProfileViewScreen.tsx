@@ -24,7 +24,7 @@ import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsuario'>> = ({ route, navigation }) => {
   const { toggleFavoriteUser, reportUser } = useApp();
@@ -144,7 +144,7 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     padding: 24,
@@ -159,20 +159,16 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     borderWidth: 2,
-    borderColor: '#0F172A',
+    borderColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: RerfColors.primaryYellowLight,
+    ...RerfShadows.card,
   },
   largeFotoText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#64748B',
+    color: RerfColors.primaryYellowHover,
   },
   infoFieldsContainer: {
     alignItems: 'center',
@@ -181,35 +177,31 @@ const styles = StyleSheet.create({
   },
   infoLine: {
     fontSize: 15,
-    color: '#0F172A',
+    color: RerfColors.textMain,
     fontWeight: '600',
   },
   infoLabel: {
     fontWeight: '800',
-    color: '#475569',
+    color: RerfColors.textSecondary,
   },
   descCard: {
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.surfaceCard,
     marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   descTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 6,
   },
   descText: {
     fontSize: 13,
-    color: '#334155',
+    color: RerfColors.textSecondary,
     lineHeight: 18,
   },
   bottomButtonsRow: {
@@ -220,28 +212,31 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 8,
+    ...RerfShadows.card,
   },
   saveButton: {
     backgroundColor: RerfColors.primaryYellow,
+    borderColor: RerfColors.primaryYellowHover,
   },
   savedButton: {
-    backgroundColor: '#FEF08A',
+    backgroundColor: RerfColors.primaryYellowLight,
+    borderColor: RerfColors.primaryYellow,
   },
   reportButton: {
-    borderColor: '#DC2626',
-    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    backgroundColor: RerfColors.errorRedLight,
   },
   actionButtonText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
 });

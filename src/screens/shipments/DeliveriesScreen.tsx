@@ -21,6 +21,7 @@ import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ navigation }) => {
   const { shipments } = useApp();
@@ -178,7 +179,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     padding: 16,
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   pendingTitleGroup: {
     flexDirection: 'row',
@@ -205,34 +206,30 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: RerfColors.primaryYellowLight,
   },
   countBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
   cardsList: {
     gap: 14,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    backgroundColor: RerfColors.surfaceCard,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   infoCol: {
     flex: 1,
@@ -243,27 +240,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RerfColors.surfaceSubtle,
     paddingBottom: 6,
     marginBottom: 4,
   },
   metaText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   fieldLine: {
     fontSize: 12,
-    color: '#334155',
+    color: RerfColors.textSecondary,
     lineHeight: 16,
   },
   label: {
     fontWeight: '700',
-    color: '#64748B',
+    color: RerfColors.textMuted,
   },
   value: {
     fontWeight: '600',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   bottomInfoRow: {
     flexDirection: 'row',
@@ -273,7 +270,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 11,
-    color: '#64748B',
+    color: RerfColors.textMuted,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -294,23 +291,23 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cancelSquareButton: {
-    borderColor: '#DC2626',
-    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    backgroundColor: RerfColors.errorRedLight,
   },
   actionLetter: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   cancelLetter: {
-    color: '#DC2626',
+    color: RerfColors.errorRed,
   },
   emptyCard: {
     padding: 16,

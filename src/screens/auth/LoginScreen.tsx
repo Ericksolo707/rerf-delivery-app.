@@ -27,7 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -143,7 +143,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -157,31 +157,27 @@ const styles = StyleSheet.create({
   diamondBox: {
     width: 86,
     height: 86,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    borderWidth: 2.5,
+    borderColor: RerfColors.primaryYellow,
     borderRadius: 14,
     transform: [{ rotate: '45deg' }],
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.heroDark,
     marginBottom: 26,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    ...RerfShadows.cardHover,
   },
   diamondText: {
     transform: [{ rotate: '-45deg' }],
     fontSize: 13,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.primaryYellow,
     letterSpacing: 1,
   },
   appTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     letterSpacing: 0.5,
   },
   formContainer: {
@@ -195,18 +191,14 @@ const styles = StyleSheet.create({
   primaryButton: {
     height: 52,
     borderRadius: 26,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   disabledButton: {
     opacity: 0.65,
@@ -214,7 +206,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
   registerSection: {
     alignItems: 'center',
@@ -222,7 +214,7 @@ const styles = StyleSheet.create({
   },
   questionText: {
     fontSize: 14,
-    color: '#64748B',
+    color: RerfColors.textSecondary,
     marginBottom: 12,
     fontWeight: '500',
   },
@@ -230,16 +222,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 50,
     borderRadius: 25,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
+    ...RerfShadows.card,
   },
   secondaryButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   errorBanner: {
     flexDirection: 'row',

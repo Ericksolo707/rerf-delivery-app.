@@ -21,7 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ShipmentRejectedScreen: React.FC<RootStackScreenProps<'EnvioRechazado'>> = ({ route, navigation }) => {
   const rejectedData = route.params?.shipment || {
@@ -105,7 +105,7 @@ export const ShipmentRejectedScreen: React.FC<RootStackScreenProps<'EnvioRechaza
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     padding: 20,
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   rejectedTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#DC2626',
+    color: RerfColors.errorRed,
   },
   detailsBox: {
     marginBottom: 24,
@@ -126,32 +126,28 @@ const styles = StyleSheet.create({
   detailsHeaderLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 8,
   },
   innerReasonCard: {
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
     padding: 16,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: RerfColors.surfaceCard,
+    ...RerfShadows.card,
   },
   reasonCardTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#64748B',
+    color: RerfColors.textMuted,
     marginBottom: 10,
     textTransform: 'uppercase',
   },
   reasonTextContainer: {
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: RerfColors.errorRedLight,
     borderWidth: 1,
     borderColor: '#FECACA',
     borderRadius: 10,
@@ -160,14 +156,14 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     fontSize: 13,
-    color: '#991B1B',
+    color: RerfColors.errorRed,
     lineHeight: 18,
     flex: 1,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: RerfColors.surfaceSubtle,
     marginVertical: 10,
   },
   metaRow: {
@@ -178,17 +174,17 @@ const styles = StyleSheet.create({
   metaLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
+    color: RerfColors.textMuted,
   },
   metaValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   optionsSectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 10,
   },
   optionsRow: {
@@ -200,33 +196,34 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
+    backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
+    ...RerfShadows.card,
   },
   cancelOptionBtn: {
-    borderColor: '#DC2626',
-    backgroundColor: '#FEF2F2',
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
   },
   optionButtonText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
   supportButton: {
     height: 50,
     borderRadius: 25,
     borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    borderColor: RerfColors.logisticsBlue,
+    backgroundColor: RerfColors.logisticsBlueLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   supportButtonText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.logisticsBlue,
   },
 });

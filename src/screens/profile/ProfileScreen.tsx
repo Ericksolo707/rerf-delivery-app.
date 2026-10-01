@@ -26,7 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> = ({ navigation }) => {
   const { user, updateProfile } = useApp();
@@ -175,7 +175,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     padding: 24,
@@ -190,31 +190,27 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 2,
-    borderColor: '#0F172A',
+    borderColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: RerfColors.primaryYellowLight,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   largeFotoText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#64748B',
+    color: RerfColors.primaryYellowHover,
   },
   usernameTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   successBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DCFCE7',
+    backgroundColor: RerfColors.successGreenLight,
     borderWidth: 1,
     borderColor: '#86EFAC',
     borderRadius: 12,
@@ -228,11 +224,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   fieldsContainer: {
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
     overflow: 'hidden',
+    backgroundColor: RerfColors.surfaceCard,
     marginBottom: 28,
+    ...RerfShadows.card,
   },
   profileFieldRow: {
     flexDirection: 'row',
@@ -240,8 +238,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: RerfColors.surfaceSubtle,
+    backgroundColor: RerfColors.surfaceCard,
   },
   fieldInfoCol: {
     flex: 1,
@@ -250,23 +248,23 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#64748B',
+    color: RerfColors.textMuted,
     marginBottom: 2,
   },
   fieldValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   inlineInput: {
     height: 38,
     borderWidth: 1,
-    borderColor: '#2563EB',
+    borderColor: RerfColors.logisticsBlue,
     borderRadius: 8,
     paddingHorizontal: 10,
     fontSize: 14,
-    color: '#0F172A',
-    backgroundColor: '#EFF6FF',
+    color: RerfColors.textMain,
+    backgroundColor: RerfColors.logisticsBlueLight,
   },
   editBtn: {
     paddingVertical: 4,
@@ -274,26 +272,23 @@ const styles = StyleSheet.create({
   },
   editBtnText: {
     fontSize: 12,
-    color: '#64748B',
+    color: RerfColors.logisticsBlue,
+    fontWeight: '700',
     textDecorationLine: 'underline',
   },
   saveButton: {
     height: 50,
     borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   saveButtonText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
 });

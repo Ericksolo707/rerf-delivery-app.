@@ -24,7 +24,7 @@ import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { ChatMessage } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = ({ route, navigation }) => {
   const { supportMessages, sendSupportMessage, user } = useApp();
@@ -94,7 +94,7 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   messagesList: {
     padding: 16,
@@ -116,17 +116,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   myBubble: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
+    borderColor: RerfColors.primaryYellowHover,
     borderBottomRightRadius: 4,
   },
   otherBubble: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#0F172A',
+    backgroundColor: RerfColors.surfaceCard,
+    borderColor: RerfColors.surfaceCardBorder,
     borderBottomLeftRadius: 4,
+    ...RerfShadows.card,
   },
   messageText: {
     fontSize: 14,
@@ -134,10 +135,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   myMessageText: {
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
   otherMessageText: {
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   timestamp: {
     fontSize: 10,
@@ -150,31 +151,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1.5,
-    borderTopColor: '#0F172A',
+    backgroundColor: RerfColors.surfaceCard,
+    borderTopWidth: 1,
+    borderTopColor: RerfColors.surfaceCardBorder,
     gap: 10,
   },
   input: {
     flex: 1,
     height: 46,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     borderRadius: 23,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#0F172A',
-    backgroundColor: '#FFFFFF',
+    color: RerfColors.textMain,
+    backgroundColor: RerfColors.surfaceSubtle,
   },
   circleSendBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
+    ...RerfShadows.card,
   },
   disabledSendBtn: {
     opacity: 0.5,

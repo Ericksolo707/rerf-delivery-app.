@@ -23,7 +23,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'ContactoTab'>> = ({ navigation }) => {
   const moderators = [
@@ -100,7 +100,7 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     padding: 16,
@@ -109,27 +109,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   contactsList: {
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.surfaceCard,
+    ...RerfShadows.card,
   },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RerfColors.surfaceSubtle,
     gap: 12,
   },
   circleAvatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: RerfColors.logisticsBlueBorder,
+    backgroundColor: RerfColors.logisticsBlueLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -139,12 +140,12 @@ const styles = StyleSheet.create({
   contactName: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 2,
   },
   contactPreview: {
     fontSize: 12,
-    color: '#64748B',
+    color: RerfColors.textMuted,
   },
   aiButtonContainer: {
     alignItems: 'flex-end',
@@ -155,26 +156,22 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    ...RerfShadows.cardHover,
   },
   aiCircleText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
   aiButtonLabel: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textSecondary,
     marginTop: 6,
     marginRight: 2,
   },

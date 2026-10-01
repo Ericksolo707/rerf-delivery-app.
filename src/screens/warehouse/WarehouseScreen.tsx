@@ -24,7 +24,7 @@ import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { WarehouseItem } from '../../types';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>> = ({ navigation }) => {
   const { warehouseItems } = useApp();
@@ -108,7 +108,7 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   content: {
     flex: 1,
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   totalProductsText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 14,
     paddingHorizontal: 4,
   },
@@ -130,16 +130,12 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    backgroundColor: RerfColors.surfaceCard,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -147,19 +143,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RerfColors.surfaceSubtle,
     paddingBottom: 6,
   },
   productName: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     flex: 1,
   },
   storageCode: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#2563EB',
+    color: RerfColors.logisticsBlue,
   },
   metaRow: {
     fontSize: 12,
@@ -167,42 +163,38 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontWeight: '700',
-    color: '#64748B',
+    color: RerfColors.textMuted,
   },
   metaValue: {
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   descLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: RerfColors.textMuted,
     marginBottom: 2,
   },
   descValue: {
     fontSize: 12,
-    color: '#334155',
+    color: RerfColors.textSecondary,
     lineHeight: 16,
   },
   requestButton: {
     height: 50,
     borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   requestButtonText: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
   emptyContainer: {
     alignItems: 'center',

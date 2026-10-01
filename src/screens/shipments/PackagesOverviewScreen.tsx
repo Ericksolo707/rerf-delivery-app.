@@ -27,6 +27,7 @@ import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaquetes'>> = ({ navigation }) => {
   const { shipments, user } = useApp();
@@ -115,7 +116,7 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   content: {
     flex: 1,
@@ -129,16 +130,12 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    backgroundColor: RerfColors.surfaceCard,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
     gap: 4,
   },
   cardHeaderRow: {
@@ -146,50 +143,50 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RerfColors.surfaceSubtle,
     paddingBottom: 6,
     marginBottom: 4,
   },
   categoryText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   statusPill: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#2563EB',
-    backgroundColor: '#EFF6FF',
+    color: RerfColors.logisticsBlue,
+    backgroundColor: RerfColors.logisticsBlueLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
   },
   fieldLine: {
     fontSize: 12,
-    color: '#334155',
+    color: RerfColors.textSecondary,
     lineHeight: 16,
   },
   fieldLabel: {
     fontWeight: '700',
-    color: '#64748B',
+    color: RerfColors.textMuted,
   },
   fieldValue: {
     fontWeight: '600',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: RerfColors.surfaceSubtle,
     paddingTop: 8,
     marginTop: 6,
   },
   trackingText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   emptyContainer: {
     alignItems: 'center',

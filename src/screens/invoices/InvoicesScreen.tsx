@@ -27,6 +27,7 @@ import { useApp } from '../../context/AppContext';
 import { Invoice } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { mostrarAlerta } from '../../utils/alerts';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ navigation }) => {
   const { invoices } = useApp();
@@ -118,7 +119,7 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   content: {
     flex: 1,
@@ -132,19 +133,15 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    backgroundColor: RerfColors.surfaceCard,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   cardContent: {
     flex: 1,
@@ -155,45 +152,45 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RerfColors.surfaceSubtle,
     paddingBottom: 6,
     marginBottom: 6,
   },
   dateText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: RerfColors.textMuted,
   },
   amountText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   descLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMuted,
     marginBottom: 2,
   },
   descContent: {
     fontSize: 12,
-    color: '#334155',
+    color: RerfColors.textSecondary,
     lineHeight: 16,
   },
   squareActionButton: {
     width: 38,
     height: 38,
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellow,
+    backgroundColor: RerfColors.primaryYellowLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionLetter: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowHover,
   },
   emptyContainer: {
     alignItems: 'center',

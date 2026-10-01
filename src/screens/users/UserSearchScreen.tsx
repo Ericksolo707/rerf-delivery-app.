@@ -24,7 +24,7 @@ import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ navigation }) => {
   const { users } = useApp();
@@ -124,7 +124,7 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     padding: 16,
@@ -135,29 +135,31 @@ const styles = StyleSheet.create({
   },
   usersList: {
     marginBottom: 20,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
     overflow: 'hidden',
+    backgroundColor: RerfColors.surfaceCard,
+    ...RerfShadows.card,
   },
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: RerfColors.surfaceSubtle,
+    backgroundColor: RerfColors.surfaceCard,
     gap: 12,
   },
   circleAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: RerfColors.primaryYellowLight,
   },
   userRowInfo: {
     flex: 1,
@@ -165,11 +167,11 @@ const styles = StyleSheet.create({
   userRowName: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   userRowEmail: {
     fontSize: 11,
-    color: '#64748B',
+    color: RerfColors.textMuted,
   },
   buttonsBarRow: {
     flexDirection: 'row',
@@ -181,23 +183,24 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
+    ...RerfShadows.card,
   },
   pillButtonText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   recentsSectionTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 12,
   },
   recentsGrid: {
@@ -207,38 +210,34 @@ const styles = StyleSheet.create({
   },
   recentUserCard: {
     width: '47%',
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
     padding: 16,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: RerfColors.surfaceCard,
+    ...RerfShadows.card,
   },
   recentFotoCircle: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.logisticsBlueBorder,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: RerfColors.logisticsBlueLight,
     marginBottom: 10,
   },
   recentFotoText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: RerfColors.logisticsBlue,
   },
   recentUserName: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     textAlign: 'center',
   },
 });

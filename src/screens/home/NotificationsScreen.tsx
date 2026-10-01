@@ -24,7 +24,7 @@ import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { NotificationItem } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'>> = ({ navigation }) => {
   const { notifications, markNotificationRead } = useApp();
@@ -95,7 +95,7 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   searchBox: {
     paddingHorizontal: 16,
@@ -107,20 +107,16 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   notifCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    backgroundColor: RerfColors.surfaceCard,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   unreadCard: {
-    borderColor: '#0F172A',
-    backgroundColor: '#FFFBEB',
+    borderColor: RerfColors.primaryYellow,
+    backgroundColor: RerfColors.primaryYellowLight,
   },
   topInfoRow: {
     flexDirection: 'row',

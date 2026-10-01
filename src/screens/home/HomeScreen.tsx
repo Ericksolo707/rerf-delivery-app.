@@ -114,7 +114,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
           activeOpacity={0.8}
         >
           <Text style={styles.recentMovementsText}>Movimientos recientes</Text>
-          <Ionicons name="chevron-forward" size={18} color="#0F172A" />
+          <Ionicons name="chevron-forward" size={18} color={RerfColors.primaryYellowText} />
         </TouchableOpacity>
 
         {/* Cuadrícula 2x2 de Accesos Directos (Excalidraw Pantalla 3) */}
@@ -127,8 +127,8 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               onPress={() => navigation.navigate('Pedidos')}
               activeOpacity={0.8}
             >
-              <View style={styles.iconCircle}>
-                <Ionicons name="clipboard-outline" size={30} color="#0F172A" />
+              <View style={[styles.iconCircle, { backgroundColor: RerfColors.primaryYellowLight }]}>
+                <Ionicons name="clipboard-outline" size={28} color={RerfColors.primaryYellowHover} />
               </View>
               <Text style={styles.gridCardText}>Pedidos</Text>
             </TouchableOpacity>
@@ -139,8 +139,8 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               onPress={() => navigation.navigate('Entregas')}
               activeOpacity={0.8}
             >
-              <View style={styles.iconCircle}>
-                <Ionicons name="bicycle-outline" size={30} color="#0F172A" />
+              <View style={[styles.iconCircle, { backgroundColor: RerfColors.logisticsBlueLight }]}>
+                <Ionicons name="bicycle-outline" size={28} color={RerfColors.logisticsBlue} />
               </View>
               <Text style={styles.gridCardText}>Entregas</Text>
             </TouchableOpacity>
@@ -154,8 +154,8 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               onPress={() => navigation.navigate('Usuarios')}
               activeOpacity={0.8}
             >
-              <View style={styles.iconCircle}>
-                <Ionicons name="people-outline" size={30} color="#0F172A" />
+              <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="people-outline" size={28} color="#B45309" />
               </View>
               <Text style={styles.gridCardText}>Usuarios</Text>
             </TouchableOpacity>
@@ -166,8 +166,8 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               onPress={() => navigation.navigate('GestionEnvio')}
               activeOpacity={0.8}
             >
-              <View style={styles.iconCircle}>
-                <Ionicons name="paper-plane-outline" size={30} color="#0F172A" />
+              <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="paper-plane-outline" size={28} color={RerfColors.successGreen} />
               </View>
               <Text style={styles.gridCardText}>Enviar Paquete</Text>
             </TouchableOpacity>
@@ -181,7 +181,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -195,16 +195,16 @@ const styles = StyleSheet.create({
   appTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     letterSpacing: 0.5,
   },
   showcaseCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    backgroundColor: RerfColors.surfaceCard,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 18,
     ...RerfShadows.card,
   },
   showcaseHeader: {
@@ -212,14 +212,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RerfColors.surfaceSubtle,
     paddingBottom: 8,
     marginBottom: 12,
   },
   showcaseLabel: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#475569',
+    color: RerfColors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#CBD5E1',
   },
   activeDot: {
-    backgroundColor: '#0F172A',
+    backgroundColor: RerfColors.primaryYellow,
     width: 14,
   },
   serviceItemRow: {
@@ -255,30 +255,31 @@ const styles = StyleSheet.create({
   serviceTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 3,
   },
   serviceDesc: {
     fontSize: 12,
-    color: '#64748B',
+    color: RerfColors.textSecondary,
     lineHeight: 16,
   },
   recentMovementsButton: {
     height: 50,
     borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
+    backgroundColor: RerfColors.primaryYellow,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 20,
+    ...RerfShadows.card,
   },
   recentMovementsText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
   gridContainer: {
     gap: 16,
@@ -290,18 +291,14 @@ const styles = StyleSheet.create({
   gridCard: {
     flex: 1,
     aspectRatio: 1.15,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#0F172A',
-    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   iconCircle: {
     width: 52,
@@ -310,12 +307,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    backgroundColor: '#F1F5F9',
   },
   gridCardText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     textAlign: 'center',
   },
 });

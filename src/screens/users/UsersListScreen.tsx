@@ -21,6 +21,7 @@ import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const UsersListScreen: React.FC<RootStackScreenProps<'ListadoUsuarios'>> = ({ navigation }) => {
   const { users } = useApp();
@@ -90,7 +91,7 @@ export const UsersListScreen: React.FC<RootStackScreenProps<'ListadoUsuarios'>> 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   content: {
     flex: 1,
@@ -107,20 +108,21 @@ const styles = StyleSheet.create({
   subheaderTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   starButton: {
     width: 34,
     height: 34,
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: RerfColors.surfaceSubtle,
   },
   activeStarButton: {
-    backgroundColor: '#FEF08A',
+    backgroundColor: RerfColors.primaryYellowLight,
+    borderColor: RerfColors.primaryYellow,
   },
   listContent: {
     paddingBottom: 24,
@@ -132,38 +134,34 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     flex: 1,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
     padding: 16,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: RerfColors.surfaceCard,
+    ...RerfShadows.card,
   },
   fotoCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.logisticsBlueBorder,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: RerfColors.logisticsBlueLight,
     marginBottom: 10,
   },
   fotoText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: RerfColors.logisticsBlue,
   },
   userNameText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     textAlign: 'center',
   },
   emptyContainer: {

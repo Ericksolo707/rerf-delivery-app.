@@ -24,6 +24,7 @@ import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const RecentMovementsScreen: React.FC<RootStackScreenProps<'MovimientosRecientes'>> = ({ navigation }) => {
   const { shipments } = useApp();
@@ -88,7 +89,7 @@ export const RecentMovementsScreen: React.FC<RootStackScreenProps<'MovimientosRe
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   listContent: {
     padding: 16,
@@ -107,24 +108,20 @@ const styles = StyleSheet.create({
   headerDateText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   headerTypeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
+    color: RerfColors.logisticsBlue,
   },
   innerBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    backgroundColor: RerfColors.surfaceCard,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   innerTopRow: {
     flexDirection: 'row',

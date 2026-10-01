@@ -24,7 +24,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = ({ navigation }) => {
   const [quantity, setQuantity] = useState<string>('1');
@@ -134,7 +134,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     padding: 24,
@@ -147,31 +147,32 @@ const styles = StyleSheet.create({
   cotizadorHeaderTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   cotizadorHeaderSubtitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#64748B',
+    color: RerfColors.textSecondary,
     marginBottom: 12,
   },
   diamondBox: {
     width: 60,
     height: 60,
     borderWidth: 2,
-    borderColor: '#0F172A',
+    borderColor: RerfColors.primaryYellow,
     borderRadius: 10,
     transform: [{ rotate: '45deg' }],
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.heroDark,
     marginVertical: 14,
+    ...RerfShadows.cardHover,
   },
   diamondText: {
     transform: [{ rotate: '-45deg' }],
     fontSize: 10,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.primaryYellow,
     letterSpacing: 0.5,
   },
   formContainer: {
@@ -183,18 +184,19 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   textInput: {
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 14,
-    color: '#0F172A',
+    color: RerfColors.textMain,
     fontWeight: '600',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.surfaceCard,
     height: 48,
+    ...RerfShadows.card,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -204,57 +206,55 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
+    ...RerfShadows.card,
   },
   toggleBtnActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563EB',
-    borderWidth: 2,
+    backgroundColor: RerfColors.primaryYellowLight,
+    borderColor: RerfColors.primaryYellow,
+    borderWidth: 1.5,
   },
   toggleBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   toggleBtnTextActive: {
-    color: '#2563EB',
+    color: RerfColors.primaryYellowText,
   },
   totalBox: {
     height: 48,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
+    backgroundColor: RerfColors.primaryYellowLight,
     justifyContent: 'center',
     paddingHorizontal: 14,
+    ...RerfShadows.card,
   },
   totalText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#15803D',
+    color: RerfColors.primaryYellowHover,
   },
   cotizarBtn: {
     height: 50,
     borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   cotizarBtnText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
 });

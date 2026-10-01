@@ -25,7 +25,7 @@ import { Header } from '../../components/Header';
 import { ModalDialog } from '../../components/ModalDialog';
 import { PaymentMethod } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEnvio'>> = ({ route, navigation }) => {
   const shipment = route.params?.shipment || {
@@ -164,7 +164,7 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     padding: 20,
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   confirmedTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   detailsBox: {
     marginBottom: 20,
@@ -185,25 +185,21 @@ const styles = StyleSheet.create({
   detailsHeaderLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 8,
   },
   innerInfoBox: {
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
     padding: 16,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: RerfColors.surfaceCard,
+    ...RerfShadows.card,
   },
   innerTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#64748B',
+    color: RerfColors.textMuted,
     marginBottom: 12,
     textTransform: 'uppercase',
   },
@@ -215,18 +211,18 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
+    color: RerfColors.textSecondary,
   },
   detailValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     maxWidth: '65%',
     textAlign: 'right',
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: RerfColors.surfaceSubtle,
     marginVertical: 10,
   },
   totalRow: {
@@ -237,17 +233,17 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
   },
   totalValue: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#16A34A',
+    color: RerfColors.successGreen,
   },
   paymentSectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 12,
   },
   paymentButtonsGrid: {
@@ -262,44 +258,41 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
+    ...RerfShadows.card,
   },
   paymentBtnActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563EB',
-    borderWidth: 2,
+    backgroundColor: RerfColors.primaryYellowLight,
+    borderColor: RerfColors.primaryYellow,
+    borderWidth: 1.5,
   },
   paymentBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     textAlign: 'center',
   },
   paymentBtnTextActive: {
-    color: '#2563EB',
+    color: RerfColors.primaryYellowText,
   },
   finishButton: {
     height: 50,
     borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...RerfShadows.card,
   },
   finishButtonText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
 });

@@ -28,7 +28,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -187,7 +187,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
               onPress={() => navigation.goBack()}
               activeOpacity={0.8}
             >
-              <Ionicons name="arrow-back" size={18} color="#0F172A" />
+              <Ionicons name="arrow-back" size={18} color={RerfColors.textSecondary} />
               <Text style={styles.exitButtonText}>Salir</Text>
             </TouchableOpacity>
 
@@ -198,7 +198,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
               activeOpacity={0.85}
             >
               {loading ? (
-                <ActivityIndicator color="#0F172A" size="small" />
+                <ActivityIndicator color={RerfColors.primaryYellowText} size="small" />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -213,7 +213,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     paddingHorizontal: 28,
@@ -225,31 +225,27 @@ const styles = StyleSheet.create({
   diamondBox: {
     width: 76,
     height: 76,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    borderWidth: 2.5,
+    borderColor: RerfColors.primaryYellow,
     borderRadius: 12,
     transform: [{ rotate: '45deg' }],
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.heroDark,
     marginBottom: 22,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    ...RerfShadows.cardHover,
   },
   diamondText: {
     transform: [{ rotate: '-45deg' }],
     fontSize: 12,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.primaryYellow,
     letterSpacing: 1,
   },
   appTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     letterSpacing: 0.5,
   },
   formContainer: {
@@ -263,7 +259,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 6,
   },
   sketchInput: {
@@ -271,7 +267,7 @@ const styles = StyleSheet.create({
   },
   fieldHint: {
     fontSize: 11,
-    color: '#64748B',
+    color: RerfColors.textMuted,
     lineHeight: 14,
     marginTop: 2,
   },
@@ -287,33 +283,35 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
+    ...RerfShadows.card,
   },
   exitButtonText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textSecondary,
   },
   saveButton: {
     flex: 1.2,
     height: 48,
     borderRadius: 24,
-    borderWidth: 2,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
+    ...RerfShadows.card,
   },
   saveButtonText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
   disabledButton: {
     opacity: 0.6,

@@ -26,7 +26,7 @@ import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 import { MaterialType, PickupMethod } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlmacenaje'>> = ({ navigation }) => {
   const { addWarehouseItem, user } = useApp();
@@ -191,7 +191,7 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   scrollContent: {
     padding: 20,
@@ -201,16 +201,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: RerfColors.errorRedLight,
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: '#FECACA',
   },
   errorAlertText: {
     fontSize: 12,
-    color: '#DC2626',
+    color: RerfColors.errorRed,
     fontWeight: '700',
     flex: 1,
   },
@@ -220,19 +220,20 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     marginBottom: 8,
   },
   textInput: {
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 14,
-    color: '#0F172A',
+    color: RerfColors.textMain,
     fontWeight: '600',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.surfaceCard,
     height: 48,
+    ...RerfShadows.card,
   },
   textArea: {
     height: 100,
@@ -247,26 +248,27 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
+    ...RerfShadows.card,
   },
   toggleBtnActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563EB',
-    borderWidth: 2,
+    backgroundColor: RerfColors.primaryYellowLight,
+    borderColor: RerfColors.primaryYellow,
+    borderWidth: 1.5,
   },
   toggleBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textMain,
     textAlign: 'center',
   },
   toggleBtnTextActive: {
-    color: '#2563EB',
+    color: RerfColors.primaryYellowText,
   },
   bottomButtonsRow: {
     flexDirection: 'row',
@@ -277,30 +279,32 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
+    ...RerfShadows.card,
   },
   cancelButtonText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.textSecondary,
   },
   sendButton: {
     flex: 1.2,
     height: 48,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
+    ...RerfShadows.card,
   },
   sendButtonText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: RerfColors.primaryYellowText,
   },
 });
