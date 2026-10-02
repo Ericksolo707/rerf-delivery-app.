@@ -121,7 +121,10 @@ export class RepositorioUsuarios {
             const localUser = this.directorio.find((u) => u.email.toLowerCase() === cleanEmail);
             let profileData: any = null;
             try {
-              const res = await supabase.from('profiles').select('*').eq('email', cleanEmail).maybeSingle();
+              let res = await supabase.from('usuarios').select('*').eq('email', cleanEmail).maybeSingle();
+              if (res.error && res.error.message.includes('does not exist')) {
+                res = await supabase.from('profiles').select('*').eq('email', cleanEmail).maybeSingle();
+              }
               profileData = res.data;
             } catch {}
 
@@ -152,16 +155,25 @@ export class RepositorioUsuarios {
         if (authData?.user) {
           const userId = authData.user.id;
 
-          // Consultar perfil de negocio en public.profiles
+          // Consultar perfil de negocio en public.usuarios (con fallback a profiles)
           let userProfile: UserProfile | null = null;
           try {
-            const { data: profileData } = await supabase
-              .from('profiles')
+            let res = await supabase
+              .from('usuarios')
               .select('*')
               .eq('id', userId)
               .maybeSingle();
 
-            if (profileData) {
+            if (res.error && res.error.message.includes('does not exist')) {
+              res = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+            }
+
+            if (res.data) {
+              const profileData = res.data;
               userProfile = {
                 id: profileData.id,
                 first_name: profileData.first_name,
@@ -176,7 +188,7 @@ export class RepositorioUsuarios {
               };
             }
           } catch (profileErr) {
-            console.warn('[RepositorioUsuarios] Error leyendo profiles de Supabase:', profileErr);
+            console.warn('[RepositorioUsuarios] Error leyendo usuarios de Supabase:', profileErr);
           }
 
           if (!userProfile) {
@@ -191,7 +203,10 @@ export class RepositorioUsuarios {
               bio: 'Usuario autenticado vía Supabase',
             };
             try {
-              await supabase.from('profiles').upsert([userProfile]);
+              const resU = await supabase.from('usuarios').upsert([userProfile]);
+              if (resU.error && resU.error.message.includes('does not exist')) {
+                await supabase.from('profiles').upsert([userProfile]);
+              }
             } catch {}
           }
 
@@ -288,24 +303,27 @@ export class RepositorioUsuarios {
       role: nuevoPerfil.role || 'cliente',
     };
 
-    // 2. Registrar en la tabla public.profiles de Supabase
+    // 2. Registrar en la tabla public.usuarios de Supabase (con fallback a profiles)
     if (isSupabaseConfigured) {
       try {
-        await supabase.from('profiles').upsert([
-          {
-            id: createdId,
-            first_name: nuevoUsuario.first_name,
-            last_name: nuevoUsuario.last_name,
-            email: nuevoUsuario.email,
-            phone: nuevoUsuario.phone || '',
-            address: nuevoUsuario.address || '',
-            address_references: nuevoUsuario.address_references || '',
-            role: nuevoUsuario.role || 'cliente',
-            bio: nuevoUsuario.bio || 'Usuario registrado en RerF Logistics',
-          },
-        ]);
+        const payload = {
+          id: createdId,
+          first_name: nuevoUsuario.first_name,
+          last_name: nuevoUsuario.last_name,
+          email: nuevoUsuario.email,
+          phone: nuevoUsuario.phone || '',
+          address: nuevoUsuario.address || '',
+          address_references: nuevoUsuario.address_references || '',
+          role: nuevoUsuario.role || 'cliente',
+          bio: nuevoUsuario.bio || 'Usuario registrado en RerF Logistics',
+        };
+
+        let resU = await supabase.from('usuarios').upsert([payload]);
+        if (resU.error && resU.error.message.includes('does not exist')) {
+          resU = await supabase.from('profiles').upsert([payload]);
+        }
       } catch (profileErr) {
-        console.warn('[RepositorioUsuarios] Aviso al guardar en profiles de Supabase:', profileErr);
+        console.warn('[RepositorioUsuarios] Aviso al guardar en usuarios de Supabase:', profileErr);
       }
     }
 
@@ -385,8 +403,24 @@ export class RepositorioUsuarios {
     try {
       await AsyncStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(this.directorio));
       await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
+
+      if (isSupabaseConfigured && this.usuarioActual?.id) {
+        const updatePayload: Record<string, any> = {};
+        if (datos.first_name) updatePayload.first_name = datos.first_name;
+        if (datos.last_name !== undefined) updatePayload.last_name = datos.last_name;
+        if (datos.phone !== undefined) updatePayload.phone = datos.phone;
+        if (datos.address !== undefined) updatePayload.address = datos.address;
+        if (datos.address_references !== undefined) updatePayload.address_references = datos.address_references;
+        if (datos.avatar_url !== undefined) updatePayload.avatar_url = datos.avatar_url;
+        if (datos.bio !== undefined) updatePayload.bio = datos.bio;
+
+        let resU = await supabase.from('usuarios').update(updatePayload).eq('id', this.usuarioActual.id);
+        if (resU.error && resU.error.message.includes('does not exist')) {
+          await supabase.from('profiles').update(updatePayload).eq('id', this.usuarioActual.id);
+        }
+      }
     } catch (err) {
-      console.warn('[RepositorioUsuarios] Error actualizando storage:', err);
+      console.warn('[RepositorioUsuarios] Error actualizando storage/Supabase:', err);
     }
 
     return { ...this.usuarioActual };
@@ -400,7 +434,13 @@ export class RepositorioUsuarios {
 
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase.from('profiles').select('*');
+        let res = await supabase.from('usuarios').select('*');
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase.from('profiles').select('*');
+        }
+
+        const data = res.data;
+        const error = res.error;
         if (!error && data && data.length > 0) {
           const remoteUsers: UserProfile[] = data.map((p) => ({
             id: p.id,

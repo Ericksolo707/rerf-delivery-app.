@@ -3,7 +3,8 @@
  * Programación II - Sesiones 5, 6 y 7 UMG
  *
  * Responsabilidad: Gestión y consulta de facturas y recibos de pago.
- * Aplica el patrón Singleton (Sesión 6).
+ * - Tabla principal: 'facturas' (con compatibilidad a 'invoices')
+ * - Aplica el patrón Singleton (Sesión 6).
  */
 
 import { Invoice } from '../types';
@@ -11,7 +12,8 @@ import { MOCK_INVOICES } from '../services/mockData';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
 export class RepositorioFacturas {
-  public readonly nombreEntidad: string = 'invoices';
+  public readonly nombreEntidad: string = 'facturas';
+  public readonly tablaLegacy: string = 'invoices';
 
   // Referencia Singleton única en memoria (Sesión 6)
   private static instancia: RepositorioFacturas | null = null;
@@ -41,13 +43,20 @@ export class RepositorioFacturas {
   public async listar(): Promise<Invoice[]> {
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        let res = await supabase
           .from(this.nombreEntidad)
           .select('*')
           .order('issued_date', { ascending: false });
 
-        if (!error && data && data.length > 0) {
-          return data as Invoice[];
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase
+            .from(this.tablaLegacy)
+            .select('*')
+            .order('issued_date', { ascending: false });
+        }
+
+        if (!res.error && res.data && res.data.length > 0) {
+          return res.data as Invoice[];
         }
       } catch (err) {
         console.warn('[RepositorioFacturas] Error en Supabase, usando memoria:', err);
@@ -60,24 +69,36 @@ export class RepositorioFacturas {
    * Busca una factura por su identificador único o número de factura
    */
   public async obtener(idOrNumber: string): Promise<Invoice | undefined> {
+    const clean = idOrNumber.trim();
+    if (!clean) return undefined;
+
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        let res = await supabase
           .from(this.nombreEntidad)
           .select('*')
-          .or(`id.eq.${idOrNumber},invoice_number.eq.${idOrNumber}`)
-          .single();
+          .or(`id.eq.${clean},invoice_number.ilike.${clean}`)
+          .maybeSingle();
 
-        if (!error && data) {
-          return data as Invoice;
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase
+            .from(this.tablaLegacy)
+            .select('*')
+            .or(`id.eq.${clean},invoice_number.ilike.${clean}`)
+            .maybeSingle();
+        }
+
+        if (!res.error && res.data) {
+          return res.data as Invoice;
         }
       } catch (err) {
         console.warn('[RepositorioFacturas] Fallback a memoria:', err);
       }
     }
 
+    const cleanLower = clean.toLowerCase();
     const encontrada = this.facturas.find(
-      (f) => f.id === idOrNumber || f.invoice_number === idOrNumber
+      (f) => f.id.toLowerCase() === cleanLower || f.invoice_number.toLowerCase() === cleanLower
     );
     return encontrada ? { ...encontrada } : undefined;
   }

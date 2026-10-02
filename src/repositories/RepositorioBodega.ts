@@ -1,11 +1,10 @@
 /**
- * RepositorioBodega.ts - Repositorio de Almacenaje y Bodega Personal
+ * RepositorioBodega.ts - Repositorio de Bodega Personal
  * Programación II - Sesiones 5, 6 y 7 UMG
  *
- * Responsabilidad: Gestión y persistencia de artículos en bodega.
- * - Sesión 5: Hereda de RepositorioBase implementando métodos polimórficos obligatorios.
- * - Sesión 6: Aplica el patrón de diseño Singleton con constructor privado y getInstance().
- * - Sesión 7: Integración con Supabase para operaciones CRUD con soporte en memoria fallback.
+ * Responsabilidad: Gestión y persistencia del inventario de paquetes en bodega personal.
+ * - Tabla principal: 'bodega' (con compatibilidad a 'warehouse_items')
+ * - Manejo seguro de UUIDs e inserciones directas
  */
 
 import { WarehouseItem } from '../types';
@@ -13,11 +12,14 @@ import { MOCK_WAREHOUSE_ITEMS } from '../services/mockData';
 import { RepositorioBase } from './RepositorioBase';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
-export class RepositorioBodega extends RepositorioBase<
-  WarehouseItem, 
-  Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>
-> {
-  public readonly nombreEntidad: string = 'warehouse_items';
+const isUuid = (str?: string): boolean => {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+};
+
+export class RepositorioBodega extends RepositorioBase<WarehouseItem, Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>> {
+  public readonly nombreEntidad: string = 'bodega';
+  public readonly tablaLegacy: string = 'warehouse_items';
 
   // Referencia Singleton única en memoria (Sesión 6)
   private static instancia: RepositorioBodega | null = null;
@@ -34,7 +36,7 @@ export class RepositorioBodega extends RepositorioBase<
   }
 
   /**
-   * Punto de acceso global a la instancia única de Bodega (Sesión 6)
+   * Punto de acceso global a la instancia única del repositorio (Sesión 6)
    */
   public static getInstance(): RepositorioBodega {
     if (RepositorioBodega.instancia === null) {
@@ -49,13 +51,20 @@ export class RepositorioBodega extends RepositorioBase<
   public async listar(): Promise<WarehouseItem[]> {
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        let res = await supabase
           .from(this.nombreEntidad)
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (!error && data && data.length > 0) {
-          return data as WarehouseItem[];
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase
+            .from(this.tablaLegacy)
+            .select('*')
+            .order('created_at', { ascending: false });
+        }
+
+        if (!res.error && res.data && res.data.length > 0) {
+          return res.data as WarehouseItem[];
         }
       } catch (err) {
         console.warn('[RepositorioBodega] Error consultando Supabase, usando memoria:', err);
@@ -68,24 +77,36 @@ export class RepositorioBodega extends RepositorioBase<
    * Busca un artículo por su identificador o código de almacenamiento
    */
   public async obtener(idOrCode: string): Promise<WarehouseItem | undefined> {
+    const clean = idOrCode.trim();
+    if (!clean) return undefined;
+
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        let res = await supabase
           .from(this.nombreEntidad)
           .select('*')
-          .or(`id.eq.${idOrCode},storage_code.eq.${idOrCode}`)
-          .single();
+          .or(`id.eq.${clean},storage_code.ilike.${clean}`)
+          .maybeSingle();
 
-        if (!error && data) {
-          return data as WarehouseItem;
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase
+            .from(this.tablaLegacy)
+            .select('*')
+            .or(`id.eq.${clean},storage_code.ilike.${clean}`)
+            .maybeSingle();
+        }
+
+        if (!res.error && res.data) {
+          return res.data as WarehouseItem;
         }
       } catch (err) {
         console.warn('[RepositorioBodega] Fallback a memoria:', err);
       }
     }
 
+    const cleanLower = clean.toLowerCase();
     const encontrado = this.articulos.find(
-      (item) => item.id === idOrCode || item.storage_code === idOrCode
+      (item) => item.id.toLowerCase() === cleanLower || item.storage_code.toLowerCase() === cleanLower
     );
     return encontrado ? { ...encontrado } : undefined;
   }
@@ -106,24 +127,52 @@ export class RepositorioBodega extends RepositorioBase<
     datos: Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>
   ): Promise<WarehouseItem> {
     const correlativo: number = this.articulos.length + 1;
+    const fallbackId = `wh-${Date.now()}`;
+    const fallbackCreatedAt = new Date().toISOString();
+    const storageCode = `BDG-${String(correlativo).padStart(3, '0')}`;
+
     const nuevoArticulo: WarehouseItem = {
       ...datos,
-      id: `wh-${Date.now()}`,
-      storage_code: `BDG-${String(correlativo).padStart(3, '0')}`,
-      created_at: new Date().toISOString(),
+      id: fallbackId,
+      storage_code: storageCode,
+      created_at: fallbackCreatedAt,
     };
 
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        const payload: Record<string, any> = {
+          product_type: datos.product_type,
+          description: datos.description || null,
+          material: datos.material || 'fuerte',
+          pickup_method: datos.pickup_method || 'entrega_personal',
+          status: datos.status || 'almacenado',
+          storage_code: storageCode,
+        };
+
+        if (isUuid(datos.user_id)) {
+          payload.user_id = datos.user_id;
+        }
+
+        let res = await supabase
           .from(this.nombreEntidad)
-          .insert(nuevoArticulo)
+          .insert(payload)
           .select()
           .single();
 
-        if (!error && data) {
-          this.articulos = [data as WarehouseItem, ...this.articulos];
-          return data as WarehouseItem;
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase
+            .from(this.tablaLegacy)
+            .insert(payload)
+            .select()
+            .single();
+        }
+
+        if (!res.error && res.data) {
+          const guardado = res.data as WarehouseItem;
+          this.articulos = [guardado, ...this.articulos];
+          return guardado;
+        } else if (res.error) {
+          console.warn('[RepositorioBodega] Error insertando en Supabase:', res.error.message);
         }
       } catch (err) {
         console.warn('[RepositorioBodega] Error insertando en Supabase:', err);
@@ -143,26 +192,36 @@ export class RepositorioBodega extends RepositorioBase<
   ): Promise<WarehouseItem | undefined> {
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        let res = await supabase
           .from(this.nombreEntidad)
           .update(datos)
-          .eq('id', id)
+          .or(`id.eq.${id},storage_code.eq.${id}`)
           .select()
-          .single();
+          .maybeSingle();
 
-        if (!error && data) {
-          const index = this.articulos.findIndex((item) => item.id === id);
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase
+            .from(this.tablaLegacy)
+            .update(datos)
+            .or(`id.eq.${id},storage_code.eq.${id}`)
+            .select()
+            .maybeSingle();
+        }
+
+        if (!res.error && res.data) {
+          const guardado = res.data as WarehouseItem;
+          const index = this.articulos.findIndex((a) => a.id === id || a.storage_code === id);
           if (index !== -1) {
-            this.articulos[index] = data as WarehouseItem;
+            this.articulos[index] = guardado;
           }
-          return data as WarehouseItem;
+          return guardado;
         }
       } catch (err) {
         console.warn('[RepositorioBodega] Error actualizando en Supabase:', err);
       }
     }
 
-    const index = this.articulos.findIndex((item) => item.id === id);
+    const index = this.articulos.findIndex((a) => a.id === id || a.storage_code === id);
     if (index === -1) {
       return undefined;
     }
@@ -176,18 +235,26 @@ export class RepositorioBodega extends RepositorioBase<
   }
 
   /**
-   * Elimina un artículo de la bodega
+   * Elimina o retira un artículo de bodega por su identificador
    */
   public async eliminar(id: string): Promise<boolean> {
     if (isSupabaseConfigured) {
       try {
-        const { error } = await supabase
+        let { error } = await supabase
           .from(this.nombreEntidad)
           .delete()
           .eq('id', id);
 
+        if (error && error.message.includes('does not exist')) {
+          const resLegacy = await supabase
+            .from(this.tablaLegacy)
+            .delete()
+            .eq('id', id);
+          error = resLegacy.error;
+        }
+
         if (!error) {
-          this.articulos = this.articulos.filter((item) => item.id !== id);
+          this.articulos = this.articulos.filter((a) => a.id !== id);
           return true;
         }
       } catch (err) {
@@ -196,7 +263,7 @@ export class RepositorioBodega extends RepositorioBase<
     }
 
     const inicial = this.articulos.length;
-    this.articulos = this.articulos.filter((item) => item.id !== id);
+    this.articulos = this.articulos.filter((a) => a.id !== id);
     return this.articulos.length < inicial;
   }
 }

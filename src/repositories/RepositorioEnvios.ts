@@ -1,11 +1,11 @@
 /**
- * RepositorioEnvios.ts - Repositorio de Envíos
+ * RepositorioEnvios.ts - Repositorio de Envíos y Pedidos
  * Programación II - Sesiones 5, 6 y 7 UMG
  *
- * Responsabilidad: Gestión y persistencia de envíos.
- * - Sesión 5: Hereda de RepositorioBase implementando métodos polimórficos obligatorios.
- * - Sesión 6: Aplica el patrón de diseño Singleton con constructor privado y getInstance().
- * - Sesión 7: Integración con Supabase para operaciones CRUD con soporte en memoria fallback.
+ * Responsabilidad: Gestión y persistencia de envíos y pedidos.
+ * - Tabla principal: 'envios' (con compatibilidad y fallback a 'shipments')
+ * - Soporte para campos de moderador: agent_name, vehicle_model, vehicle_plate, estimated_time
+ * - Manejo seguro de UUIDs para PostgreSQL/Supabase
  */
 
 import { Shipment } from '../types';
@@ -13,8 +13,14 @@ import { MOCK_SHIPMENTS } from '../services/mockData';
 import { RepositorioBase } from './RepositorioBase';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
+const isUuid = (str?: string): boolean => {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+};
+
 export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 'id' | 'created_at'>> {
-  public readonly nombreEntidad: string = 'shipments';
+  public readonly nombreEntidad: string = 'envios';
+  public readonly tablaLegacy: string = 'shipments';
 
   // Referencia Singleton única en memoria (Sesión 6)
   private static instancia: RepositorioEnvios | null = null;
@@ -46,13 +52,20 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
   public async listar(): Promise<Shipment[]> {
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        let res = await supabase
           .from(this.nombreEntidad)
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (!error && data && data.length > 0) {
-          return data as Shipment[];
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase
+            .from(this.tablaLegacy)
+            .select('*')
+            .order('created_at', { ascending: false });
+        }
+
+        if (!res.error && res.data && res.data.length > 0) {
+          return res.data as Shipment[];
         }
       } catch (err) {
         console.warn('[RepositorioEnvios] Error consultando Supabase, usando memoria:', err);
@@ -62,7 +75,7 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
   }
 
   /**
-   * Busca un envío específico por su identificador o código de rastreo
+   * Busca un envío específico por su identificador o código de rastreo (case-insensitive)
    */
   public async obtener(idOrTracking: string): Promise<Shipment | undefined> {
     const clean = idOrTracking.trim();
@@ -70,14 +83,22 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
 
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        let res = await supabase
           .from(this.nombreEntidad)
           .select('*')
           .or(`id.eq.${clean},tracking_number.ilike.${clean}`)
-          .single();
+          .maybeSingle();
 
-        if (!error && data) {
-          return data as Shipment;
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase
+            .from(this.tablaLegacy)
+            .select('*')
+            .or(`id.eq.${clean},tracking_number.ilike.${clean}`)
+            .maybeSingle();
+        }
+
+        if (!res.error && res.data) {
+          return res.data as Shipment;
         }
       } catch (err) {
         console.warn('[RepositorioEnvios] Fallback a memoria para obtener:', err);
@@ -92,26 +113,76 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
   }
 
   /**
-   * Registra un nuevo envío en el sistema (Sesión 7: insert)
+   * Registra un nuevo envío en la base de datos (Sesión 7: insert)
    */
   public async crear(datos: Omit<Shipment, 'id' | 'created_at'>): Promise<Shipment> {
+    const fallbackId = `shp-${Date.now()}`;
+    const fallbackCreatedAt = new Date().toISOString();
+
     const nuevoEnvio: Shipment = {
       ...datos,
-      id: `shp-${Date.now()}`,
-      created_at: new Date().toISOString(),
+      id: fallbackId,
+      created_at: fallbackCreatedAt,
     };
 
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        // Payload limpio y compatible con columnas PostgreSQL
+        const payload: Record<string, any> = {
+          tracking_number: datos.tracking_number,
+          recipient_name: datos.recipient_name,
+          recipient_phone: datos.recipient_phone || null,
+          delivery_address: datos.delivery_address,
+          address_references: datos.address_references || null,
+          scheduled_date: datos.scheduled_date || null,
+          description: datos.description || null,
+          status: datos.status || 'pendiente',
+          rejection_reason: datos.rejection_reason || null,
+          cancellation_reason: datos.cancellation_reason || null,
+          payment_method: datos.payment_method || 'contra_entrega',
+          payment_status: datos.payment_status || 'pendiente',
+          total_amount: datos.total_amount || 0.00,
+          agent_name: datos.agent_name || null,
+          vehicle_model: datos.vehicle_model || null,
+          vehicle_plate: datos.vehicle_plate || null,
+          estimated_time: datos.estimated_time || null,
+          driver_phone: datos.driver_phone || null,
+        };
+
+        if (isUuid(datos.sender_id)) {
+          payload.sender_id = datos.sender_id;
+        }
+        if (isUuid(datos.warehouse_item_id)) {
+          payload.warehouse_item_id = datos.warehouse_item_id;
+        }
+
+        let res = await supabase
           .from(this.nombreEntidad)
-          .insert(nuevoEnvio)
+          .insert(payload)
           .select()
           .single();
 
-        if (!error && data) {
-          this.envios = [data as Shipment, ...this.envios];
-          return data as Shipment;
+        if (res.error && (res.error.message.includes('does not exist') || res.error.message.includes('column'))) {
+          // Fallback a tabla legacy eliminando columnas extras si no existen aún
+          const legacyPayload = { ...payload };
+          delete legacyPayload.vehicle_model;
+          delete legacyPayload.vehicle_plate;
+          delete legacyPayload.estimated_time;
+          delete legacyPayload.driver_phone;
+
+          res = await supabase
+            .from(this.tablaLegacy)
+            .insert(legacyPayload)
+            .select()
+            .single();
+        }
+
+        if (!res.error && res.data) {
+          const guardado = res.data as Shipment;
+          this.envios = [guardado, ...this.envios];
+          return guardado;
+        } else if (res.error) {
+          console.warn('[RepositorioEnvios] Error insertando en Supabase:', res.error.message);
         }
       } catch (err) {
         console.warn('[RepositorioEnvios] Error insertando en Supabase, guardando en memoria:', err);
@@ -131,26 +202,36 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
   ): Promise<Shipment | undefined> {
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
+        let res = await supabase
           .from(this.nombreEntidad)
           .update(datos)
-          .eq('id', id)
+          .or(`id.eq.${id},tracking_number.eq.${id}`)
           .select()
-          .single();
+          .maybeSingle();
 
-        if (!error && data) {
-          const index = this.envios.findIndex((e) => e.id === id);
+        if (res.error && res.error.message.includes('does not exist')) {
+          res = await supabase
+            .from(this.tablaLegacy)
+            .update(datos)
+            .or(`id.eq.${id},tracking_number.eq.${id}`)
+            .select()
+            .maybeSingle();
+        }
+
+        if (!res.error && res.data) {
+          const guardado = res.data as Shipment;
+          const index = this.envios.findIndex((e) => e.id === id || e.tracking_number === id);
           if (index !== -1) {
-            this.envios[index] = data as Shipment;
+            this.envios[index] = guardado;
           }
-          return data as Shipment;
+          return guardado;
         }
       } catch (err) {
         console.warn('[RepositorioEnvios] Error actualizando en Supabase:', err);
       }
     }
 
-    const index = this.envios.findIndex((e) => e.id === id);
+    const index = this.envios.findIndex((e) => e.id === id || e.tracking_number === id);
     if (index === -1) {
       return undefined;
     }
@@ -179,10 +260,18 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
   public async eliminar(id: string): Promise<boolean> {
     if (isSupabaseConfigured) {
       try {
-        const { error } = await supabase
+        let { error } = await supabase
           .from(this.nombreEntidad)
           .delete()
           .eq('id', id);
+
+        if (error && error.message.includes('does not exist')) {
+          const resLegacy = await supabase
+            .from(this.tablaLegacy)
+            .delete()
+            .eq('id', id);
+          error = resLegacy.error;
+        }
 
         if (!error) {
           this.envios = this.envios.filter((e) => e.id !== id);
