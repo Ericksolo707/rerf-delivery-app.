@@ -65,12 +65,15 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
    * Busca un envío específico por su identificador o código de rastreo
    */
   public async obtener(idOrTracking: string): Promise<Shipment | undefined> {
+    const clean = idOrTracking.trim();
+    if (!clean) return undefined;
+
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
           .from(this.nombreEntidad)
           .select('*')
-          .or(`id.eq.${idOrTracking},tracking_number.eq.${idOrTracking}`)
+          .or(`id.eq.${clean},tracking_number.ilike.${clean}`)
           .single();
 
         if (!error && data) {
@@ -81,8 +84,9 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
       }
     }
 
+    const cleanLower = clean.toLowerCase();
     const encontrado = this.envios.find(
-      (e) => e.id === idOrTracking || e.tracking_number === idOrTracking
+      (e) => e.id.toLowerCase() === cleanLower || e.tracking_number.toLowerCase() === cleanLower
     );
     return encontrado ? { ...encontrado } : undefined;
   }

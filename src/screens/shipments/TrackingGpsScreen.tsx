@@ -4,24 +4,29 @@
  *
  * Responsabilidad: Pantalla 27 del boceto Excalidraw con:
  * - Header: "GPS" con botones [ ! ] y [ -> ]
- * - Campo de búsqueda: "Introducir dirección/entrega" + botón circular de búsqueda
+ * - Campo de búsqueda: Búsqueda por Número de Entrega / Guía (datos provistos por moderador de escritorio)
  * - Mapa satelital interactivo simulado con calles, punto de partida y unidad en movimiento
- * - Tarjeta inferior informativa:
- *   - Lado izquierdo: Conductor, Auto, Placas, Tiempo estimado
- *   - Lado derecho: Botón circular de llamada / contacto directo
+ * - Tarjeta inferior informativa con los 4 datos clave del moderador:
+ *   1. Número de entrega
+ *   2. Nombre del cliente / destinatario
+ *   3. Dirección de entrega
+ *   4. Piloto / Conductor asignado (con auto, placas y tiempo estimado)
+ * - Botón circular de llamada / contacto directo con el piloto
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TextInput, 
-  TouchableOpacity
+  TouchableOpacity,
+  ActivityIndicator,
+  Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { RerfColors } from '../../constants/theme';
+import { RerfColors, RerfShadows } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 
@@ -31,41 +36,145 @@ interface TrackingGpsScreenProps {
 }
 
 export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, navigation }) => {
-  const { shipments } = useApp();
+  const { shipments, getShipmentByTracking } = useApp();
   const initialShipmentId = route?.params?.shipmentId;
-  const activeShipment = shipments.find((s: Shipment) => s.id === initialShipmentId || s.tracking_number === initialShipmentId) || shipments[0];
 
-  const [addressInput, setAddressInput] = useState<string>(activeShipment?.delivery_address || 'Calzada Roosevelt, Zona 11, Ciudad de Guatemala');
+  // Encontrar envío inicial si se pasó por navegación
+  const defaultShipment = initialShipmentId 
+    ? shipments.find((s: Shipment) => s.id === initialShipmentId || s.tracking_number.toLowerCase() === initialShipmentId.toLowerCase()) 
+    : shipments[0];
 
-  const driverInfo = {
-    conductor: activeShipment?.agent_name || 'Juan Carlos Díaz',
-    auto: 'Toyota Hilux 4x4 Blanco',
-    placas: 'P-482BKD',
-    tiempoEstimado: '15 minutos (En ruta)',
-    telefono: '+502 5555-4321',
+  const [searchInput, setSearchInput] = useState<string>(defaultShipment?.tracking_number || initialShipmentId || '');
+  const [activeShipment, setActiveShipment] = useState<Shipment | null>(defaultShipment || null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [searchError, setSearchError] = useState<string>('');
+
+  useEffect(() => {
+    let isMounted = true;
+    if (initialShipmentId && !defaultShipment) {
+      getShipmentByTracking(initialShipmentId).then(found => {
+        if (isMounted && found) {
+          setActiveShipment(found);
+          setSearchInput(found.tracking_number);
+        }
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [initialShipmentId, defaultShipment, getShipmentByTracking]);
+
+  const handleSearch = async (trackingCodeToSearch?: string): Promise<void> => {
+    const code = (trackingCodeToSearch || searchInput).trim();
+    if (!code) {
+      setSearchError('Por favor ingrese un número de entrega o guía.');
+      return;
+    }
+
+    Keyboard.dismiss();
+    setIsLoading(true);
+    setSearchError('');
+
+    try {
+      const found = await getShipmentByTracking(code);
+      if (found) {
+        setActiveShipment(found);
+        setSearchInput(found.tracking_number);
+        setSearchError('');
+      } else {
+        setActiveShipment(null);
+        setSearchError(`No se encontró la entrega "${code}". Verifique que el moderador de la aplicación de escritorio ya haya habilitado la información en el sistema.`);
+      }
+    } catch {
+      setSearchError('Error de conexión al consultar el servidor central.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCallDriver = (): void => {
-    (navigation as any)?.navigate('ChatSoporte', { contact: { name: driverInfo.conductor, role: `Piloto Unidad ${driverInfo.placas}` } });
+    if (!activeShipment) return;
+    const pilotName = activeShipment.agent_name || 'Piloto de Unidad Central';
+    (navigation as any)?.navigate('ChatSoporte', { 
+      contact: { 
+        name: pilotName, 
+        role: `Piloto Asignado - Guía ${activeShipment.tracking_number}` 
+      } 
+    });
   };
 
   return (
     <View style={styles.container}>
       <Header title="GPS" showBack={true} />
 
-      {/* Barra de Búsqueda: "Introducir dirección/entrega" + botón circular */}
+      {/* Barra de Búsqueda: Buscar por Número de Entrega / Guía */}
       <View style={styles.searchBarContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Introducir dirección/entrega"
-          placeholderTextColor="#94A3B8"
-          value={addressInput}
-          onChangeText={setAddressInput}
-        />
-        <TouchableOpacity style={styles.searchCircleBtn} activeOpacity={0.8}>
-          <Ionicons name="search-outline" size={20} color="#0F172A" />
+        <View style={styles.inputWrapper}>
+          <Ionicons name="barcode-outline" size={20} color="#64748B" style={styles.searchIconLeft} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="No. entrega / guía (ej. RERF-98234-GT)"
+            placeholderTextColor="#94A3B8"
+            value={searchInput}
+            onChangeText={(text) => {
+              setSearchInput(text);
+              if (searchError) setSearchError('');
+            }}
+            onSubmitEditing={() => handleSearch()}
+            autoCapitalize="characters"
+            returnKeyType="search"
+          />
+          {searchInput.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchInput('')} style={styles.clearBtn}>
+              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity 
+          style={styles.searchCircleBtn} 
+          onPress={() => handleSearch()}
+          activeOpacity={0.8}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#0F172A" />
+          ) : (
+            <Ionicons name="search" size={20} color="#0F172A" />
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* Mensaje de error / moderador si no se encuentra */}
+      {searchError ? (
+        <View style={styles.errorBannerContainer}>
+          <View style={styles.errorAlert}>
+            <Ionicons name="alert-circle" size={20} color="#DC2626" />
+            <Text style={styles.errorAlertText}>{searchError}</Text>
+          </View>
+
+          {/* Sugerencias de números disponibles para pruebas */}
+          {shipments.length > 0 && (
+            <View style={styles.suggestionsBox}>
+              <Text style={styles.suggestionsTitle}>Entregas registradas disponibles:</Text>
+              <View style={styles.chipsRow}>
+                {shipments.slice(0, 3).map(s => (
+                  <TouchableOpacity 
+                    key={s.id} 
+                    style={styles.suggestionChip}
+                    onPress={() => {
+                      setSearchInput(s.tracking_number);
+                      handleSearch(s.tracking_number);
+                    }}
+                  >
+                    <Text style={styles.suggestionChipText}>{s.tracking_number}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      ) : null}
 
       {/* Lienzo del Mapa Simulado (Boceto Pantalla 27) */}
       <View style={styles.mapCanvas}>
@@ -77,13 +186,15 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
         {/* Punto de origen (círculo) */}
         <View style={styles.originPoint}>
           <View style={styles.originInnerDot} />
-          <Text style={styles.pinLabel}>Bodega Central</Text>
+          <Text style={styles.pinLabel}>Bodega Central RerF</Text>
         </View>
 
         {/* Marcador de destino / entrega */}
         <View style={styles.destinationPin}>
           <Ionicons name="location" size={32} color="#DC2626" />
-          <Text style={styles.pinLabelDest}>Destino</Text>
+          <Text style={styles.pinLabelDest} numberOfLines={1}>
+            {activeShipment ? activeShipment.delivery_address : 'Destino'}
+          </Text>
         </View>
 
         {/* Icono de vehículo / piloto en movimiento */}
@@ -101,36 +212,66 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
 
       {/* Tarjeta Inferior de Información de Llegada (Excalidraw Pantalla 27) */}
       <View style={styles.bottomDrawerCard}>
-        <View style={styles.driverInfoCol}>
-          <Text style={styles.infoLine}>
-            <Text style={styles.infoBold}>Conductor: </Text>
-            {driverInfo.conductor}
-          </Text>
+        {activeShipment ? (
+          <View style={styles.drawerContentRow}>
+            {/* Lado izquierdo con los 4 datos provistos por el moderador */}
+            <View style={styles.driverInfoCol}>
+              {/* Badge de confirmación de moderador */}
+              <View style={styles.moderatorBadge}>
+                <Ionicons name="shield-checkmark" size={13} color="#15803D" />
+                <Text style={styles.moderatorBadgeText}>Habilitado por Moderador</Text>
+              </View>
 
-          <Text style={styles.infoLine}>
-            <Text style={styles.infoBold}>Auto: </Text>
-            {driverInfo.auto}
-          </Text>
+              {/* 1. Número de Entrega */}
+              <Text style={styles.infoLine}>
+                <Text style={styles.infoBold}>No. Entrega: </Text>
+                <Text style={styles.trackingCodeHighlight}>{activeShipment.tracking_number}</Text>
+              </Text>
 
-          <Text style={styles.infoLine}>
-            <Text style={styles.infoBold}>Placas: </Text>
-            {driverInfo.placas}
-          </Text>
+              {/* 2. Nombre del cliente / destinatario */}
+              <Text style={styles.infoLine} numberOfLines={1}>
+                <Text style={styles.infoBold}>Nombre: </Text>
+                {activeShipment.recipient_name || 'No especificado'}
+              </Text>
 
-          <Text style={styles.infoLine}>
-            <Text style={styles.infoBold}>Tiempo estimado: </Text>
-            {driverInfo.tiempoEstimado}
-          </Text>
-        </View>
+              {/* 3. Dirección de entrega */}
+              <Text style={styles.infoLine} numberOfLines={1}>
+                <Text style={styles.infoBold}>Dirección: </Text>
+                {activeShipment.delivery_address || 'Sin dirección registrada'}
+              </Text>
 
-        {/* Botón circular de llamada / contacto */}
-        <TouchableOpacity 
-          style={styles.contactCircleButton}
-          onPress={handleCallDriver}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="call" size={24} color="#0F172A" />
-        </TouchableOpacity>
+              {/* 4. Piloto asignado y detalles de la unidad */}
+              <Text style={styles.infoLine}>
+                <Text style={styles.infoBold}>Piloto: </Text>
+                {activeShipment.agent_name || 'Piloto Juan Carlos (Unidad #12)'}
+              </Text>
+
+              <Text style={styles.subInfoLine}>
+                Auto: {activeShipment.vehicle_model || 'Toyota Hilux Blanco'} • Placas: {activeShipment.vehicle_plate || 'P-482BKD'}
+              </Text>
+
+              <Text style={styles.subInfoLine}>
+                Tiempo estimado: <Text style={styles.timeHighlight}>{activeShipment.estimated_time || (activeShipment.status === 'entregado' ? 'Entregado' : '15 min en ruta')}</Text>
+              </Text>
+            </View>
+
+            {/* Lado derecho: Botón circular de llamada / contacto directo */}
+            <TouchableOpacity 
+              style={styles.contactCircleButton}
+              onPress={handleCallDriver}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="call" size={24} color="#0F172A" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.emptyDrawer}>
+            <Ionicons name="search-outline" size={28} color="#94A3B8" />
+            <Text style={styles.emptyDrawerText}>
+              Ingresa el número de entrega arriba para consultar los datos del moderador y la ubicación del piloto.
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -151,17 +292,29 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: RerfColors.surfaceCard,
   },
-  searchInput: {
+  inputWrapper: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 46,
     borderWidth: 1,
     borderColor: RerfColors.surfaceCardBorder,
     borderRadius: 23,
-    paddingHorizontal: 16,
+    backgroundColor: RerfColors.surfaceSubtle,
+    paddingHorizontal: 12,
+  },
+  searchIconLeft: {
+    marginRight: 6,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
     fontSize: 13,
     color: RerfColors.textMain,
-    fontWeight: '600',
-    backgroundColor: RerfColors.surfaceSubtle,
+    fontWeight: '700',
+  },
+  clearBtn: {
+    padding: 4,
   },
   searchCircleBtn: {
     width: 44,
@@ -172,6 +325,53 @@ const styles = StyleSheet.create({
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
+    ...RerfShadows.card,
+  },
+  errorBannerContainer: {
+    padding: 12,
+    backgroundColor: '#FEF2F2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FEE2E2',
+    gap: 8,
+  },
+  errorAlert: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  errorAlertText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#B91C1C',
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  suggestionsBox: {
+    marginTop: 4,
+  },
+  suggestionsTitle: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  suggestionChip: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  suggestionChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   mapCanvas: {
     flex: 1,
@@ -232,23 +432,31 @@ const styles = StyleSheet.create({
     top: 60,
     right: 50,
     alignItems: 'center',
+    maxWidth: 140,
   },
   pinLabel: {
     fontSize: 10,
     fontWeight: '800',
     color: '#0F172A',
     marginTop: 2,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    paddingHorizontal: 4,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   pinLabelDest: {
     fontSize: 10,
     fontWeight: '800',
     color: '#DC2626',
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    paddingHorizontal: 4,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    textAlign: 'center',
   },
   driverMarker: {
     position: 'absolute',
@@ -294,42 +502,77 @@ const styles = StyleSheet.create({
     backgroundColor: RerfColors.surfaceCard,
     borderTopWidth: 1,
     borderTopColor: RerfColors.surfaceCardBorder,
-    padding: 18,
+    padding: 16,
+    ...RerfShadows.card,
+  },
+  drawerContentRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
   },
   driverInfoCol: {
     flex: 1,
+    gap: 3,
+    marginRight: 14,
+  },
+  moderatorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
     gap: 4,
-    marginRight: 16,
+    marginBottom: 4,
+  },
+  moderatorBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
   },
   infoLine: {
     fontSize: 13,
     color: RerfColors.textSecondary,
   },
+  subInfoLine: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
   infoBold: {
     fontWeight: '800',
     color: RerfColors.textMain,
   },
+  trackingCodeHighlight: {
+    color: '#2563EB',
+    fontWeight: '800',
+  },
+  timeHighlight: {
+    color: '#15803D',
+    fontWeight: '700',
+  },
   contactCircleButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderWidth: 1,
     borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...RerfShadows.card,
+  },
+  emptyDrawer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+  },
+  emptyDrawerText: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    maxWidth: '85%',
   },
 });

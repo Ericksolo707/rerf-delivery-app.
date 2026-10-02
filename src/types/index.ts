@@ -57,6 +57,10 @@ export interface Shipment {
   packages?: PackageItem[];
   created_at: string;
   agent_name?: string;
+  vehicle_model?: string;
+  vehicle_plate?: string;
+  estimated_time?: string;
+  driver_phone?: string;
 }
 
 export interface WarehouseItem {

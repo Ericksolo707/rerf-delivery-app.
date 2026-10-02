@@ -45,6 +45,7 @@ interface AppContextType {
   addShipment: (newShipment: Omit<Shipment, 'id' | 'created_at'>) => Promise<Shipment>;
   updateShipment: (shipmentId: string, updates: Partial<Shipment>) => Promise<void>;
   cancelShipment: (shipmentId: string, reason: string) => Promise<void>;
+  getShipmentByTracking: (trackingOrId: string) => Promise<Shipment | undefined>;
   
   // Bodega Personal
   warehouseItems: WarehouseItem[];
@@ -263,6 +264,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const getShipmentByTracking = async (trackingOrId: string): Promise<Shipment | undefined> => {
+    const clean = trackingOrId.trim();
+    if (!clean) return undefined;
+    const cleanLower = clean.toLowerCase();
+
+    // 1. Buscar en envíos locales cargados
+    const local = allShipments.find(
+      s => s.id.toLowerCase() === cleanLower || s.tracking_number.toLowerCase() === cleanLower
+    );
+    if (local) return local;
+
+    // 2. Consultar repositorio central / Supabase (donde el moderador de escritorio habilita la información)
+    const remote = await repositorioEnvios.obtener(clean);
+    if (remote) {
+      setAllShipments(prev => {
+        if (prev.some(s => s.id === remote.id)) return prev;
+        return [remote, ...prev];
+      });
+      return remote;
+    }
+    return undefined;
+  };
+
   const addWarehouseItem = async (
     itemData: Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>
   ): Promise<WarehouseItem> => {
@@ -357,6 +381,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addShipment,
         updateShipment,
         cancelShipment,
+        getShipmentByTracking,
         warehouseItems: userWarehouseItems,
         addWarehouseItem,
         notifications,
