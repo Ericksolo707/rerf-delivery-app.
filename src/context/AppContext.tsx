@@ -180,6 +180,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setUser(usuarioValido);
     setIsAuthenticated(true);
+    try {
+      const actualizados = await repositorioUsuarios.listarDirectorio();
+      setUsers(actualizados);
+    } catch {}
     return true;
   };
 
@@ -202,6 +206,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     setUser(nuevoUsuario);
     setIsAuthenticated(true);
+    try {
+      const actualizados = await repositorioUsuarios.listarDirectorio();
+      setUsers(actualizados);
+    } catch {}
     return true;
   };
 
@@ -312,7 +320,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const reportUser = (userId: string, reason: string): void => {
-    console.log(`[RepositorioUsuarios] Reporte de usuario: ${userId}, Motivo: ${reason}`);
+    repositorioUsuarios.registrarReporte(userId, reason).catch((err) => {
+      console.warn('[AppContext] Error registrando reporte:', err);
+    });
   };
 
   const sendSupportMessage = (text: string): void => {

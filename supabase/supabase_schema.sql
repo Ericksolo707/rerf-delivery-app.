@@ -9,6 +9,8 @@
 -- 4. facturas       (Facturación y comprobantes de envíos)
 -- 5. notificaciones (Alertas por usuario en tiempo real)
 -- 6. mensajes       (Soporte con piloto/moderador y chat)
+-- 7. favoritos      (Contactos y usuarios guardados en favoritos)
+-- 8. reportes       (Reportes y denuncias revisadas por moderadores)
 -- =====================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -194,7 +196,52 @@ BEGIN
 END $$;
 
 -- =====================================================================
--- LIMPIEZA DE TABLAS OBSOLETAS QUE QUEDABAN "VOLANDO"
+-- 7. TABLA: favoritos (Contactos frecuentes de los usuarios)
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS public.favoritos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    favorite_user_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(user_id, favorite_user_id)
+);
+
+-- Si existe 'user_favorites', migrar a 'favoritos'
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user_favorites') THEN
+        INSERT INTO public.favoritos (id, user_id, favorite_user_id, created_at)
+        SELECT id, user_id, favorite_user_id, created_at
+        FROM public.user_favorites
+        ON CONFLICT (user_id, favorite_user_id) DO NOTHING;
+    END IF;
+END $$;
+
+-- =====================================================================
+-- 8. TABLA: reportes (Denuncias de usuarios revisadas por moderadores)
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS public.reportes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reporter_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    reported_user_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    reason TEXT NOT NULL,
+    status TEXT DEFAULT 'pendiente',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Si existe 'user_reports', migrar a 'reportes'
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user_reports') THEN
+        INSERT INTO public.reportes (id, reporter_id, reported_user_id, reason, status, created_at)
+        SELECT id, reporter_id, reported_user_id, reason, status, created_at
+        FROM public.user_reports
+        ON CONFLICT DO NOTHING;
+    END IF;
+END $$;
+
+-- =====================================================================
+-- LIMPIEZA DE TABLAS OBSOLETAS QUE YA NO SE USAN
 -- =====================================================================
 DROP TABLE IF EXISTS public.packages CASCADE;
 DROP TABLE IF EXISTS public.quotations CASCADE;
@@ -230,17 +277,9 @@ ALTER TABLE public.mensajes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Acceso total mensajes" ON public.mensajes;
 CREATE POLICY "Acceso total mensajes" ON public.mensajes FOR ALL USING (true) WITH CHECK (true);
 
--- También asegurar políticas abiertas en tablas originales mientras se hace la transición
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'shipments') THEN
-        ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Acceso total shipments legacy" ON public.shipments;
-        CREATE POLICY "Acceso total shipments legacy" ON public.shipments FOR ALL USING (true) WITH CHECK (true);
-    END IF;
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'profiles') THEN
-        ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Acceso total profiles legacy" ON public.profiles;
-        CREATE POLICY "Acceso total profiles legacy" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
-    END IF;
-END $$;
+ALTER TABLE public.favoritos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Acceso total favoritos" ON public.favoritos;
+CREATE POLICY "Acceso total favoritos" ON public.favoritos FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.reportes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Acceso total reportes" ON public.reportes FOR ALL USING (true) WITH CHECK (true);

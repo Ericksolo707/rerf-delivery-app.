@@ -16,6 +16,11 @@ const STORAGE_KEY_USERS = '@rerf_registered_users';
 const STORAGE_KEY_CREDS = '@rerf_user_credentials';
 const STORAGE_KEY_SESSION = '@rerf_active_session';
 
+const isUuid = (str?: string): boolean => {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+};
+
 export class RepositorioUsuarios {
   public readonly nombreEntidad: string = 'users';
 
@@ -455,12 +460,36 @@ export class RepositorioUsuarios {
             role: p.role || 'cliente',
           }));
 
-          // Preservar favoritos locales
+          // Consultar favoritos de Supabase si hay usuario en sesión
+          const favoriteIds = new Set<string>();
+          const currentUid = this.usuarioActual?.id;
+          if (currentUid && isUuid(currentUid)) {
+            try {
+              let favRes = await supabase
+                .from('favoritos')
+                .select('favorite_user_id')
+                .eq('user_id', currentUid);
+              if (favRes.error && favRes.error.message.includes('does not exist')) {
+                favRes = await supabase
+                  .from('user_favorites')
+                  .select('favorite_user_id')
+                  .eq('user_id', currentUid);
+              }
+              if (favRes.data) {
+                favRes.data.forEach((f: any) => favoriteIds.add(f.favorite_user_id));
+              }
+            } catch (favErr) {
+              console.warn('[RepositorioUsuarios] Error cargando favoritos de Supabase:', favErr);
+            }
+          }
+
+          // Preservar favoritos locales y combinar con favoritos remotos
           const merged = remoteUsers.map((ru) => {
             const local = this.directorio.find((lu) => lu.id === ru.id);
+            const isFav = favoriteIds.has(ru.id) || (local ? Boolean(local.is_favorite) : false);
             return {
               ...ru,
-              is_favorite: local ? local.is_favorite : false,
+              is_favorite: isFav,
             };
           });
 
@@ -511,17 +540,79 @@ export class RepositorioUsuarios {
       return undefined;
     }
 
+    const nuevoEstado = !this.directorio[index].is_favorite;
     this.directorio[index] = {
       ...this.directorio[index],
-      is_favorite: !this.directorio[index].is_favorite,
+      is_favorite: nuevoEstado,
     };
 
     try {
       await AsyncStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(this.directorio));
     } catch (err) {
-      console.warn('[RepositorioUsuarios] Error guardando favoritos:', err);
+      console.warn('[RepositorioUsuarios] Error guardando favoritos en storage:', err);
+    }
+
+    // Sincronizar en Supabase si ambos son UUID válidos
+    if (isSupabaseConfigured) {
+      const currentUid = this.usuarioActual?.id;
+      if (currentUid && isUuid(currentUid) && isUuid(id)) {
+        try {
+          if (nuevoEstado) {
+            let res = await supabase.from('favoritos').upsert([{ user_id: currentUid, favorite_user_id: id }]);
+            if (res.error && res.error.message.includes('does not exist')) {
+              await supabase.from('user_favorites').upsert([{ user_id: currentUid, favorite_user_id: id }]);
+            }
+          } else {
+            let res = await supabase.from('favoritos').delete().eq('user_id', currentUid).eq('favorite_user_id', id);
+            if (res.error && res.error.message.includes('does not exist')) {
+              await supabase.from('user_favorites').delete().eq('user_id', currentUid).eq('favorite_user_id', id);
+            }
+          }
+        } catch (favErr) {
+          console.warn('[RepositorioUsuarios] Error sincronizando favorito con Supabase:', favErr);
+        }
+      }
     }
 
     return { ...this.directorio[index] };
+  }
+
+  /**
+   * Registra una denuncia o reporte de usuario para revisión por moderadores
+   */
+  public async registrarReporte(reportedUserId: string, motivo: string): Promise<boolean> {
+    const reporterId = this.usuarioActual?.id;
+    console.log(`[RepositorioUsuarios] Reporte de usuario: ${reportedUserId}, Por: ${reporterId}, Motivo: ${motivo}`);
+
+    if (isSupabaseConfigured) {
+      try {
+        const payload: Record<string, any> = {
+          reason: motivo.trim(),
+          status: 'pendiente',
+        };
+        if (reporterId && isUuid(reporterId)) {
+          payload.reporter_id = reporterId;
+        }
+        if (isUuid(reportedUserId)) {
+          payload.reported_user_id = reportedUserId;
+        }
+
+        // Si tenemos ambos IDs válidos como UUID, insertar en Supabase
+        if (payload.reporter_id && payload.reported_user_id) {
+          let res = await supabase.from('reportes').insert([payload]);
+          if (res.error && res.error.message.includes('does not exist')) {
+            res = await supabase.from('user_reports').insert([payload]);
+          }
+          if (res.error) {
+            console.warn('[RepositorioUsuarios] Error al guardar reporte en Supabase:', res.error.message);
+            return false;
+          }
+          return true;
+        }
+      } catch (err) {
+        console.warn('[RepositorioUsuarios] Excepción al registrar reporte en Supabase:', err);
+      }
+    }
+    return true;
   }
 }
