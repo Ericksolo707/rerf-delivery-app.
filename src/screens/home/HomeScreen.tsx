@@ -8,7 +8,7 @@
  * - Contenedor: "Animación / Muestra de Servicios" (Banner de Servicios)
  * - Botón ancho: "Movimientos recientes"
  * - Cuadrícula 2x2 de accesos directos:
- *   [ Pedidos ]      [ Entregas ]
+ *   [ Entregas ]     [ Pedidos ]
  *   [ Usuarios ]     [ Enviar Paquete ]
  */
 
@@ -132,19 +132,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
         <View style={styles.gridContainer}>
           {/* Fila 1 */}
           <View style={styles.gridRow}>
-            {/* Botón Pedidos */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('Pedidos')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: RerfColors.primaryYellowLight }]}>
-                <Ionicons name="clipboard-outline" size={28} color={RerfColors.primaryYellowHover} />
-              </View>
-              <Text style={styles.gridCardText}>Pedidos</Text>
-            </TouchableOpacity>
-
-            {/* Botón Entregas */}
+            {/* Botón Entregas (Pantalla 7) */}
             <TouchableOpacity 
               style={styles.gridCard}
               onPress={() => navigation.navigate('Entregas')}
@@ -154,6 +142,18 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
                 <Ionicons name="bicycle-outline" size={28} color={RerfColors.logisticsBlue} />
               </View>
               <Text style={styles.gridCardText}>Entregas</Text>
+            </TouchableOpacity>
+
+            {/* Botón Pedidos (Pantalla 8) */}
+            <TouchableOpacity 
+              style={styles.gridCard}
+              onPress={() => navigation.navigate('Pedidos')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: RerfColors.primaryYellowLight }]}>
+                <Ionicons name="clipboard-outline" size={28} color={RerfColors.primaryYellowHover} />
+              </View>
+              <Text style={styles.gridCardText}>Pedidos</Text>
             </TouchableOpacity>
           </View>
 

@@ -57,10 +57,10 @@ export const ShipmentManagementScreen: React.FC<RootStackScreenProps<'GestionEnv
 
           {/* Fila 2 */}
           <View style={styles.gridRow}>
-            {/* Revisar Pendientes */}
+            {/* Revisar Pendientes (Pantalla 8: Pedidos pendientes) */}
             <TouchableOpacity
               style={styles.actionCard}
-              onPress={() => navigation.navigate('Entregas')}
+              onPress={() => navigation.navigate('Pedidos')}
               activeOpacity={0.8}
             >
               <View style={[styles.iconCircle, { backgroundColor: RerfColors.logisticsBlueLight }]}>

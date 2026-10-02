@@ -1,11 +1,12 @@
 /**
- * DeliveriesScreen.tsx - Pantalla 8 Apartado de Entregas Activas y Pendientes (Boceto Excalidraw)
+ * DeliveriesScreen.tsx - Pantalla 7 Apartado de Entregas (Boceto Excalidraw)
  * Programación II - UMG / RerF Logistics
  *
- * Responsabilidad: Pantalla 8 del boceto Excalidraw con:
+ * Responsabilidad: Pantalla 7 del boceto Excalidraw:
  * - Header: "Entregas" con botones [ ! ] y [ -> ]
- * - Sección 1: "Activas ->" con tarjetas y botones [ L ] y [ R ]
- * - Sección 2: "Pendientes [count] ->" con tarjetas y botones [ L ], [ X ] y [ R ]
+ * - Lista corrida de tarjetas de entregas con división izquierda/derecha:
+ *   - Izquierda: "Para: [usuario]", "Id entrega: [código]", "Nombre producto", "Estado: Recoger/Bodega/Ruta/Entregado".
+ *   - Derecha: Botones cuadrados estilizados [ L ] (Localizar GPS) y [ R ] (Rastrear / Detalle de Paquete).
  */
 
 import React from 'react';
@@ -13,7 +14,7 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  ScrollView, 
+  FlatList, 
   TouchableOpacity 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,152 +27,109 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ navigation }) => {
   const { shipments } = useApp();
 
-  const activeDeliveries = shipments.filter(s => s.status === 'en_camino' || s.status === 'entregado');
-  const pendingDeliveries = shipments.filter(s => s.status === 'pendiente');
+  // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'recolectado':
+        return { label: 'Recoger', bg: '#FEF3C7', color: '#B45309' };
+      case 'en_bodega':
+        return { label: 'Bodega', bg: '#E0E7FF', color: '#3730A3' };
+      case 'en_camino':
+        return { label: 'Ruta', bg: '#DBEAFE', color: '#1E40AF' };
+      case 'entregado':
+        return { label: 'Entregado', bg: '#DCFCE7', color: '#15803D' };
+      case 'cancelado':
+        return { label: 'Cancelado', bg: '#FEE2E2', color: '#DC2626' };
+      case 'pendiente':
+      default:
+        return { label: 'Pendiente', bg: '#F3F4F6', color: '#4B5563' };
+    }
+  };
 
-  const renderActiveCard = (item: Shipment, index: number) => (
-    <View key={item.id} style={styles.card}>
-      {/* Lado izquierdo con información */}
-      <View style={styles.infoCol}>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaText}>No. usuario: {200 + index}</Text>
-          <Text style={styles.metaText}>Id entrega: {item.tracking_number}</Text>
-        </View>
+  const renderDelivery = ({ item }: { item: Shipment; index: number }) => {
+    const statusInfo = getStatusDisplay(item.status);
 
-        <Text style={styles.fieldLine}>
-          <Text style={styles.label}>Destino: </Text>
-          <Text style={styles.value} numberOfLines={1}>{item.delivery_address}</Text>
-        </Text>
-
-        <Text style={styles.fieldLine}>
-          <Text style={styles.label}>Productos: </Text>
-          <Text style={styles.value} numberOfLines={1}>{item.description}</Text>
-        </Text>
-
-        <View style={styles.bottomInfoRow}>
-          <Text style={styles.dateText}>Fecha: {item.scheduled_date || '14/10/2026'}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: item.status === 'entregado' ? '#DCFCE7' : '#DBEAFE' }]}>
-            <Text style={[styles.statusBadgeText, { color: item.status === 'entregado' ? '#15803D' : '#1E40AF' }]}>
-              {item.status.toUpperCase()}
+    return (
+      <View style={styles.card}>
+        {/* Lado izquierdo con información estructurada del boceto */}
+        <View style={styles.infoCol}>
+          <View style={styles.headerMetaRow}>
+            <Text style={styles.recipientMetaText} numberOfLines={1}>
+              Para: {item.recipient_name || 'usuario2'}
+            </Text>
+            <Text style={styles.idMetaText}>
+              Id entrega: {item.tracking_number}
             </Text>
           </View>
-        </View>
-      </View>
 
-      {/* Lado derecho: Botones [ L ] y [ R ] */}
-      <View style={styles.actionsCol}>
-        <TouchableOpacity 
-          style={styles.squareActionButton}
-          onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.actionLetter}>L</Text>
-        </TouchableOpacity>
+          <View style={styles.productBlock}>
+            <Text style={styles.fieldLabel}>Nombre producto:</Text>
+            <Text style={styles.productNameText} numberOfLines={2}>
+              {item.description || 'Paquete de entrega estándar'}
+            </Text>
+          </View>
 
-        <TouchableOpacity 
-          style={styles.squareActionButton}
-          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.actionLetter}>R</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderPendingCard = (item: Shipment, index: number) => (
-    <View key={item.id} style={styles.card}>
-      {/* Lado izquierdo */}
-      <View style={styles.infoCol}>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaText}>No. usuario: {300 + index}</Text>
-          <Text style={styles.metaText}>Id: {item.tracking_number}</Text>
+          <View style={styles.statusRow}>
+            <Text style={styles.fieldLabel}>Estado: </Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
+              <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>
+                {statusInfo.label}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        <Text style={styles.fieldLine}>
-          <Text style={styles.label}>Destino: </Text>
-          <Text style={styles.value} numberOfLines={1}>{item.delivery_address}</Text>
-        </Text>
+        {/* Lado derecho con botones de acción Excalidraw [ L ] y [ R ] */}
+        <View style={styles.actionsCol}>
+          {/* Botón L (Localizar en GPS) */}
+          <TouchableOpacity 
+            style={styles.squareActionButton}
+            onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.actionLetter}>L</Text>
+          </TouchableOpacity>
 
-        <Text style={styles.fieldLine}>
-          <Text style={styles.label}>Productos: </Text>
-          <Text style={styles.value} numberOfLines={1}>{item.description}</Text>
-        </Text>
-
-        <Text style={styles.dateText}>Fecha programada: {item.scheduled_date || '15/10/2026'}</Text>
+          {/* Botón R (Rastrear / Detalle de Paquete) */}
+          <TouchableOpacity 
+            style={styles.squareActionButton}
+            onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.actionLetter}>R</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-
-      {/* Lado derecho: Botones [ L ], [ X ] y [ R ] */}
-      <View style={styles.actionsCol}>
-        <TouchableOpacity 
-          style={styles.squareActionButton}
-          onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.actionLetter}>L</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.squareActionButton, styles.cancelSquareButton]}
-          onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: item.id })}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.actionLetter, styles.cancelLetter]}>X</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.squareActionButton}
-          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.actionLetter}>R</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
       <Header title="Entregas" showBack={true} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* SECCIÓN 1: Activas -> */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Activas</Text>
-          <Ionicons name="arrow-forward" size={18} color="#0F172A" />
-        </View>
-
-        <View style={styles.cardsList}>
-          {activeDeliveries.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No hay entregas activas en tránsito.</Text>
-            </View>
-          ) : (
-            activeDeliveries.map(renderActiveCard)
-          )}
-        </View>
-
-        {/* SECCIÓN 2: Pendientes [count] -> */}
-        <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
-          <View style={styles.pendingTitleGroup}>
-            <Text style={styles.sectionTitle}>Pendientes</Text>
-            <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{pendingDeliveries.length}</Text>
-            </View>
+      <FlatList
+        data={shipments}
+        keyExtractor={item => item.id}
+        renderItem={renderDelivery}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="bicycle-outline" size={48} color="#94A3B8" />
+            <Text style={styles.emptyTitle}>No tienes entregas registradas</Text>
+            <Text style={styles.emptySub}>
+              Crea un nuevo paquete o pedido para visualizar su entrega aquí.
+            </Text>
+            <TouchableOpacity 
+              style={styles.createBtn}
+              onPress={() => navigation.navigate('RealizarEnvio')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.createBtnText}>Crear Nueva Entrega</Text>
+            </TouchableOpacity>
           </View>
-          <Ionicons name="arrow-forward" size={18} color="#0F172A" />
-        </View>
-
-        <View style={styles.cardsList}>
-          {pendingDeliveries.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No hay entregas pendientes de asignación.</Text>
-            </View>
-          ) : (
-            pendingDeliveries.map(renderPendingCard)
-          )}
-        </View>
-      </ScrollView>
+        }
+      />
     </View>
   );
 };
@@ -181,43 +139,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: RerfColors.background,
   },
-  scrollContent: {
+  listContent: {
     padding: 16,
-    paddingBottom: 32,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: RerfColors.textMain,
-  },
-  pendingTitleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  countBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: RerfColors.primaryYellow,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: RerfColors.primaryYellowLight,
-  },
-  countBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: RerfColors.primaryYellowText,
-  },
-  cardsList: {
     gap: 14,
   },
   card: {
@@ -234,91 +157,106 @@ const styles = StyleSheet.create({
   infoCol: {
     flex: 1,
     marginRight: 14,
-    gap: 4,
+    gap: 6,
   },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: RerfColors.surfaceSubtle,
-    paddingBottom: 6,
-    marginBottom: 4,
-  },
-  metaText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: RerfColors.textMain,
-  },
-  fieldLine: {
-    fontSize: 12,
-    color: RerfColors.textSecondary,
-    lineHeight: 16,
-  },
-  label: {
-    fontWeight: '700',
-    color: RerfColors.textMuted,
-  },
-  value: {
-    fontWeight: '600',
-    color: RerfColors.textMain,
-  },
-  bottomInfoRow: {
+  headerMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: RerfColors.surfaceSubtle,
+    paddingBottom: 6,
   },
-  dateText: {
-    fontSize: 11,
-    color: RerfColors.textMuted,
-    fontWeight: '500',
+  recipientMetaText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    flex: 1,
+    marginRight: 8,
+  },
+  idMetaText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  productBlock: {
+    gap: 2,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  productNameText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 2,
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 6,
   },
   statusBadgeText: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '800',
+    textTransform: 'uppercase',
   },
   actionsCol: {
-    gap: 6,
-    alignItems: 'center',
-  },
-  squareActionButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    backgroundColor: RerfColors.surfaceSubtle,
+    gap: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cancelSquareButton: {
-    borderColor: '#FECACA',
-    backgroundColor: RerfColors.errorRedLight,
+  squareActionButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#94A3B8',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...RerfShadows.card,
   },
   actionLetter: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: RerfColors.textMain,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1E293B',
   },
-  cancelLetter: {
-    color: RerfColors.errorRed,
-  },
-  emptyCard: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderStyle: 'dashed',
+  emptyContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 24,
   },
-  emptyText: {
-    fontSize: 12,
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#475569',
+    marginTop: 12,
+  },
+  emptySub: {
+    fontSize: 13,
     color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  createBtn: {
+    backgroundColor: RerfColors.primaryYellow,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    ...RerfShadows.card,
+  },
+  createBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: RerfColors.primaryYellowText,
   },
 });

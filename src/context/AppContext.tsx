@@ -43,6 +43,7 @@ interface AppContextType {
   // Envíos
   shipments: Shipment[];
   addShipment: (newShipment: Omit<Shipment, 'id' | 'created_at'>) => Promise<Shipment>;
+  updateShipment: (shipmentId: string, updates: Partial<Shipment>) => Promise<void>;
   cancelShipment: (shipmentId: string, reason: string) => Promise<void>;
   
   // Bodega Personal
@@ -251,6 +252,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const updateShipment = async (shipmentId: string, updates: Partial<Shipment>): Promise<void> => {
+    await repositorioEnvios.actualizar(shipmentId, updates);
+    setAllShipments(prev =>
+      prev.map(s =>
+        s.id === shipmentId || s.tracking_number === shipmentId
+          ? { ...s, ...updates }
+          : s
+      )
+    );
+  };
+
   const addWarehouseItem = async (
     itemData: Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>
   ): Promise<WarehouseItem> => {
@@ -343,6 +355,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateProfile,
         shipments: userShipments,
         addShipment,
+        updateShipment,
         cancelShipment,
         warehouseItems: userWarehouseItems,
         addWarehouseItem,

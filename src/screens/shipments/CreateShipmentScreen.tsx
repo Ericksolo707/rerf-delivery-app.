@@ -35,8 +35,11 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ route, navigation }) => {
-  const { addShipment, warehouseItems, users, user } = useApp();
+  const { addShipment, updateShipment, shipments, warehouseItems, users, user } = useApp();
   const prefilled = route.params?.prefilledRecipient;
+  const editShipmentId = route.params?.editShipmentId;
+  const existingShipment = editShipmentId ? shipments.find(s => s.id === editShipmentId || s.tracking_number === editShipmentId) : undefined;
+
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
 
@@ -66,12 +69,12 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   };
 
   // Campos Excalidraw Pantalla 13
-  const [recipient, setRecipient] = useState<string>(prefilled || '');
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
-  const [address, setAddress] = useState<string>('');
-  const [reference, setReference] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<string>('Hoy (14/10/2026)');
-  const [description, setDescription] = useState<string>('');
+  const [recipient, setRecipient] = useState<string>(existingShipment?.recipient_name || prefilled || '');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || '');
+  const [address, setAddress] = useState<string>(existingShipment?.delivery_address || '');
+  const [reference, setReference] = useState<string>(existingShipment?.address_references || '');
+  const [selectedDate, setSelectedDate] = useState<string>(existingShipment?.scheduled_date || 'Hoy (14/10/2026)');
+  const [description, setDescription] = useState<string>(existingShipment?.description || '');
 
   // Modales
   const [showRecipientModal, setShowRecipientModal] = useState<boolean>(false);
@@ -107,6 +110,27 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
     setIsSubmitting(true);
 
     try {
+      if (editShipmentId && existingShipment) {
+        await updateShipment(existingShipment.id, {
+          recipient_name: recipient.trim(),
+          delivery_address: address.trim(),
+          address_references: reference.trim(),
+          description: selectedItem ? `${selectedItem.product_type}: ${description}` : description,
+          warehouse_item_id: selectedWarehouseId || undefined,
+        });
+
+        setCreatedShipment({
+          ...existingShipment,
+          recipient_name: recipient.trim(),
+          delivery_address: address.trim(),
+          address_references: reference.trim(),
+          description: description.trim(),
+        });
+        setIsSubmitting(false);
+        setShowReceivedModal(true);
+        return;
+      }
+
       const randomCode = Math.floor(1000 + Math.random() * 9000);
       const trackingNumber = `RERF-${randomCode}`;
       const baseCost = selectedItem ? 45.00 : 35.00;
@@ -148,7 +172,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <Header title="Realizar Envío" showBack={true} />
+      <Header title={editShipmentId ? "Editar Envío" : "Realizar Envío"} showBack={true} />
 
       <ScrollView 
         ref={scrollViewRef}
