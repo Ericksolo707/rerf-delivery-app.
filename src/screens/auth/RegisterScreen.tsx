@@ -1,4 +1,6 @@
 /**
+ *  -------------- PANTALLA PARA EL REGISTRO DEL USUARIO --------------
+ *
  * RegisterScreen.tsx - Registro de Nuevos Usuarios (Alineada a Boceto Excalidraw Pantalla 2)
  * Programación II - UMG / RerF Logistics
  *
@@ -12,51 +14,57 @@
  * Conexión completa y segura a Supabase Auth.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
-  Platform, 
+import React, { useState, useRef, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   ActivityIndicator,
-  Keyboard
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { Input } from '../../components/Input';
-import { useApp } from '../../context/AppContext';
-import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors, RerfShadows } from '../../constants/theme';
+  Keyboard,
+  Pressable,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { Input } from "../../components/Input";
+import { useApp } from "../../context/AppContext";
+import { RootStackScreenProps } from "../../types/navigation";
+import { RerfColors, RerfShadows } from "../../constants/theme";
 
-export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation }) => {
+export const RegisterScreen: React.FC<RootStackScreenProps<"Register">> = ({
+  navigation,
+}) => {
   const insets = useSafeAreaInsets();
   const { register } = useApp();
   const scrollViewRef = useRef<ScrollView>(null);
-  
-  const [name, setName] = useState<string>('');
-  const [confirmName, setConfirmName] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  
+
+  // Estados para el registro de sesion
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
 
   useEffect(() => {
     const showListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       (e) => {
         setKeyboardHeight(e.endCoordinates.height);
-      }
+      },
     );
     const hideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
       () => {
         setKeyboardHeight(0);
-      }
+      },
     );
     return () => {
       showListener.remove();
@@ -71,51 +79,46 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
   };
 
   const handleRegister = async (): Promise<void> => {
-    if (!name.trim()) {
-      setError('Por favor ingrese su nombre de usuario.');
+    if (!username.trim()) {
+      setError("Por favor ingrese su usuario y correo electrónico.");
       return;
     }
 
-    if (confirmName.trim() && name.trim().toLowerCase() !== confirmName.trim().toLowerCase()) {
-      setError('Los nombres de usuario no coinciden.');
+    if (!email.includes("@")) {
+      setError("Por favor ingrese un correo electrónico válido.");
       return;
     }
 
     if (!password.trim() || password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres y un número.');
+      setError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden.');
+      setError("Las contraseñas no coinciden.");
       return;
     }
 
-    setError('');
+    setError("");
     setLoading(true);
+
     try {
-      // Separar nombre o limpiar si el usuario ingresó un correo electrónico
-      let firstName = 'Usuario';
-      let lastName = '';
-      let cleanEmail = '';
+      const parts = username.trim().split(" ").filter(Boolean);
+      const firstName = parts[0]
+        ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1)
+        : "Usuario";
+      const lastName = parts.slice(1).join(" ");
 
-      if (name.includes('@')) {
-        cleanEmail = name.trim().toLowerCase();
-        const localPart = cleanEmail.split('@')[0];
-        const segments = localPart.split(/[._-]/).filter(Boolean);
-        firstName = segments[0] ? segments[0].charAt(0).toUpperCase() + segments[0].slice(1) : 'Usuario';
-        lastName = segments.slice(1).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
-      } else {
-        const parts = name.trim().split(' ').filter(Boolean);
-        firstName = parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : 'Usuario';
-        lastName = parts.slice(1).join(' ');
-        const usernameSlug = name.trim().toLowerCase().replace(/\s+/g, '');
-        cleanEmail = `${usernameSlug}@rerf.gt`;
-      }
-
-      await register(firstName, lastName, cleanEmail, password.trim());
+      // Guardamos directamente con el correo REAL
+      await register(
+        firstName,
+        lastName,
+        email.trim().toLowerCase(),
+        password.trim(),
+      );
     } catch (err: unknown) {
-      const msg: string = err instanceof Error ? err.message : 'Error al registrar la cuenta.';
+      const msg: string =
+        err instanceof Error ? err.message : "Error al registrar la cuenta.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -123,21 +126,24 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         contentContainerStyle={[
           styles.scrollContent,
-          keyboardHeight > 0 && { justifyContent: 'flex-start' },
+          keyboardHeight > 0 && { justifyContent: "flex-start" },
           {
             paddingTop: Math.max(insets.top + 20, 36),
-            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : Math.max(insets.bottom + 20, 36),
-          }
-        ]} 
+            paddingBottom:
+              keyboardHeight > 0
+                ? keyboardHeight + 80
+                : Math.max(insets.bottom + 20, 36),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -155,61 +161,92 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
         <View style={styles.formContainer}>
           {error ? (
             <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle-outline" size={18} color={RerfColors.errorRed} />
+              <Ionicons
+                name="alert-circle-outline"
+                size={18}
+                color={RerfColors.errorRed}
+              />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
 
-          {/* Campo Nombre */}
+          {/* Campo del Nombre de Usuario */}
           <View style={styles.fieldBlock}>
             <Text style={styles.fieldLabel}>Nombre:</Text>
             <Input
               placeholder="Nombre o correo"
-              value={name}
+              value={username}
               onChangeText={(val) => {
-                setName(val);
-                if (error) setError('');
+                setUsername(val);
+                if (error) setError("");
               }}
               onFocus={() => handleInputFocus(70)}
               autoCapitalize="none"
               containerStyle={styles.sketchInput}
             />
-            <Text style={styles.fieldHint}>Al guardar no es posible cambiarlo</Text>
+            <Text style={styles.fieldHint}>
+              Al guardar no es posible cambiarlo
+            </Text>
           </View>
 
-          {/* Campo Confirmar Nombre */}
+          {/* Campo Para Correo */}
           <View style={styles.fieldBlock}>
             <Text style={styles.fieldLabel}>Confirmar:</Text>
             <Input
-              placeholder="Confirmar nombre o correo"
-              value={confirmName}
+              placeholder="Escriba su correo"
+              value={email}
               onChangeText={(val) => {
-                setConfirmName(val);
-                if (error) setError('');
+                setEmail(val);
+                if (error) setError("");
               }}
               onFocus={() => handleInputFocus(140)}
               autoCapitalize="none"
               containerStyle={styles.sketchInput}
             />
-            <Text style={styles.fieldHint}>Confirmar los caracteres del usuario</Text>
+            <Text style={styles.fieldHint}>
+              Confirmar los caracteres del usuario
+            </Text>
           </View>
 
           {/* Campo Contraseña */}
           <View style={styles.fieldBlock}>
             <Text style={styles.fieldLabel}>Contraseña:</Text>
-            <Input
-              placeholder="••••••••"
-              value={password}
-              onChangeText={(val) => {
-                setPassword(val);
-                if (error) setError('');
-              }}
-              onFocus={() => handleInputFocus(210)}
-              secureTextEntry
-              containerStyle={styles.sketchInput}
-            />
+            <View style={styles.inputWithIconContainer}>
+              <Input
+                placeholder="••••••••"
+                value={password}
+                onChangeText={(val) => {
+                  setPassword(val);
+                  if (error) setError("");
+                }}
+                onFocus={() => handleInputFocus(210)}
+                secureTextEntry={!showPassword}
+                containerStyle={[
+                  styles.sketchInput,
+                  {
+                    flex: 1,
+                    backgroundColor: "transparent",
+                    borderWidth: 0,
+                    borderRadius: 0,
+                    shadowOpacity: 0,
+                    elevation: 0,
+                  },
+                ]}
+              />
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.iconButton}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#777"
+                />
+              </Pressable>
+            </View>
             <Text style={styles.fieldHint}>
-              Para una contraseña segura debe contener como mínimo un número y 8 caracteres como mínimo
+              Para una contraseña segura debe contener como mínimo un número y 8
+              caracteres como mínimo
             </Text>
           </View>
 
@@ -221,34 +258,43 @@ export const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ nav
               value={confirmPassword}
               onChangeText={(val) => {
                 setConfirmPassword(val);
-                if (error) setError('');
+                if (error) setError("");
               }}
               onFocus={() => handleInputFocus(280)}
               secureTextEntry
               containerStyle={styles.sketchInput}
             />
-            <Text style={styles.fieldHint}>Confirmar los caracteres de nuevo</Text>
+            <Text style={styles.fieldHint}>
+              Confirmar los caracteres de nuevo
+            </Text>
           </View>
 
           {/* Botones inferiores: [ Salir ] y [ Guardar ] */}
           <View style={styles.bottomButtonsRow}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.exitButton}
               onPress={() => navigation.goBack()}
               activeOpacity={0.8}
             >
-              <Ionicons name="arrow-back" size={18} color={RerfColors.textSecondary} />
+              <Ionicons
+                name="arrow-back"
+                size={18}
+                color={RerfColors.textSecondary}
+              />
               <Text style={styles.exitButtonText}>Salir</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.saveButton, loading && styles.disabledButton]}
               onPress={handleRegister}
               disabled={loading}
               activeOpacity={0.85}
             >
               {loading ? (
-                <ActivityIndicator color={RerfColors.primaryYellowText} size="small" />
+                <ActivityIndicator
+                  color={RerfColors.primaryYellowText}
+                  size="small"
+                />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -269,13 +315,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   logoPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: RerfColors.heroDark,
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -287,8 +333,8 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 28,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: "900",
+    color: "#FFFFFF",
     letterSpacing: -0.5,
   },
   logoHighlight: {
@@ -296,21 +342,21 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: "900",
     color: RerfColors.textMain,
     letterSpacing: 0.5,
   },
   formContainer: {
-    width: '100%',
+    width: "100%",
     maxWidth: 360,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   fieldBlock: {
     marginBottom: 16,
   },
   fieldLabel: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: "800",
     color: RerfColors.textMain,
     marginBottom: 6,
   },
@@ -324,9 +370,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   bottomButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 20,
     marginBottom: 16,
     gap: 16,
@@ -338,15 +384,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: RerfColors.surfaceCardBorder,
     backgroundColor: RerfColors.surfaceCard,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 6,
     ...RerfShadows.card,
   },
   exitButtonText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: "800",
     color: RerfColors.textSecondary,
   },
   saveButton: {
@@ -356,24 +402,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellow,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     ...RerfShadows.card,
   },
   saveButtonText: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: "800",
     color: RerfColors.primaryYellowText,
   },
   disabledButton: {
     opacity: 0.6,
   },
   errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF2F2',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF2F2",
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: "#FECACA",
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -383,6 +429,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: RerfColors.errorRed,
     flex: 1,
-    fontWeight: '600',
+    fontWeight: "600",
+  },
+  iconButton: {
+    paddingHorizontal: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  inputWithIconContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#777",
+    paddingBottom: 4,
   },
 });
