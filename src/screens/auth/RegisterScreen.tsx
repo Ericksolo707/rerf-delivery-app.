@@ -78,6 +78,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<"Register">> = ({
     }, 120);
   };
 
+  //Estados para validar el registro
   const handleRegister = async (): Promise<void> => {
     if (!username.trim()) {
       setError("Por favor ingrese su usuario y correo electrónico.");
@@ -109,7 +110,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<"Register">> = ({
         : "Usuario";
       const lastName = parts.slice(1).join(" ");
 
-      // Guardamos directamente con el correo REAL
+      // Se guarda con el correo que el usuario ingresa
       await register(
         firstName,
         lastName,
@@ -174,7 +175,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<"Register">> = ({
           <View style={styles.fieldBlock}>
             <Text style={styles.fieldLabel}>Nombre:</Text>
             <Input
-              placeholder="Nombre o correo"
+              placeholder="Nombre"
               value={username}
               onChangeText={(val) => {
                 setUsername(val);
@@ -191,7 +192,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<"Register">> = ({
 
           {/* Campo Para Correo */}
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Confirmar:</Text>
+            <Text style={styles.fieldLabel}>Correo Electronico:</Text>
             <Input
               placeholder="Escriba su correo"
               value={email}
@@ -203,9 +204,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<"Register">> = ({
               autoCapitalize="none"
               containerStyle={styles.sketchInput}
             />
-            <Text style={styles.fieldHint}>
-              Confirmar los caracteres del usuario
-            </Text>
+            <Text style={styles.fieldHint}>Confirmar el correo</Text>
           </View>
 
           {/* Campo Contraseña */}
@@ -253,17 +252,39 @@ export const RegisterScreen: React.FC<RootStackScreenProps<"Register">> = ({
           {/* Campo Confirmar Contraseña */}
           <View style={styles.fieldBlock}>
             <Text style={styles.fieldLabel}>Confirmar:</Text>
-            <Input
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChangeText={(val) => {
-                setConfirmPassword(val);
-                if (error) setError("");
-              }}
-              onFocus={() => handleInputFocus(280)}
-              secureTextEntry
-              containerStyle={styles.sketchInput}
-            />
+            <View style={styles.inputWithIconContainer}>
+              <Input
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChangeText={(val) => {
+                  setConfirmPassword(val);
+                  if (error) setError("");
+                }}
+                onFocus={() => handleInputFocus(280)}
+                secureTextEntry={!showConfirmPassword}
+                containerStyle={[
+                  styles.sketchInput,
+                  {
+                    flex: 1,
+                    backgroundColor: "transparent",
+                    borderWidth: 0,
+                    borderRadius: 0,
+                    shadowOpacity: 0,
+                    elevation: 0,
+                  },
+                ]}
+              />
+              <Pressable
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={styles.iconButton}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#777"
+                />
+              </Pressable>
+            </View>
             <Text style={styles.fieldHint}>
               Confirmar los caracteres de nuevo
             </Text>
