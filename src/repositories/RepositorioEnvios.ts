@@ -83,18 +83,18 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
 
     if (isSupabaseConfigured) {
       try {
-        let res = await supabase
-          .from(this.nombreEntidad)
-          .select('*')
-          .or(`id.eq.${clean},tracking_number.ilike.${clean}`)
-          .maybeSingle();
+        const buildQuery = (table: string) => {
+          let q = supabase.from(table).select('*');
+          if (isUuid(clean)) {
+            return q.or(`id.eq.${clean},tracking_number.ilike.${clean}`);
+          }
+          return q.ilike('tracking_number', clean);
+        };
+
+        let res = await buildQuery(this.nombreEntidad).maybeSingle();
 
         if (res.error && res.error.message.includes('does not exist')) {
-          res = await supabase
-            .from(this.tablaLegacy)
-            .select('*')
-            .or(`id.eq.${clean},tracking_number.ilike.${clean}`)
-            .maybeSingle();
+          res = await buildQuery(this.tablaLegacy).maybeSingle();
         }
 
         if (!res.error && res.data) {

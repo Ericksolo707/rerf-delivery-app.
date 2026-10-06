@@ -39,12 +39,12 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
   const { shipments, getShipmentByTracking } = useApp();
   const initialShipmentId = route?.params?.shipmentId;
 
-  // Encontrar envío inicial si se pasó por navegación
+  // Encontrar envío si se pasó por navegación (ej. botón [R] desde Entregas o Pedidos)
   const defaultShipment = initialShipmentId 
     ? shipments.find((s: Shipment) => s.id === initialShipmentId || s.tracking_number.toLowerCase() === initialShipmentId.toLowerCase()) 
-    : shipments[0];
+    : undefined;
 
-  const [searchInput, setSearchInput] = useState<string>(defaultShipment?.tracking_number || initialShipmentId || '');
+  const [searchInput, setSearchInput] = useState<string>(initialShipmentId || defaultShipment?.tracking_number || '');
   const [activeShipment, setActiveShipment] = useState<Shipment | null>(defaultShipment || null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string>('');
@@ -94,7 +94,11 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
 
   const handleCallDriver = (): void => {
     if (!activeShipment) return;
-    const pilotName = activeShipment.agent_name || 'Piloto de Unidad Central';
+    if (!activeShipment.agent_name && !activeShipment.driver_phone) {
+      alert('Aún no hay un piloto asignado a esta entrega por el moderador de escritorio.');
+      return;
+    }
+    const pilotName = activeShipment.agent_name || 'Piloto Asignado';
     (navigation as any)?.navigate('ChatSoporte', { 
       contact: { 
         name: pilotName, 
@@ -206,7 +210,13 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
         </View>
 
         <View style={styles.gpsBadgeOverlay}>
-          <Text style={styles.gpsBadgeText}>● SEÑAL GPS ACTIVA</Text>
+          {activeShipment?.agent_name ? (
+            <Text style={styles.gpsBadgeText}>● SEÑAL GPS ACTIVA</Text>
+          ) : activeShipment ? (
+            <Text style={styles.gpsBadgeTextPending}>⏱ EN ESPERA DE ASIGNACIÓN</Text>
+          ) : (
+            <Text style={styles.gpsBadgeTextSearch}>🔍 BUSCADOR DE ENTREGA</Text>
+          )}
         </View>
       </View>
 
@@ -217,10 +227,19 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
             {/* Lado izquierdo con los 4 datos provistos por el moderador */}
             <View style={styles.driverInfoCol}>
               {/* Badge de confirmación de moderador */}
-              <View style={styles.moderatorBadge}>
-                <Ionicons name="shield-checkmark" size={13} color="#15803D" />
-                <Text style={styles.moderatorBadgeText}>Habilitado por Moderador</Text>
-              </View>
+              {activeShipment.agent_name ? (
+                <View style={styles.moderatorBadge}>
+                  <Ionicons name="shield-checkmark" size={13} color="#15803D" />
+                  <Text style={styles.moderatorBadgeText}>Habilitado por Moderador</Text>
+                </View>
+              ) : (
+                <View style={[styles.moderatorBadge, styles.moderatorBadgePending]}>
+                  <Ionicons name="time-outline" size={13} color="#B45309" />
+                  <Text style={[styles.moderatorBadgeText, styles.moderatorBadgePendingText]}>
+                    Pendiente de Asignación por Moderador
+                  </Text>
+                </View>
+              )}
 
               {/* 1. Número de Entrega */}
               <Text style={styles.infoLine}>
@@ -230,7 +249,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
 
               {/* 2. Nombre del cliente / destinatario */}
               <Text style={styles.infoLine} numberOfLines={1}>
-                <Text style={styles.infoBold}>Nombre: </Text>
+                <Text style={styles.infoBold}>Destinatario: </Text>
                 {activeShipment.recipient_name || 'No especificado'}
               </Text>
 
@@ -243,25 +262,36 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
               {/* 4. Piloto asignado y detalles de la unidad */}
               <Text style={styles.infoLine}>
                 <Text style={styles.infoBold}>Piloto: </Text>
-                {activeShipment.agent_name || 'Piloto Juan Carlos (Unidad #12)'}
+                {activeShipment.agent_name ? (
+                  activeShipment.agent_name
+                ) : (
+                  <Text style={styles.pendingText}>Pendiente de asignación</Text>
+                )}
               </Text>
 
               <Text style={styles.subInfoLine}>
-                Auto: {activeShipment.vehicle_model || 'Toyota Hilux Blanco'} • Placas: {activeShipment.vehicle_plate || 'P-482BKD'}
+                Auto: {activeShipment.vehicle_model || 'Pendiente'} • Placas: {activeShipment.vehicle_plate || 'Pendiente'}
               </Text>
 
               <Text style={styles.subInfoLine}>
-                Tiempo estimado: <Text style={styles.timeHighlight}>{activeShipment.estimated_time || (activeShipment.status === 'entregado' ? 'Entregado' : '15 min en ruta')}</Text>
+                Tiempo estimado: <Text style={styles.timeHighlight}>{activeShipment.estimated_time || (activeShipment.status === 'entregado' ? 'Entregado' : 'En espera de confirmación')}</Text>
               </Text>
             </View>
 
             {/* Lado derecho: Botón circular de llamada / contacto directo */}
             <TouchableOpacity 
-              style={styles.contactCircleButton}
+              style={[
+                styles.contactCircleButton,
+                !activeShipment.agent_name && styles.contactCircleButtonDisabled
+              ]}
               onPress={handleCallDriver}
               activeOpacity={0.8}
             >
-              <Ionicons name="call" size={24} color="#0F172A" />
+              <Ionicons 
+                name="call" 
+                size={24} 
+                color={activeShipment.agent_name ? '#0F172A' : '#94A3B8'} 
+              />
             </TouchableOpacity>
           </View>
         ) : (
@@ -270,6 +300,25 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
             <Text style={styles.emptyDrawerText}>
               Ingresa el número de entrega arriba para consultar los datos del moderador y la ubicación del piloto.
             </Text>
+            {shipments.length > 0 && (
+              <View style={styles.suggestionsBox}>
+                <Text style={styles.suggestionsTitle}>Entregas registradas disponibles:</Text>
+                <View style={styles.chipsRow}>
+                  {shipments.slice(0, 3).map(s => (
+                    <TouchableOpacity 
+                      key={s.id} 
+                      style={styles.suggestionChip}
+                      onPress={() => {
+                        setSearchInput(s.tracking_number);
+                        handleSearch(s.tracking_number);
+                      }}
+                    >
+                      <Text style={styles.suggestionChipText}>{s.tracking_number}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -574,5 +623,31 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     maxWidth: '85%',
+  },
+  moderatorBadgePending: {
+    backgroundColor: '#FEF3C7',
+  },
+  moderatorBadgePendingText: {
+    color: '#B45309',
+  },
+  pendingText: {
+    color: '#D97706',
+    fontStyle: 'italic',
+  },
+  contactCircleButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
+  },
+  gpsBadgeTextPending: {
+    color: '#FBBF24',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  gpsBadgeTextSearch: {
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });
