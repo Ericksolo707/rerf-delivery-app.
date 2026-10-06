@@ -4,6 +4,7 @@
   "main": "index.ts",
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",
+    "@lottiefiles/dotlottie-react": "^0.13.5",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
@@ -11,6 +12,7 @@
     "@supabase/supabase-js": "^2.49.1",
     "expo": "~57.0.24",
     "expo-status-bar": "~57.0.1",
+    "lottie-react-native": "~7.3.8",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",

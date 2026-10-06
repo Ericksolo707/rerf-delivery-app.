@@ -1,81 +1,50 @@
 /**
- * LoginScreen.tsx - Inicio de Sesión Corporativo RerF (Alineada a Boceto Excalidraw Pantalla 1)
+ * LoginScreen.tsx - Diseño Premium Réplica Adaptado a RerF Logistics con Animación Lottie
  * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 1 del boceto Excalidraw con:
- * - Logo rómbico central con "LOGO" y texto "RERF APP"
- * - Campos redondeados de Usuario y Contraseña
- * - Botón "Ingresar"
- * - Texto "¿No tienes usuario?"
- * - Botón "Registrarse"
- * Conexión completa y segura a Supabase Auth.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
-  Platform, 
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   ActivityIndicator,
-  Keyboard
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { Input } from '../../components/Input';
-import { useApp } from '../../context/AppContext';
-import { RootStackScreenProps } from '../../types/navigation';
-import { RerfColors, RerfShadows } from '../../constants/theme';
+  Image,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import LottieView from "lottie-react-native";
+import { Input } from "../../components/Input";
+import { useApp } from "../../context/AppContext";
+import { RootStackScreenProps } from "../../types/navigation";
+import { RerfColors, RerfShadows } from "../../constants/theme";
 
-export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) => {
+export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
+  navigation,
+}) => {
   const insets = useSafeAreaInsets();
   const { login } = useApp();
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
-
-  useEffect(() => {
-    const showListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-    const hideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0);
-      }
-    );
-    return () => {
-      showListener.remove();
-      hideListener.remove();
-    };
-  }, []);
-
-  const handleInputFocus = (offsetY: number) => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollTo({ y: offsetY, animated: true });
-    }, 120);
-  };
+  const [error, setError] = useState<string>("");
 
   const handleLogin = async (): Promise<void> => {
     if (!email.trim() || !password.trim()) {
-      setError('Por favor complete su usuario o correo y contraseña.');
+      setError("Por favor complete su correo y contraseña.");
       return;
     }
-    setError('');
+    setError("");
     setLoading(true);
     try {
       await login(email.trim(), password.trim());
     } catch (err: unknown) {
-      const msg: string = err instanceof Error ? err.message : 'Credenciales inválidas.';
+      const msg: string =
+        err instanceof Error ? err.message : "Credenciales inválidas.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -83,91 +52,140 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView 
-        ref={scrollViewRef}
-        contentContainerStyle={[
-          styles.scrollContent, 
-          keyboardHeight > 0 && { justifyContent: 'flex-start' },
-          { 
-            paddingTop: Math.max(insets.top + 24, 44),
-            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : Math.max(insets.bottom + 24, 40)
-          }
-        ]} 
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* LOGO Corporativo RerF (Modelo Anterior) y RERF APP */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoPill}>
-            <Text style={styles.logoText}>
-              Rer<Text style={styles.logoHighlight}>F.</Text>
+        {/* SECCIÓN SUPERIOR: Identidad RerF e Ilustración Animada */}
+        <View
+          style={[styles.headerBackground, { paddingTop: insets.top + 16 }]}
+        >
+          <View style={styles.brandRow}>
+            <Ionicons
+              name="cube"
+              size={26}
+              color={RerfColors.primaryYellow || "#FFB800"}
+            />
+            <Text style={styles.brandText}>
+              Rer<Text style={styles.brandHighlight}>F.</Text>
             </Text>
           </View>
-          <Text style={styles.appTitle}>RERF APP</Text>
+
+          {/* CONTROL DE RENDERIZADO HÍBRIDO  */}
+          <View style={styles.visualContainer}>
+            {Platform.OS === "web" ? (
+              // Esti es para web
+              <Image
+                source={require("../../../assets/delivery-guy.jpg")}
+                style={styles.deliveryImage}
+              />
+            ) : (
+              // Para telefono
+              <LottieView
+                source={require("../../../assets/delivery-animation.json")}
+                autoPlay
+                loop
+                style={styles.lottieStyle}
+              />
+            )}
+          </View>
         </View>
 
-        {/* Formulario de Entrada */}
-        <View style={styles.formContainer}>
+        {/* SECCIÓN INFERIOR */}
+        <View style={styles.sheetContainer}>
+          <Text style={styles.welcomeTitle}>Welcome Back</Text>
+
           {error ? (
             <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle-outline" size={18} color={RerfColors.errorRed} />
+              <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
 
-          <Input
-            placeholder="Usuario"
-            value={email}
-            onChangeText={(val) => {
-              setEmail(val);
-              if (error) setError('');
-            }}
-            onFocus={() => handleInputFocus(90)}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            containerStyle={styles.sketchInputContainer}
-          />
+          {/* Campos de texto estilo cápsula limpia */}
+          <View style={styles.inputWrapper}>
+            <Ionicons
+              name="mail-outline"
+              size={20}
+              color="#94A3B8"
+              style={styles.inputIcon}
+            />
+            <Input
+              placeholder="Usuario o Correo"
+              value={email}
+              onChangeText={(val) => {
+                setEmail(val);
+                if (error) setError("");
+              }}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              containerStyle={styles.cleanInputContainer}
+            />
+          </View>
 
-          <Input
-            placeholder="Contraseña"
-            value={password}
-            onChangeText={(val) => {
-              setPassword(val);
-              if (error) setError('');
-            }}
-            onFocus={() => handleInputFocus(160)}
-            secureTextEntry
-            containerStyle={styles.sketchInputContainer}
-          />
+          <View style={styles.inputWrapper}>
+            <Ionicons
+              name="lock-closed-outline"
+              size={20}
+              color="#94A3B8"
+              style={styles.inputIcon}
+            />
+            <Input
+              placeholder="Contraseña"
+              value={password}
+              onChangeText={(val) => {
+                setPassword(val);
+                if (error) setError("");
+              }}
+              secureTextEntry
+              containerStyle={styles.cleanInputContainer}
+            />
+          </View>
 
-          {/* Botón Ingresar */}
-          <TouchableOpacity 
-            style={[styles.primaryButton, loading && styles.disabledButton]}
+          {/* Opciones extras */}
+          <View style={styles.optionsRow}>
+            <TouchableOpacity>
+              <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Botón Principal con los colores oficiales de la App */}
+          <TouchableOpacity
+            style={[styles.loginButton, loading && styles.disabledButton]}
             onPress={handleLogin}
             disabled={loading}
-            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color="#0F172A" size="small" />
+              <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>Ingresar</Text>
+              <Text style={styles.loginButtonText}>Registrate</Text>
             )}
           </TouchableOpacity>
 
-          {/* Sección Registro */}
-          <View style={styles.registerSection}>
-            <Text style={styles.questionText}>¿No tienes usuario?</Text>
-            <TouchableOpacity 
-              style={styles.secondaryButton}
-              onPress={() => navigation.navigate('Register')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.secondaryButtonText}>Registrarse</Text>
+          <Text style={styles.orText}>O inicia sesión con</Text>
+
+          {/* Botones de Redes Sociales */}
+          <View style={styles.socialRow}>
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-google" size={18} color="#EA4335" />
+              <Text style={styles.socialButtonText}>Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-apple" size={18} color="#000000" />
+              <Text style={styles.socialButtonText}>Apple</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Enlace al Registro */}
+          <View style={styles.registerContainer}>
+            <Text style={styles.noAccountText}>¿No tienes cuenta? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+              <Text style={styles.signUpText}>Registrate</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -179,105 +197,166 @@ export const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigatio
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: RerfColors.background,
+    backgroundColor: "#F8FAFC",
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 36,
+  headerBackground: {
+    height: 270,
+    backgroundColor: "#FFEFE7",
+    paddingHorizontal: 28,
+    justifyContent: "space-between",
   },
-  logoPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: RerfColors.heroDark,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: RerfColors.primaryYellow,
-    marginBottom: 14,
-    ...RerfShadows.cardHover,
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
-  logoText: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#FFFFFF',
+  brandText: {
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#0F172A",
     letterSpacing: -0.5,
   },
-  logoHighlight: {
-    color: RerfColors.primaryYellow,
+  brandHighlight: {
+    color: RerfColors.primaryYellow || "#FFB800",
   },
-  appTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: RerfColors.textMain,
-    letterSpacing: 0.5,
+  visualContainer: {
+    width: "100%",
+    height: 190,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  formContainer: {
-    width: '100%',
-    maxWidth: 340,
-    alignSelf: 'center',
+  deliveryImage: {
+    width: "100%",
+    height: 180,
+    resizeMode: "contain",
   },
-  sketchInputContainer: {
-    marginBottom: 16,
+  lottieStyle: {
+    width: 210,
+    height: 210,
   },
-  primaryButton: {
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: RerfColors.primaryYellowHover,
-    backgroundColor: RerfColors.primaryYellow,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 24,
+  sheetContainer: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 32,
+    paddingHorizontal: 28,
+    paddingBottom: 40,
+    marginTop: -15,
     ...RerfShadows.card,
+  },
+  welcomeTitle: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: 24,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    height: 52,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  cleanInputContainer: {
+    flex: 1,
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    height: "100%",
+  },
+  optionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+    marginTop: 4,
+  },
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  checkboxText: {
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  forgotText: {
+    fontSize: 13,
+    color: "#E15A25",
+    fontWeight: "600",
+  },
+  loginButton: {
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "#E15A25",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
   },
   disabledButton: {
-    opacity: 0.65,
+    opacity: 0.7,
   },
-  primaryButtonText: {
+  loginButtonText: {
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '800',
-    color: RerfColors.primaryYellowText,
+    fontWeight: "700",
   },
-  registerSection: {
-    alignItems: 'center',
-    marginTop: 10,
+  orText: {
+    textAlign: "center",
+    fontSize: 13,
+    color: "#94A3B8",
+    marginBottom: 16,
   },
-  questionText: {
-    fontSize: 14,
-    color: RerfColors.textSecondary,
-    marginBottom: 12,
-    fontWeight: '500',
+  socialRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 28,
   },
-  secondaryButton: {
-    width: '100%',
-    height: 50,
-    borderRadius: 25,
+  socialButton: {
+    flex: 1,
+    flexDirection: "row",
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
     borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    backgroundColor: RerfColors.surfaceCard,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...RerfShadows.card,
+    borderColor: "#E2E8F0",
   },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: RerfColors.textMain,
+  socialButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#334155",
+  },
+  registerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noAccountText: {
+    fontSize: 14,
+    color: "#64748B",
+  },
+  signUpText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+    textDecorationLine: "underline",
   },
   errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF2F2",
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -285,8 +364,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    color: RerfColors.errorRed,
+    color: "#DC2626",
     flex: 1,
-    fontWeight: '600',
   },
 });
