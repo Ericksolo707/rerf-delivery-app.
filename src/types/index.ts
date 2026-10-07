@@ -61,6 +61,14 @@ export interface Shipment {
   vehicle_plate?: string;
   estimated_time?: string;
   driver_phone?: string;
+  current_latitude?: number;
+  current_longitude?: number;
+  destination_latitude?: number;
+  destination_longitude?: number;
+  origin_latitude?: number;
+  origin_longitude?: number;
+  speed_kmh?: number;
+  bearing?: number;
 }
 
 export interface WarehouseItem {

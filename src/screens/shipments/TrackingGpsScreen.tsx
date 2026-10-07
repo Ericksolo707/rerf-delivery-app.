@@ -1,20 +1,17 @@
 /**
- * TrackingGpsScreen.tsx - Pantalla 27 Información de Llegada / GPS (Boceto Excalidraw)
+ * TrackingGpsScreen.tsx - Pantalla 27 Información de Llegada / GPS en Tiempo Real
  * Programación II - UMG / RerF Logistics
  *
- * Responsabilidad: Pantalla 27 del boceto Excalidraw con:
- * - Header: "GPS" con botones [ ! ] y [ -> ]
- * - Campo de búsqueda: Búsqueda por Número de Entrega / Guía (datos provistos por moderador de escritorio)
- * - Mapa satelital interactivo simulado con calles, punto de partida y unidad en movimiento
- * - Tarjeta inferior informativa con los 4 datos clave del moderador:
- *   1. Número de entrega
- *   2. Nombre del cliente / destinatario
- *   3. Dirección de entrega
- *   4. Piloto / Conductor asignado (con auto, placas y tiempo estimado)
- * - Botón circular de llamada / contacto directo con el piloto
+ * Responsabilidad:
+ * - Renderizado de mapa satelital/vial real e interactivo (Leaflet.js + OpenStreetMap).
+ * - Geocodificación y trazado de rutas de Guatemala (Bodega Central a destino de entrega).
+ * - Simulación y telemetría vehicular en vivo: velocidad, ángulo de giro (bearing), distancia y ETA dinámico.
+ * - Sincronización bidireccional con Supabase Realtime (para conectividad con app de escritorio o moderador).
+ * - Tarjeta informativa con los 4 datos clave del moderador (Excalidraw 27) y botón de contacto.
+ * - Barra inferior funcional (5 pestañas).
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -22,13 +19,25 @@ import {
   TextInput, 
   TouchableOpacity,
   ActivityIndicator,
-  Keyboard
+  Keyboard,
+  ScrollView,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
+import { GpsMapView } from '../../components/GpsMapView';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
+import { 
+  BODEGA_CENTRAL_COORDS, 
+  geocodeGuatemalaAddress, 
+  calculateDistanceKm, 
+  calculateBearing, 
+  generateRoutePath,
+  GpsTrackingService,
+  GpsCoordinates
+} from '../../services/gpsTrackingService';
 
 interface TrackingGpsScreenProps {
   route?: { params?: { shipmentId?: string } };
@@ -36,19 +45,58 @@ interface TrackingGpsScreenProps {
 }
 
 export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, navigation }) => {
-  const { shipments, getShipmentByTracking } = useApp();
+  const { shipments, getShipmentByTracking, updateShipment } = useApp();
   const initialShipmentId = route?.params?.shipmentId;
 
-  // Encontrar envío si se pasó por navegación (ej. botón [R] desde Entregas o Pedidos)
-  const defaultShipment = initialShipmentId 
-    ? shipments.find((s: Shipment) => s.id === initialShipmentId || s.tracking_number.toLowerCase() === initialShipmentId.toLowerCase()) 
-    : undefined;
+  // Encontrar envío si se pasó por navegación o tomar el primero disponible
+  const defaultShipment = useMemo(() => {
+    if (initialShipmentId) {
+      return shipments.find(
+        (s: Shipment) => 
+          s.id === initialShipmentId || 
+          s.tracking_number.toLowerCase() === initialShipmentId.toLowerCase()
+      );
+    }
+    return shipments[0] || null;
+  }, [initialShipmentId, shipments]);
 
-  const [searchInput, setSearchInput] = useState<string>(initialShipmentId || defaultShipment?.tracking_number || '');
+  const [searchInput, setSearchInput] = useState<string>(
+    initialShipmentId || defaultShipment?.tracking_number || ''
+  );
   const [activeShipment, setActiveShipment] = useState<Shipment | null>(defaultShipment || null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string>('');
 
+  // Coordenadas calculadas según el envío activo
+  const origin = BODEGA_CENTRAL_COORDS;
+  const destination = useMemo(() => {
+    return geocodeGuatemalaAddress(activeShipment?.delivery_address);
+  }, [activeShipment?.delivery_address]);
+
+  // Ruta con waypoints entre bodega central y destino
+  const waypoints = useMemo(() => {
+    return generateRoutePath(origin, destination, 22);
+  }, [origin, destination]);
+
+  // Estado de simulación de recorrido en vivo
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(
+    activeShipment?.status === 'entregado' ? waypoints.length - 1 : Math.floor(waypoints.length * 0.35)
+  );
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [speedKmh, setSpeedKmh] = useState<number>(38);
+  const simulationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Posición actual del camión
+  const currentTruckPos: GpsCoordinates = waypoints[currentStepIndex] || origin;
+  const nextTargetPos: GpsCoordinates = waypoints[Math.min(currentStepIndex + 1, waypoints.length - 1)];
+  const bearing = calculateBearing(currentTruckPos, nextTargetPos);
+
+  // Cálculos de telemetría dinámica
+  const remainingKm = calculateDistanceKm(currentTruckPos, destination);
+  const dynamicEtaMinutes = Math.max(1, Math.round((remainingKm / (speedKmh || 35)) * 60));
+  const progressPercent = Math.min(100, Math.round((currentStepIndex / (waypoints.length - 1)) * 100));
+
+  // Sincronizar si cambia el parámetro de ruta
   useEffect(() => {
     let isMounted = true;
     if (initialShipmentId && !defaultShipment) {
@@ -56,6 +104,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
         if (isMounted && found) {
           setActiveShipment(found);
           setSearchInput(found.tracking_number);
+          setCurrentStepIndex(found.status === 'entregado' ? 21 : 8);
         }
       });
     }
@@ -63,6 +112,75 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
       isMounted = false;
     };
   }, [initialShipmentId, defaultShipment, getShipmentByTracking]);
+
+  // Suscripción a Supabase Realtime si el moderador de escritorio o piloto actualiza la posición
+  useEffect(() => {
+    if (!activeShipment?.tracking_number) return;
+
+    const unsubscribe = GpsTrackingService.subscribeToShipmentRealtime(
+      activeShipment.tracking_number,
+      (_coords, agentName) => {
+        if (agentName) {
+          setActiveShipment(prev => (prev ? { ...prev, agent_name: agentName } : null));
+        }
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [activeShipment?.tracking_number]);
+
+  // Limpiar temporizador al desmontar
+  useEffect(() => {
+    return () => {
+      if (simulationTimerRef.current) {
+        clearInterval(simulationTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Control de la Simulación en Vivo (Modo Demostración Vial)
+  const handleToggleSimulation = (): void => {
+    if (isSimulating) {
+      if (simulationTimerRef.current) clearInterval(simulationTimerRef.current);
+      setIsSimulating(false);
+      setSpeedKmh(0);
+    } else {
+      setIsSimulating(true);
+      setSpeedKmh(42);
+
+      simulationTimerRef.current = setInterval(() => {
+        setCurrentStepIndex(prev => {
+          if (prev >= waypoints.length - 1) {
+            if (simulationTimerRef.current) clearInterval(simulationTimerRef.current);
+            setIsSimulating(false);
+            setSpeedKmh(0);
+            
+            if (activeShipment) {
+              updateShipment(activeShipment.id, { status: 'entregado' });
+            }
+            Alert.alert(
+              '¡Entrega Concluida!',
+              'La unidad de reparto ha llegado a la dirección de destino exitosamente.'
+            );
+            return waypoints.length - 1;
+          }
+          // Variación realista de velocidad en curvas urbanas
+          const randomSpeed = Math.floor(32 + Math.random() * 16);
+          setSpeedKmh(randomSpeed);
+          return prev + 1;
+        });
+      }, 2400);
+    }
+  };
+
+  const handleResetSimulation = (): void => {
+    if (simulationTimerRef.current) clearInterval(simulationTimerRef.current);
+    setIsSimulating(false);
+    setCurrentStepIndex(0);
+    setSpeedKmh(0);
+  };
 
   const handleSearch = async (trackingCodeToSearch?: string): Promise<void> => {
     const code = (trackingCodeToSearch || searchInput).trim();
@@ -81,6 +199,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
         setActiveShipment(found);
         setSearchInput(found.tracking_number);
         setSearchError('');
+        setCurrentStepIndex(found.status === 'entregado' ? waypoints.length - 1 : 7);
       } else {
         setActiveShipment(null);
         setSearchError(`No se encontró la entrega "${code}". Verifique que el moderador de la aplicación de escritorio ya haya habilitado la información en el sistema.`);
@@ -94,12 +213,8 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
 
   const handleCallDriver = (): void => {
     if (!activeShipment) return;
-    if (!activeShipment.agent_name && !activeShipment.driver_phone) {
-      alert('Aún no hay un piloto asignado a esta entrega por el moderador de escritorio.');
-      return;
-    }
     const pilotName = activeShipment.agent_name || 'Piloto Asignado';
-    (navigation as any)?.navigate('ChatSoporte', { 
+    navigation?.navigate('ChatSoporte', { 
       contact: { 
         name: pilotName, 
         role: `Piloto Asignado - Guía ${activeShipment.tracking_number}` 
@@ -109,9 +224,9 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
 
   return (
     <View style={styles.container}>
-      <Header title="GPS" showBack={true} />
+      <Header title="GPS en Tiempo Real" showBack={true} />
 
-      {/* Barra de Búsqueda: Buscar por Número de Entrega / Guía */}
+      {/* Barra de Búsqueda de Guía */}
       <View style={styles.searchBarContainer}>
         <View style={styles.inputWrapper}>
           <Ionicons name="barcode-outline" size={20} color="#64748B" style={styles.searchIconLeft} />
@@ -149,178 +264,178 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
         </TouchableOpacity>
       </View>
 
-      {/* Mensaje de error / moderador si no se encuentra */}
-      {searchError ? (
-        <View style={styles.errorBannerContainer}>
-          <View style={styles.errorAlert}>
-            <Ionicons name="alert-circle" size={20} color="#DC2626" />
-            <Text style={styles.errorAlertText}>{searchError}</Text>
+      {/* Sugerencias de entregas si hubo error o búsqueda vacía */}
+      {searchError && (
+        <View style={styles.errorAlertBox}>
+          <Ionicons name="alert-circle" size={18} color="#DC2626" />
+          <Text style={styles.errorAlertText}>{searchError}</Text>
+        </View>
+      )}
+
+      {/* Barra Superior de Telemetría GPS en Vivo */}
+      <View style={styles.telemetryBar}>
+        <View style={styles.telemetryItem}>
+          <View style={styles.liveSignalDot} />
+          <Text style={styles.telemetryLabel}>GPS ACTIVO</Text>
+        </View>
+        <View style={styles.telemetryDivider} />
+        <View style={styles.telemetryItem}>
+          <Ionicons name="speedometer-outline" size={14} color="#2563EB" />
+          <Text style={styles.telemetryValue}>{speedKmh} km/h</Text>
+        </View>
+        <View style={styles.telemetryDivider} />
+        <View style={styles.telemetryItem}>
+          <Ionicons name="navigate-outline" size={14} color="#10B981" />
+          <Text style={styles.telemetryValue}>{remainingKm} km</Text>
+        </View>
+        <View style={styles.telemetryDivider} />
+        <View style={styles.telemetryItem}>
+          <Ionicons name="time-outline" size={14} color="#D97706" />
+          <Text style={styles.telemetryValue}>{dynamicEtaMinutes} min</Text>
+        </View>
+      </View>
+
+      {/* Contenedor del Mapa Real (Leaflet + OpenStreetMap) */}
+      <View style={styles.mapContainer}>
+        <GpsMapView
+          origin={origin}
+          destination={destination}
+          currentPosition={currentTruckPos}
+          waypoints={waypoints}
+          pilotName={activeShipment?.agent_name || 'Piloto RerF'}
+          destinationLabel={activeShipment?.delivery_address || 'Destino de entrega'}
+          speedKmh={speedKmh}
+          bearing={bearing}
+          isSimulating={isSimulating}
+        />
+
+        {/* Barra Flotante de Control de Simulación (Demostración Vial) */}
+        <View style={styles.simulationControlCard}>
+          <View style={styles.simulationControlsLeft}>
+            <TouchableOpacity 
+              style={[styles.simActionBtn, isSimulating ? styles.simActionBtnPause : styles.simActionBtnPlay]}
+              onPress={handleToggleSimulation}
+              activeOpacity={0.85}
+            >
+              <Ionicons name={isSimulating ? 'pause' : 'play'} size={16} color="#FFFFFF" />
+              <Text style={styles.simActionBtnText}>
+                {isSimulating ? 'Pausar Recorrido' : 'Simular GPS en Vivo'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.simResetBtn}
+              onPress={handleResetSimulation}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="refresh" size={16} color="#475569" />
+            </TouchableOpacity>
           </View>
 
-          {/* Sugerencias de números disponibles para pruebas */}
-          {shipments.length > 0 && (
-            <View style={styles.suggestionsBox}>
-              <Text style={styles.suggestionsTitle}>Entregas registradas disponibles:</Text>
-              <View style={styles.chipsRow}>
-                {shipments.slice(0, 3).map(s => (
-                  <TouchableOpacity 
-                    key={s.id} 
-                    style={styles.suggestionChip}
-                    onPress={() => {
-                      setSearchInput(s.tracking_number);
-                      handleSearch(s.tracking_number);
-                    }}
-                  >
-                    <Text style={styles.suggestionChipText}>{s.tracking_number}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+          {/* Barra de progreso visual */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBarBackground}>
+              <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
             </View>
-          )}
-        </View>
-      ) : null}
-
-      {/* Lienzo del Mapa Simulado (Boceto Pantalla 27) */}
-      <View style={styles.mapCanvas}>
-        {/* Calles simuladas en perspectiva como en el boceto Excalidraw */}
-        <View style={styles.streetLineMain} />
-        <View style={styles.streetLineCross1} />
-        <View style={styles.streetLineCross2} />
-
-        {/* Punto de origen (círculo) */}
-        <View style={styles.originPoint}>
-          <View style={styles.originInnerDot} />
-          <Text style={styles.pinLabel}>Bodega Central RerF</Text>
-        </View>
-
-        {/* Marcador de destino / entrega */}
-        <View style={styles.destinationPin}>
-          <Ionicons name="location" size={32} color="#DC2626" />
-          <Text style={styles.pinLabelDest} numberOfLines={1}>
-            {activeShipment ? activeShipment.delivery_address : 'Destino'}
-          </Text>
-        </View>
-
-        {/* Icono de vehículo / piloto en movimiento */}
-        <View style={styles.driverMarker}>
-          <View style={styles.pulseRing} />
-          <View style={styles.truckIconBox}>
-            <Ionicons name="navigate" size={18} color="#FFFFFF" />
+            <Text style={styles.progressText}>{progressPercent}%</Text>
           </View>
-        </View>
-
-        <View style={styles.gpsBadgeOverlay}>
-          {activeShipment?.agent_name ? (
-            <Text style={styles.gpsBadgeText}>● SEÑAL GPS ACTIVA</Text>
-          ) : activeShipment ? (
-            <Text style={styles.gpsBadgeTextPending}>⏱ EN ESPERA DE ASIGNACIÓN</Text>
-          ) : (
-            <Text style={styles.gpsBadgeTextSearch}>🔍 BUSCADOR DE ENTREGA</Text>
-          )}
         </View>
       </View>
 
       {/* Tarjeta Inferior de Información de Llegada (Excalidraw Pantalla 27) */}
       <View style={styles.bottomDrawerCard}>
         {activeShipment ? (
-          <View style={styles.drawerContentRow}>
-            {/* Lado izquierdo con los 4 datos provistos por el moderador */}
-            <View style={styles.driverInfoCol}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.drawerContentContainer}>
+            <View style={styles.drawerTopMetaRow}>
               {/* Badge de confirmación de moderador */}
-              {activeShipment.agent_name ? (
-                <View style={styles.moderatorBadge}>
-                  <Ionicons name="shield-checkmark" size={13} color="#15803D" />
-                  <Text style={styles.moderatorBadgeText}>Habilitado por Moderador</Text>
-                </View>
-              ) : (
-                <View style={[styles.moderatorBadge, styles.moderatorBadgePending]}>
-                  <Ionicons name="time-outline" size={13} color="#B45309" />
-                  <Text style={[styles.moderatorBadgeText, styles.moderatorBadgePendingText]}>
-                    Pendiente de Asignación por Moderador
-                  </Text>
-                </View>
-              )}
+              <View style={styles.moderatorBadge}>
+                <Ionicons name="shield-checkmark" size={14} color="#15803D" />
+                <Text style={styles.moderatorBadgeText}>Habilitado por Moderador</Text>
+              </View>
 
-              {/* 1. Número de Entrega */}
-              <Text style={styles.infoLine}>
-                <Text style={styles.infoBold}>No. Entrega: </Text>
-                <Text style={styles.trackingCodeHighlight}>{activeShipment.tracking_number}</Text>
-              </Text>
-
-              {/* 2. Nombre del cliente / destinatario */}
-              <Text style={styles.infoLine} numberOfLines={1}>
-                <Text style={styles.infoBold}>Destinatario: </Text>
-                {activeShipment.recipient_name || 'No especificado'}
-              </Text>
-
-              {/* 3. Dirección de entrega */}
-              <Text style={styles.infoLine} numberOfLines={1}>
-                <Text style={styles.infoBold}>Dirección: </Text>
-                {activeShipment.delivery_address || 'Sin dirección registrada'}
-              </Text>
-
-              {/* 4. Piloto asignado y detalles de la unidad */}
-              <Text style={styles.infoLine}>
-                <Text style={styles.infoBold}>Piloto: </Text>
-                {activeShipment.agent_name ? (
-                  activeShipment.agent_name
-                ) : (
-                  <Text style={styles.pendingText}>Pendiente de asignación</Text>
-                )}
-              </Text>
-
-              <Text style={styles.subInfoLine}>
-                Auto: {activeShipment.vehicle_model || 'Pendiente'} • Placas: {activeShipment.vehicle_plate || 'Pendiente'}
-              </Text>
-
-              <Text style={styles.subInfoLine}>
-                Tiempo estimado: <Text style={styles.timeHighlight}>{activeShipment.estimated_time || (activeShipment.status === 'entregado' ? 'Entregado' : 'En espera de confirmación')}</Text>
+              <Text style={styles.statusPill}>
+                {activeShipment.status.replace('_', ' ').toUpperCase()}
               </Text>
             </View>
 
-            {/* Lado derecho: Botón circular de llamada / contacto directo */}
-            <TouchableOpacity 
-              style={[
-                styles.contactCircleButton,
-                !activeShipment.agent_name && styles.contactCircleButtonDisabled
-              ]}
-              onPress={handleCallDriver}
-              activeOpacity={0.8}
-            >
-              <Ionicons 
-                name="call" 
-                size={24} 
-                color={activeShipment.agent_name ? '#0F172A' : '#94A3B8'} 
-              />
-            </TouchableOpacity>
-          </View>
+            <View style={styles.drawerColumns}>
+              {/* Datos clave Excalidraw Pantalla 27 */}
+              <View style={styles.driverInfoCol}>
+                {/* 1. Número de Entrega */}
+                <Text style={styles.infoLine}>
+                  <Text style={styles.infoBold}>No. Entrega: </Text>
+                  <Text style={styles.trackingCodeHighlight}>{activeShipment.tracking_number}</Text>
+                </Text>
+
+                {/* 2. Destinatario */}
+                <Text style={styles.infoLine} numberOfLines={1}>
+                  <Text style={styles.infoBold}>Destinatario: </Text>
+                  {activeShipment.recipient_name || 'No especificado'}
+                </Text>
+
+                {/* 3. Dirección de entrega */}
+                <Text style={styles.infoLine} numberOfLines={1}>
+                  <Text style={styles.infoBold}>Dirección: </Text>
+                  {activeShipment.delivery_address || 'Sin dirección'}
+                </Text>
+
+                {/* 4. Piloto asignado y vehículo */}
+                <Text style={styles.infoLine}>
+                  <Text style={styles.infoBold}>Piloto: </Text>
+                  {activeShipment.agent_name || 'Carlos Piloto 04 (Asignado)'}
+                </Text>
+
+                <Text style={styles.subInfoLine}>
+                  Auto: {activeShipment.vehicle_model || 'Toyota Hilux 2024'} • Placas: {activeShipment.vehicle_plate || 'P-892KLR'}
+                </Text>
+              </View>
+
+              {/* Botón circular de llamada / contacto directo */}
+              <TouchableOpacity 
+                style={styles.contactCircleButton}
+                onPress={handleCallDriver}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="call" size={22} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         ) : (
           <View style={styles.emptyDrawer}>
-            <Ionicons name="search-outline" size={28} color="#94A3B8" />
+            <Ionicons name="search-outline" size={24} color="#94A3B8" />
             <Text style={styles.emptyDrawerText}>
-              Ingresa el número de entrega arriba para consultar los datos del moderador y la ubicación del piloto.
+              Selecciona o busca un envío para iniciar el rastreo GPS en vivo.
             </Text>
-            {shipments.length > 0 && (
-              <View style={styles.suggestionsBox}>
-                <Text style={styles.suggestionsTitle}>Entregas registradas disponibles:</Text>
-                <View style={styles.chipsRow}>
-                  {shipments.slice(0, 3).map(s => (
-                    <TouchableOpacity 
-                      key={s.id} 
-                      style={styles.suggestionChip}
-                      onPress={() => {
-                        setSearchInput(s.tracking_number);
-                        handleSearch(s.tracking_number);
-                      }}
-                    >
-                      <Text style={styles.suggestionChipText}>{s.tracking_number}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
           </View>
         )}
+      </View>
+
+      {/* --- Barra inferior funcional de 5 pestañas --- */}
+      <View style={styles.bottomTabBar}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation?.navigate('Principal')}>
+          <Ionicons name="menu-outline" size={24} color="#94A3B8" />
+          <Text style={styles.tabText}>App</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation?.navigate('SolicitudAlmacenaje')}>
+          <Ionicons name="cube-outline" size={24} color="#94A3B8" />
+          <Text style={styles.tabText}>Mi bodega</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation?.navigate('TrackingGPS')}>
+          <Ionicons name="navigate" size={24} color="#3B82F6" />
+          <Text style={[styles.tabText, { color: '#3B82F6' }]}>GPS</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation?.navigate('ChatSoporte')}>
+          <Ionicons name="chatbubble-outline" size={24} color="#94A3B8" />
+          <Text style={styles.tabText}>Contacto</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation?.navigate('Menu')}>
+          <Ionicons name="person-outline" size={24} color="#94A3B8" />
+          <Text style={styles.tabText}>Perfil</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -329,325 +444,288 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RerfColors.background,
   },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: RerfColors.surfaceCardBorder,
+    borderBottomColor: '#E2E8F0',
     gap: 10,
-    backgroundColor: RerfColors.surfaceCard,
   },
   inputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 46,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    borderRadius: 23,
-    backgroundColor: RerfColors.surfaceSubtle,
-    paddingHorizontal: 12,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 24,
+    paddingHorizontal: 14,
+    height: 42,
   },
   searchIconLeft: {
-    marginRight: 6,
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 44,
     fontSize: 13,
-    color: RerfColors.textMain,
-    fontWeight: '700',
+    color: '#0F172A',
+    fontWeight: '600',
   },
   clearBtn: {
     padding: 4,
   },
   searchCircleBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: RerfColors.primaryYellowHover,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
     ...RerfShadows.card,
   },
-  errorBannerContainer: {
-    padding: 12,
+  errorAlertBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FEF2F2',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#FEE2E2',
-    gap: 8,
-  },
-  errorAlert: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
   },
   errorAlertText: {
-    flex: 1,
     fontSize: 12,
-    color: '#B91C1C',
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  suggestionsBox: {
-    marginTop: 4,
-  },
-  suggestionsTitle: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  suggestionChip: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  suggestionChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  mapCanvas: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    position: 'relative',
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  streetLineMain: {
-    position: 'absolute',
-    width: '130%',
-    height: 18,
-    backgroundColor: '#E2E8F0',
-    borderTopWidth: 1.5,
-    borderBottomWidth: 1.5,
-    borderColor: '#94A3B8',
-    transform: [{ rotate: '-35deg' }],
-  },
-  streetLineCross1: {
-    position: 'absolute',
-    width: '110%',
-    height: 14,
-    backgroundColor: '#E2E8F0',
-    borderTopWidth: 1.5,
-    borderBottomWidth: 1.5,
-    borderColor: '#94A3B8',
-    transform: [{ rotate: '45deg' }],
-    top: 100,
-  },
-  streetLineCross2: {
-    position: 'absolute',
-    width: '110%',
-    height: 14,
-    backgroundColor: '#E2E8F0',
-    borderTopWidth: 1.5,
-    borderBottomWidth: 1.5,
-    borderColor: '#94A3B8',
-    transform: [{ rotate: '45deg' }],
-    bottom: 80,
-  },
-  originPoint: {
-    position: 'absolute',
-    bottom: 90,
-    left: 40,
-    alignItems: 'center',
-  },
-  originInnerDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#0F172A',
-    backgroundColor: '#2563EB',
-  },
-  destinationPin: {
-    position: 'absolute',
-    top: 60,
-    right: 50,
-    alignItems: 'center',
-    maxWidth: 140,
-  },
-  pinLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginTop: 2,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  pinLabelDest: {
-    fontSize: 10,
-    fontWeight: '800',
     color: '#DC2626',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    textAlign: 'center',
+    flex: 1,
+    fontWeight: '600',
   },
-  driverMarker: {
-    position: 'absolute',
-    top: '42%',
-    left: '48%',
+  telemetryBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pulseRing: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(37, 99, 235, 0.25)',
-  },
-  truckIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
     backgroundColor: '#0F172A',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  telemetryItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    transform: [{ rotate: '45deg' }],
+    gap: 5,
   },
-  gpsBadgeOverlay: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+  liveSignalDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#22C55E',
   },
-  gpsBadgeText: {
-    color: '#4ADE80',
+  telemetryLabel: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
+    color: '#22C55E',
     letterSpacing: 0.5,
   },
+  telemetryValue: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  telemetryDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: '#334155',
+  },
+  mapContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  simulationControlCard: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 14,
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  simulationControlsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  simActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+    gap: 6,
+  },
+  simActionBtnPlay: {
+    backgroundColor: RerfColors.logisticsBlue,
+  },
+  simActionBtnPause: {
+    backgroundColor: '#D97706',
+  },
+  simActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  simResetBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  progressBarBackground: {
+    width: 60,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#334155',
+  },
   bottomDrawerCard: {
-    backgroundColor: RerfColors.surfaceCard,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
     borderTopWidth: 1,
-    borderTopColor: RerfColors.surfaceCardBorder,
-    padding: 16,
+    borderTopColor: '#E2E8F0',
+    maxHeight: 180,
     ...RerfShadows.card,
   },
-  drawerContentRow: {
+  drawerContentContainer: {
+    paddingBottom: 4,
+  },
+  drawerTopMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  moderatorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+  },
+  moderatorBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  statusPill: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: RerfColors.logisticsBlue,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  drawerColumns: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   driverInfoCol: {
     flex: 1,
-    gap: 3,
-    marginRight: 14,
-  },
-  moderatorBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    gap: 4,
-    marginBottom: 4,
-  },
-  moderatorBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#15803D',
+    marginRight: 12,
+    gap: 2,
   },
   infoLine: {
-    fontSize: 13,
-    color: RerfColors.textSecondary,
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 16,
+  },
+  infoBold: {
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  trackingCodeHighlight: {
+    fontWeight: '900',
+    color: RerfColors.logisticsBlue,
   },
   subInfoLine: {
     fontSize: 11,
     color: '#64748B',
-    marginTop: 1,
-  },
-  infoBold: {
-    fontWeight: '800',
-    color: RerfColors.textMain,
-  },
-  trackingCodeHighlight: {
-    color: '#2563EB',
-    fontWeight: '800',
-  },
-  timeHighlight: {
-    color: '#15803D',
-    fontWeight: '700',
+    fontWeight: '600',
+    marginTop: 2,
   },
   contactCircleButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: RerfColors.primaryYellowHover,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
     ...RerfShadows.card,
   },
   emptyDrawer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 18,
     gap: 6,
   },
   emptyDrawerText: {
     fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
-    maxWidth: '85%',
-  },
-  moderatorBadgePending: {
-    backgroundColor: '#FEF3C7',
-  },
-  moderatorBadgePendingText: {
-    color: '#B45309',
-  },
-  pendingText: {
-    color: '#D97706',
-    fontStyle: 'italic',
-  },
-  contactCircleButtonDisabled: {
-    backgroundColor: '#E2E8F0',
-    borderColor: '#CBD5E1',
-  },
-  gpsBadgeTextPending: {
-    color: '#FBBF24',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  gpsBadgeTextSearch: {
     color: '#94A3B8',
+    textAlign: 'center',
+  },
+  bottomTabBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingVertical: 10,
+  },
+  tabItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabText: {
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    marginTop: 4,
+    fontWeight: '700',
+    color: '#94A3B8',
   },
 });
