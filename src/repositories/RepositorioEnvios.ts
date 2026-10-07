@@ -8,19 +8,24 @@
  * - Manejo seguro de UUIDs para PostgreSQL/Supabase
  */
 
-import { Shipment } from '../types';
-import { MOCK_SHIPMENTS } from '../services/mockData';
-import { RepositorioBase } from './RepositorioBase';
-import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { Shipment } from "../types";
+import { MOCK_SHIPMENTS } from "../services/mockData";
+import { RepositorioBase } from "./RepositorioBase";
+import { supabase, isSupabaseConfigured } from "../services/supabaseClient";
 
 const isUuid = (str?: string): boolean => {
   if (!str) return false;
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    str,
+  );
 };
 
-export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 'id' | 'created_at'>> {
-  public readonly nombreEntidad: string = 'envios';
-  public readonly tablaLegacy: string = 'shipments';
+export class RepositorioEnvios extends RepositorioBase<
+  Shipment,
+  Omit<Shipment, "id" | "created_at">
+> {
+  public readonly nombreEntidad: string = "shipments";
+  public readonly tablaLegacy: string = "envios";
 
   // Referencia Singleton única en memoria (Sesión 6)
   private static instancia: RepositorioEnvios | null = null;
@@ -54,21 +59,24 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
       try {
         let res = await supabase
           .from(this.nombreEntidad)
-          .select('*')
-          .order('created_at', { ascending: false });
+          .select("*")
+          .order("created_at", { ascending: false });
 
-        if (res.error && res.error.message.includes('does not exist')) {
+        if (res.error && res.error.message.includes("does not exist")) {
           res = await supabase
             .from(this.tablaLegacy)
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select("*")
+            .order("created_at", { ascending: false });
         }
 
         if (!res.error && res.data && res.data.length > 0) {
           return res.data as Shipment[];
         }
       } catch (err) {
-        console.warn('[RepositorioEnvios] Error consultando Supabase, usando memoria:', err);
+        console.warn(
+          "[RepositorioEnvios] Error consultando Supabase, usando memoria:",
+          err,
+        );
       }
     }
     return [...this.envios];
@@ -84,16 +92,16 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
     if (isSupabaseConfigured) {
       try {
         const buildQuery = (table: string) => {
-          let q = supabase.from(table).select('*');
+          let q = supabase.from(table).select("*");
           if (isUuid(clean)) {
             return q.or(`id.eq.${clean},tracking_number.ilike.${clean}`);
           }
-          return q.ilike('tracking_number', clean);
+          return q.ilike("tracking_number", clean);
         };
 
         let res = await buildQuery(this.nombreEntidad).maybeSingle();
 
-        if (res.error && res.error.message.includes('does not exist')) {
+        if (res.error && res.error.message.includes("does not exist")) {
           res = await buildQuery(this.tablaLegacy).maybeSingle();
         }
 
@@ -101,13 +109,18 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
           return res.data as Shipment;
         }
       } catch (err) {
-        console.warn('[RepositorioEnvios] Fallback a memoria para obtener:', err);
+        console.warn(
+          "[RepositorioEnvios] Fallback a memoria para obtener:",
+          err,
+        );
       }
     }
 
     const cleanLower = clean.toLowerCase();
     const encontrado = this.envios.find(
-      (e) => e.id.toLowerCase() === cleanLower || e.tracking_number.toLowerCase() === cleanLower
+      (e) =>
+        e.id.toLowerCase() === cleanLower ||
+        e.tracking_number.toLowerCase() === cleanLower,
     );
     return encontrado ? { ...encontrado } : undefined;
   }
@@ -115,7 +128,9 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
   /**
    * Registra un nuevo envío en la base de datos (Sesión 7: insert)
    */
-  public async crear(datos: Omit<Shipment, 'id' | 'created_at'>): Promise<Shipment> {
+  public async crear(
+    datos: Omit<Shipment, "id" | "created_at">,
+  ): Promise<Shipment> {
     const fallbackId = `shp-${Date.now()}`;
     const fallbackCreatedAt = new Date().toISOString();
 
@@ -123,6 +138,22 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
       ...datos,
       id: fallbackId,
       created_at: fallbackCreatedAt,
+    };
+
+    // Convierte fechas estilo "14/10/2026" a "2026-10-14"
+    const normalizarFecha = (fechaStr?: string): string | null => {
+      if (!fechaStr) return null;
+
+      // Si la fecha viene en formato DD/MM/YYYY
+      if (fechaStr.includes("/")) {
+        const partes = fechaStr.split("/");
+        if (partes.length === 3) {
+          const [dia, mes, anio] = partes;
+          return `${anio}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+        }
+      }
+
+      return fechaStr; // Retorna tal cual si ya estaba en otro formato
     };
 
     if (isSupabaseConfigured) {
@@ -134,14 +165,14 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
           recipient_phone: datos.recipient_phone || null,
           delivery_address: datos.delivery_address,
           address_references: datos.address_references || null,
-          scheduled_date: datos.scheduled_date || null,
+          scheduled_date: normalizarFecha(datos.scheduled_date),
           description: datos.description || null,
-          status: datos.status || 'pendiente',
+          status: datos.status || "pendiente",
           rejection_reason: datos.rejection_reason || null,
           cancellation_reason: datos.cancellation_reason || null,
-          payment_method: datos.payment_method || 'contra_entrega',
-          payment_status: datos.payment_status || 'pendiente',
-          total_amount: datos.total_amount || 0.00,
+          payment_method: datos.payment_method || "contra_entrega",
+          payment_status: datos.payment_status || "pendiente",
+          total_amount: datos.total_amount || 0.0,
           agent_name: datos.agent_name || null,
           vehicle_model: datos.vehicle_model || null,
           vehicle_plate: datos.vehicle_plate || null,
@@ -149,9 +180,7 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
           driver_phone: datos.driver_phone || null,
         };
 
-        if (isUuid(datos.sender_id)) {
-          payload.sender_id = datos.sender_id;
-        }
+        payload.sender_id = null;
         if (isUuid(datos.warehouse_item_id)) {
           payload.warehouse_item_id = datos.warehouse_item_id;
         }
@@ -162,7 +191,11 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
           .select()
           .single();
 
-        if (res.error && (res.error.message.includes('does not exist') || res.error.message.includes('column'))) {
+        if (
+          res.error &&
+          (res.error.message.includes("does not exist") ||
+            res.error.message.includes("column"))
+        ) {
           // Fallback a tabla legacy eliminando columnas extras si no existen aún
           const legacyPayload = { ...payload };
           delete legacyPayload.vehicle_model;
@@ -182,10 +215,16 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
           this.envios = [guardado, ...this.envios];
           return guardado;
         } else if (res.error) {
-          console.warn('[RepositorioEnvios] Error insertando en Supabase:', res.error.message);
+          console.warn(
+            "[RepositorioEnvios] Error insertando en Supabase:",
+            res.error.message,
+          );
         }
       } catch (err) {
-        console.warn('[RepositorioEnvios] Error insertando en Supabase, guardando en memoria:', err);
+        console.warn(
+          "[RepositorioEnvios] Error insertando en Supabase, guardando en memoria:",
+          err,
+        );
       }
     }
 
@@ -198,7 +237,7 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
    */
   public async actualizar(
     id: string,
-    datos: Partial<Omit<Shipment, 'id'>>
+    datos: Partial<Omit<Shipment, "id">>,
   ): Promise<Shipment | undefined> {
     if (isSupabaseConfigured) {
       try {
@@ -209,7 +248,7 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
           .select()
           .maybeSingle();
 
-        if (res.error && res.error.message.includes('does not exist')) {
+        if (res.error && res.error.message.includes("does not exist")) {
           res = await supabase
             .from(this.tablaLegacy)
             .update(datos)
@@ -220,18 +259,25 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
 
         if (!res.error && res.data) {
           const guardado = res.data as Shipment;
-          const index = this.envios.findIndex((e) => e.id === id || e.tracking_number === id);
+          const index = this.envios.findIndex(
+            (e) => e.id === id || e.tracking_number === id,
+          );
           if (index !== -1) {
             this.envios[index] = guardado;
           }
           return guardado;
         }
       } catch (err) {
-        console.warn('[RepositorioEnvios] Error actualizando en Supabase:', err);
+        console.warn(
+          "[RepositorioEnvios] Error actualizando en Supabase:",
+          err,
+        );
       }
     }
 
-    const index = this.envios.findIndex((e) => e.id === id || e.tracking_number === id);
+    const index = this.envios.findIndex(
+      (e) => e.id === id || e.tracking_number === id,
+    );
     if (index === -1) {
       return undefined;
     }
@@ -247,9 +293,12 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
   /**
    * Cancela un envío registrando el motivo correspondiente
    */
-  public async cancelar(id: string, motivo: string): Promise<Shipment | undefined> {
+  public async cancelar(
+    id: string,
+    motivo: string,
+  ): Promise<Shipment | undefined> {
     return this.actualizar(id, {
-      status: 'cancelado',
+      status: "cancelado",
       cancellation_reason: motivo,
     });
   }
@@ -263,13 +312,13 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
         let { error } = await supabase
           .from(this.nombreEntidad)
           .delete()
-          .eq('id', id);
+          .eq("id", id);
 
-        if (error && error.message.includes('does not exist')) {
+        if (error && error.message.includes("does not exist")) {
           const resLegacy = await supabase
             .from(this.tablaLegacy)
             .delete()
-            .eq('id', id);
+            .eq("id", id);
           error = resLegacy.error;
         }
 
@@ -278,7 +327,7 @@ export class RepositorioEnvios extends RepositorioBase<Shipment, Omit<Shipment, 
           return true;
         }
       } catch (err) {
-        console.warn('[RepositorioEnvios] Error eliminando en Supabase:', err);
+        console.warn("[RepositorioEnvios] Error eliminando en Supabase:", err);
       }
     }
 
