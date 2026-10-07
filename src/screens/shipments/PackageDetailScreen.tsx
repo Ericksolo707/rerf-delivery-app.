@@ -31,11 +31,13 @@ import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
+import { GABRIEL_MOCK_PACKAGES } from './PackagesOverviewScreen';
 
 export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'>> = ({ route, navigation }) => {
   const { shipments, user } = useApp();
   const shipmentId: string | undefined = route.params?.shipmentId;
-  const shipment: Shipment | undefined = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId) || shipments[0];
+  const demoFallback = GABRIEL_MOCK_PACKAGES.find(p => p.id === shipmentId || p.tracking_number === shipmentId) || GABRIEL_MOCK_PACKAGES[0];
+  const shipment: Shipment = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId) || demoFallback;
 
   const firstPackage = shipment?.packages?.[0];
   const senderName = user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Carlos Gómez';
@@ -150,6 +152,34 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      {/* --- Barra inferior funcional de 5 pestañas --- */}
+      <View style={styles.bottomTabBar}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal')}>
+          <Ionicons name="menu-outline" size={24} color="#3B82F6" />
+          <Text style={[styles.tabText, { color: '#3B82F6' }]}>App</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('SolicitudAlmacenaje')}>
+          <Ionicons name="cube-outline" size={24} color="#94A3B8" />
+          <Text style={styles.tabText}>Mi bodega</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('TrackingGPS')}>
+          <Ionicons name="navigate-outline" size={24} color="#94A3B8" />
+          <Text style={styles.tabText}>GPS</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('ChatSoporte')}>
+          <Ionicons name="chatbubble-outline" size={24} color="#94A3B8" />
+          <Text style={styles.tabText}>Contacto</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Menu')}>
+          <Ionicons name="person-outline" size={24} color="#94A3B8" />
+          <Text style={styles.tabText}>Perfil</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -300,5 +330,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: RerfColors.errorRed,
+  },
+  bottomTabBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingVertical: 10,
+  },
+  tabItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabText: {
+    fontSize: 10,
+    marginTop: 4,
+    fontWeight: '700',
+    color: '#94A3B8',
   },
 });

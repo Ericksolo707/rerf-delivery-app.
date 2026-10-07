@@ -247,6 +247,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     await persistirNotificaciones([nuevaNotificacion, ...notifications]);
 
+    // Generar automáticamente la factura electrónica FEL asociada al envío
+    try {
+      const nuevaFactura: Invoice = {
+        id: `inv-${Date.now()}`,
+        shipment_id: nuevoEnvio.id,
+        invoice_number: `FEL-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        amount: nuevoEnvio.total_amount || 45.00,
+        issued_date: new Date().toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        status: 'pagado',
+        description: `Servicio de Logística y Envío - Guía ${nuevoEnvio.tracking_number} (${nuevoEnvio.description})`,
+        payment_method: nuevoEnvio.payment_method === 'contra_entrega' ? 'Contra entrega' : 'Efectivo',
+      };
+      await repositorioFacturas.crear(nuevaFactura);
+      setInvoices(prev => [nuevaFactura, ...prev]);
+    } catch (e) {
+      console.warn('Error generando factura electrónica:', e);
+    }
+
     return nuevoEnvio;
   };
 

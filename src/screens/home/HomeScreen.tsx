@@ -128,9 +128,9 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
           <Ionicons name="chevron-forward" size={18} color={RerfColors.primaryYellowText} />
         </TouchableOpacity>
 
-        {/* Cuadrícula 2x2 de Accesos Directos (Excalidraw Pantalla 3) */}
+        {/* Cuadrícula de Accesos Directos del Menú Principal */}
         <View style={styles.gridContainer}>
-          {/* Fila 1 */}
+          {/* Fila 1: Operaciones Principales */}
           <View style={styles.gridRow}>
             {/* Botón Entregas (Pantalla 7) */}
             <TouchableOpacity 
@@ -157,9 +157,48 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Fila 2 */}
+          {/* Fila 2: Cotización y Paquetería */}
           <View style={styles.gridRow}>
-            {/* Botón Usuarios */}
+            {/* Botón Cotizador de Envío (Pantalla 26) */}
+            <TouchableOpacity 
+              style={styles.gridCard}
+              onPress={() => navigation.navigate('Cotizador')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="calculator-outline" size={28} color={RerfColors.successGreen} />
+              </View>
+              <Text style={styles.gridCardText}>Cotizar Envío</Text>
+            </TouchableOpacity>
+
+            {/* Botón Listar Paquetes (Pantalla 29) */}
+            <TouchableOpacity 
+              style={styles.gridCard}
+              onPress={() => navigation.navigate('DesglosePaquetes')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: '#F3E8FF' }]}>
+                <Ionicons name="cube-outline" size={28} color="#7E22CE" />
+              </View>
+              <Text style={styles.gridCardText}>Listar Paquetes</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Fila 3: Facturación y Contactos */}
+          <View style={styles.gridRow}>
+            {/* Botón Facturas FEL (Pantalla 28) */}
+            <TouchableOpacity 
+              style={styles.gridCard}
+              onPress={() => navigation.navigate('Facturas')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: '#CCFBF1' }]}>
+                <Ionicons name="receipt-outline" size={28} color="#0D9488" />
+              </View>
+              <Text style={styles.gridCardText}>Facturas FEL</Text>
+            </TouchableOpacity>
+
+            {/* Botón Directorio de Usuarios */}
             <TouchableOpacity 
               style={styles.gridCard}
               onPress={() => navigation.navigate('Usuarios')}
@@ -169,18 +208,6 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
                 <Ionicons name="people-outline" size={28} color="#B45309" />
               </View>
               <Text style={styles.gridCardText}>Usuarios</Text>
-            </TouchableOpacity>
-
-            {/* Botón Enviar Paquete */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('GestionEnvio')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
-                <Ionicons name="paper-plane-outline" size={28} color={RerfColors.successGreen} />
-              </View>
-              <Text style={styles.gridCardText}>Enviar Paquete</Text>
             </TouchableOpacity>
           </View>
         </View>

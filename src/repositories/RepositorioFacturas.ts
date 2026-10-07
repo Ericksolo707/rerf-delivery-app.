@@ -110,4 +110,12 @@ export class RepositorioFacturas {
     const encontrada = this.facturas.find((f) => f.shipment_id === shipmentId);
     return encontrada ? { ...encontrada } : undefined;
   }
+
+  /**
+   * Registra una nueva factura electrónica FEL en el repositorio
+   */
+  public async crear(factura: Invoice): Promise<Invoice> {
+    this.facturas.unshift(factura);
+    return { ...factura };
+  }
 }
