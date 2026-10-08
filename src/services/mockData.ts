@@ -21,15 +21,15 @@ export const ADMIN_USER: UserProfile = {
 };
 
 export const ERICK_USER: UserProfile = {
-  id: 'usr-erick',
+  id: 'c60ada88-2548-4f8d-afa0-43a7f3104c72',
   first_name: 'Erick',
-  last_name: 'Jimenez',
-  email: 'esolorzano@gmail.com',
+  last_name: 'Solórzano',
+  email: 'esolorzanoj@miumg.edu.gt',
   phone: '26025370',
   address: 'Ciudad de Guatemala',
   address_references: 'Oficina Central',
-  bio: 'Usuario registrado en RerF Logistics. ID: 26025370.',
-  role: 'cliente',
+  bio: 'Administrador general registrado en RerF Logistics.',
+  role: 'admin',
   avatar_url: '',
 };
 
