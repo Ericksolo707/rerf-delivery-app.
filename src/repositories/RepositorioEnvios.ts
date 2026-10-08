@@ -140,17 +140,23 @@ export class RepositorioEnvios extends RepositorioBase<
       created_at: fallbackCreatedAt,
     };
 
-    // Convierte fechas estilo "14/10/2026" a "2026-10-14"
+    // Convierte fechas estilo "14/10/2026" o "Hoy (14/10/2026)" a "2026-10-14"
     const normalizarFecha = (fechaStr?: string): string | null => {
       if (!fechaStr) return null;
 
-      // Si la fecha viene en formato DD/MM/YYYY
-      if (fechaStr.includes("/")) {
-        const partes = fechaStr.split("/");
-        if (partes.length === 3) {
-          const [dia, mes, anio] = partes;
-          return `${anio}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
-        }
+      // Si la fecha contiene formato DD/MM/YYYY
+      const matchSlash = fechaStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (matchSlash) {
+        const dia = matchSlash[1].padStart(2, "0");
+        const mes = matchSlash[2].padStart(2, "0");
+        const anio = matchSlash[3];
+        return `${anio}-${mes}-${dia}`;
+      }
+
+      // Si ya viene en formato YYYY-MM-DD
+      const matchDash = fechaStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (matchDash) {
+        return `${matchDash[1]}-${matchDash[2].padStart(2, "0")}-${matchDash[3].padStart(2, "0")}`;
       }
 
       return fechaStr; // Retorna tal cual si ya estaba en otro formato

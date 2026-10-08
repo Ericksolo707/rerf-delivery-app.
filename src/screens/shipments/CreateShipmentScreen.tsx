@@ -33,6 +33,33 @@ import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
+import { UserProfile } from '../../types';
+
+const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+const formatDateDDMMYYYY = (date: Date): string => {
+  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const y = date.getFullYear();
+  return `${d}/${m}/${y}`;
+};
+
+const parseDateDDMMYYYY = (str?: string): Date | null => {
+  if (!str) return null;
+  const match = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (match) {
+    return new Date(parseInt(match[3], 10), parseInt(match[2], 10) - 1, parseInt(match[1], 10));
+  }
+  const matchDash = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (matchDash) {
+    return new Date(parseInt(matchDash[1], 10), parseInt(matchDash[2], 10) - 1, parseInt(matchDash[3], 10));
+  }
+  return null;
+};
 
 export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ route, navigation }) => {
   const { addShipment, updateShipment, shipments, warehouseItems, users, user } = useApp();
@@ -70,15 +97,25 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
   // Campos Excalidraw Pantalla 13
   const [recipient, setRecipient] = useState<string>(existingShipment?.recipient_name || prefilled || '');
-  const [selectedRecipientUser, setSelectedRecipientUser] = useState<any>(null);
+  const [selectedRecipientUser, setSelectedRecipientUser] = useState<UserProfile | null>(null);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || '');
   const [address, setAddress] = useState<string>(existingShipment?.delivery_address || '');
   const [reference, setReference] = useState<string>(existingShipment?.address_references || '');
-  const [selectedDate, setSelectedDate] = useState<string>(existingShipment?.scheduled_date || 'Hoy (14/10/2026)');
+
+  // Estado de Fecha dinámica y selector de calendario
+  const initialDateStr = existingShipment?.scheduled_date || formatDateDDMMYYYY(new Date());
+  const initialDateObj = parseDateDDMMYYYY(initialDateStr) || new Date();
+  const [selectedDate, setSelectedDate] = useState<string>(initialDateStr);
+  const [showDatePickerModal, setShowDatePickerModal] = useState<boolean>(false);
+  const [calendarYear, setCalendarYear] = useState<number>(initialDateObj.getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState<number>(initialDateObj.getMonth());
+  const [pickedDate, setPickedDate] = useState<Date>(initialDateObj);
+
   const [description, setDescription] = useState<string>(existingShipment?.description || '');
 
-  // Modales
+  // Modales y filtros
   const [showRecipientModal, setShowRecipientModal] = useState<boolean>(false);
+  const [recipientSearch, setRecipientSearch] = useState<string>('');
   const [showWarehouseModal, setShowWarehouseModal] = useState<boolean>(false);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [showReceivedModal, setShowReceivedModal] = useState<boolean>(false);
@@ -88,11 +125,48 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
   const selectedItem = warehouseItems.find(w => w.id === selectedWarehouseId);
 
+  // Excluir al usuario dueño de la cuenta de los destinatarios disponibles
+  const availableUsers = users.filter(u => {
+    if (!user) return true;
+    if (u.id === user.id) return false;
+    if (u.email && user.email && u.email.trim().toLowerCase() === user.email.trim().toLowerCase()) return false;
+    const uFullName = `${u.first_name} ${u.last_name}`.trim().toLowerCase();
+    const currentFullName = `${user.first_name} ${user.last_name}`.trim().toLowerCase();
+    if (uFullName && uFullName === currentFullName) return false;
+    return true;
+  });
+
+  const filteredRecipientUsers = availableUsers.filter(u => {
+    if (!recipientSearch.trim()) return true;
+    const q = recipientSearch.toLowerCase();
+    const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
+    const email = (u.email || '').toLowerCase();
+    const phone = (u.phone || '').toLowerCase();
+    return fullName.includes(q) || email.includes(q) || phone.includes(q);
+  });
+
   const handleValidateAndPromptConfirm = (): void => {
     if (!recipient.trim()) {
       setErrorBanner('Por favor ingrese el destinatario (Para).');
       return;
     }
+
+    // Regla de Negocio: No permitir auto-envío a la misma cuenta del usuario en sesión
+    if (user) {
+      const cleanRecipient = recipient.trim().toLowerCase();
+      const currentUserName = `${user.first_name} ${user.last_name}`.trim().toLowerCase();
+      const currentUserEmail = (user.email || '').trim().toLowerCase();
+
+      if (
+        cleanRecipient === currentUserName ||
+        (currentUserEmail && cleanRecipient === currentUserEmail) ||
+        (selectedRecipientUser && selectedRecipientUser.id === user.id)
+      ) {
+        setErrorBanner('No puedes realizarte un auto-envío a tu propia cuenta. Selecciona a otro usuario destinatario.');
+        return;
+      }
+    }
+
     if (!address.trim()) {
       setErrorBanner('Por favor ingrese la dirección de entrega.');
       return;
@@ -116,6 +190,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           recipient_name: recipient.trim(),
           delivery_address: address.trim(),
           address_references: reference.trim(),
+          scheduled_date: selectedDate,
           description: selectedItem ? `${selectedItem.product_type}: ${description}` : description,
           warehouse_item_id: selectedWarehouseId || undefined,
         });
@@ -125,6 +200,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           recipient_name: recipient.trim(),
           delivery_address: address.trim(),
           address_references: reference.trim(),
+          scheduled_date: selectedDate,
           description: description.trim(),
         });
         setIsSubmitting(false);
@@ -155,7 +231,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         recipient_phone: recipientPhone,
         delivery_address: address.trim(),
         address_references: finalReferences,
-        scheduled_date: '14/10/2026',
+        scheduled_date: selectedDate,
         description: selectedItem ? `${selectedItem.product_type}: ${description}` : description,
         status: 'aprobado',
         payment_status: 'pendiente',
@@ -278,15 +354,16 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           <Text style={styles.fieldLabel}>Seleccionar Fecha:</Text>
           <TouchableOpacity 
             style={styles.dateSelector}
-            onPress={() => {
-              const dates = ['Hoy (14/10/2026)', 'Mañana (15/10/2026)', 'Próximo Lunes (19/10/2026)'];
-              const nextIndex = (dates.indexOf(selectedDate) + 1) % dates.length;
-              setSelectedDate(dates[nextIndex]);
-            }}
+            onPress={() => setShowDatePickerModal(true)}
             activeOpacity={0.8}
           >
-            <Text style={styles.dateValue}>{selectedDate}</Text>
-            <Ionicons name="calendar-outline" size={20} color="#0F172A" />
+            <View style={styles.dateSelectorContent}>
+              <Ionicons name="calendar-outline" size={20} color={RerfColors.primaryYellowText} />
+              <Text style={styles.dateValue}>{selectedDate}</Text>
+            </View>
+            <View style={styles.tagButton}>
+              <Text style={styles.tagButtonText}>Elegir fecha</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -326,36 +403,84 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         </View>
       </ScrollView>
 
-      {/* Modal Seleccionar Destinatario Usuario */}
+      {/* Modal Seleccionar Destinatario Usuario (Excluye al usuario en sesión) */}
       <Modal
         visible={showRecipientModal}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowRecipientModal(false)}
+        onRequestClose={() => {
+          setShowRecipientModal(false);
+          setRecipientSearch('');
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.selectorCard}>
-            <Text style={styles.modalTitle}>Seleccionar Usuario de Contacto</Text>
-            <ScrollView style={{ maxHeight: 260 }}>
-              {users.map(u => (
-                <TouchableOpacity
-                  key={u.id}
-                  style={styles.userPickRow}
-                  onPress={() => {
-                    setSelectedRecipientUser(u);
-                    setRecipient(`${u.first_name} ${u.last_name}`.trim());
-                    if (u.address) setAddress(u.address);
-                    setShowRecipientModal(false);
-                  }}
-                >
-                  <Text style={styles.userPickName}>{u.first_name} {u.last_name}</Text>
-                  <Text style={styles.userPickEmail}>{u.email}</Text>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Seleccionar Usuario Destinatario</Text>
+              <Text style={styles.modalSubtitle}>Contactos disponibles para envío</Text>
+            </View>
+
+            {/* Buscador interno de contactos */}
+            <View style={styles.modalSearchBox}>
+              <Ionicons name="search" size={16} color="#64748B" />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Buscar por nombre o correo..."
+                placeholderTextColor="#94A3B8"
+                value={recipientSearch}
+                onChangeText={setRecipientSearch}
+              />
+              {recipientSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setRecipientSearch('')}>
+                  <Ionicons name="close-circle" size={16} color="#94A3B8" />
                 </TouchableOpacity>
-              ))}
+              )}
+            </View>
+
+            <ScrollView style={{ maxHeight: 260 }} keyboardShouldPersistTaps="handled">
+              {filteredRecipientUsers.length === 0 ? (
+                <View style={styles.emptyUsersContainer}>
+                  <Ionicons name="person-outline" size={32} color="#94A3B8" />
+                  <Text style={styles.emptyUsersText}>
+                    {availableUsers.length === 0 
+                      ? 'No hay otros usuarios registrados en el sistema.' 
+                      : 'No se encontraron destinatarios con esa búsqueda.'}
+                  </Text>
+                </View>
+              ) : (
+                filteredRecipientUsers.map(u => (
+                  <TouchableOpacity
+                    key={u.id}
+                    style={styles.userPickRow}
+                    onPress={() => {
+                      setSelectedRecipientUser(u);
+                      setRecipient(`${u.first_name} ${u.last_name}`.trim());
+                      if (u.address) setAddress(u.address);
+                      setShowRecipientModal(false);
+                      setRecipientSearch('');
+                      setErrorBanner('');
+                    }}
+                  >
+                    <View style={styles.userAvatarPlaceholder}>
+                      <Text style={styles.userAvatarInitials}>
+                        {(u.first_name?.[0] || 'U').toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.userPickName}>{u.first_name} {u.last_name}</Text>
+                      <Text style={styles.userPickEmail}>{u.email}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                  </TouchableOpacity>
+                ))
+              )}
             </ScrollView>
             <TouchableOpacity 
               style={styles.closeModalBtn}
-              onPress={() => setShowRecipientModal(false)}
+              onPress={() => {
+                setShowRecipientModal(false);
+                setRecipientSearch('');
+              }}
             >
               <Text style={styles.closeModalText}>Cerrar</Text>
             </TouchableOpacity>
@@ -463,6 +588,173 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
               activeOpacity={0.7}
             >
               <Ionicons name="checkmark" size={24} color="#16A34A" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Interactivo de Selección de Fecha / Calendario */}
+      <Modal
+        visible={showDatePickerModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDatePickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.calendarCard}>
+            {/* Header del Calendario: Mes y Año con controles */}
+            <View style={styles.calendarHeader}>
+              <TouchableOpacity 
+                style={styles.calendarNavBtn} 
+                onPress={() => {
+                  if (calendarMonth === 0) {
+                    setCalendarMonth(11);
+                    setCalendarYear(prev => prev - 1);
+                  } else {
+                    setCalendarMonth(prev => prev - 1);
+                  }
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="chevron-back" size={20} color={RerfColors.textMain} />
+              </TouchableOpacity>
+              <Text style={styles.calendarMonthText}>
+                {MONTH_NAMES[calendarMonth]} {calendarYear}
+              </Text>
+              <TouchableOpacity 
+                style={styles.calendarNavBtn} 
+                onPress={() => {
+                  if (calendarMonth === 11) {
+                    setCalendarMonth(0);
+                    setCalendarYear(prev => prev + 1);
+                  } else {
+                    setCalendarMonth(prev => prev + 1);
+                  }
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="chevron-forward" size={20} color={RerfColors.textMain} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Días de la semana */}
+            <View style={styles.calendarWeekRow}>
+              {DAY_LABELS.map(d => (
+                <Text key={d} style={styles.calendarWeekDayLabel}>{d}</Text>
+              ))}
+            </View>
+
+            {/* Grid de días del mes */}
+            <View style={styles.calendarDaysGrid}>
+              {Array.from({ length: new Date(calendarYear, calendarMonth, 1).getDay() }).map((_, i) => (
+                <View key={`empty-${i}`} style={styles.calendarDayCell} />
+              ))}
+              {Array.from({ length: new Date(calendarYear, calendarMonth + 1, 0).getDate() }, (_, i) => i + 1).map(day => {
+                const isSelected = 
+                  pickedDate.getDate() === day &&
+                  pickedDate.getMonth() === calendarMonth &&
+                  pickedDate.getFullYear() === calendarYear;
+
+                const today = new Date();
+                const isToday = 
+                  today.getDate() === day &&
+                  today.getMonth() === calendarMonth &&
+                  today.getFullYear() === calendarYear;
+
+                return (
+                  <TouchableOpacity
+                    key={`day-${day}`}
+                    style={[
+                      styles.calendarDayCell,
+                      isToday && styles.calendarTodayCell,
+                      isSelected && styles.calendarSelectedDayCell
+                    ]}
+                    onPress={() => {
+                      const chosen = new Date(calendarYear, calendarMonth, day);
+                      setPickedDate(chosen);
+                      setSelectedDate(formatDateDDMMYYYY(chosen));
+                      setShowDatePickerModal(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.calendarDayText,
+                      isToday && styles.calendarTodayText,
+                      isSelected && styles.calendarSelectedDayText
+                    ]}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Atajos Rápidos */}
+            <Text style={styles.calendarShortcutsTitle}>Atajos rápidos:</Text>
+            <View style={styles.calendarShortcutsRow}>
+              <TouchableOpacity 
+                style={styles.shortcutChip}
+                onPress={() => {
+                  const target = new Date();
+                  setCalendarYear(target.getFullYear());
+                  setCalendarMonth(target.getMonth());
+                  setPickedDate(target);
+                  setSelectedDate(formatDateDDMMYYYY(target));
+                  setShowDatePickerModal(false);
+                }}
+              >
+                <Text style={styles.shortcutChipText}>Hoy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.shortcutChip}
+                onPress={() => {
+                  const target = new Date();
+                  target.setDate(target.getDate() + 1);
+                  setCalendarYear(target.getFullYear());
+                  setCalendarMonth(target.getMonth());
+                  setPickedDate(target);
+                  setSelectedDate(formatDateDDMMYYYY(target));
+                  setShowDatePickerModal(false);
+                }}
+              >
+                <Text style={styles.shortcutChipText}>Mañana</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.shortcutChip}
+                onPress={() => {
+                  const target = new Date();
+                  target.setDate(target.getDate() + 3);
+                  setCalendarYear(target.getFullYear());
+                  setCalendarMonth(target.getMonth());
+                  setPickedDate(target);
+                  setSelectedDate(formatDateDDMMYYYY(target));
+                  setShowDatePickerModal(false);
+                }}
+              >
+                <Text style={styles.shortcutChipText}>+3 Días</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.shortcutChip}
+                onPress={() => {
+                  const target = new Date();
+                  target.setDate(target.getDate() + 7);
+                  setCalendarYear(target.getFullYear());
+                  setCalendarMonth(target.getMonth());
+                  setPickedDate(target);
+                  setSelectedDate(formatDateDDMMYYYY(target));
+                  setShowDatePickerModal(false);
+                }}
+              >
+                <Text style={styles.shortcutChipText}>+1 Sem</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Botón Cerrar */}
+            <TouchableOpacity 
+              style={styles.closeModalBtn}
+              onPress={() => setShowDatePickerModal(false)}
+            >
+              <Text style={styles.closeModalText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -719,5 +1011,171 @@ const styles = StyleSheet.create({
   greenSquareBtn: {
     borderColor: '#BBF7D0',
     backgroundColor: RerfColors.successGreenLight,
+  },
+  dateSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalHeaderRow: {
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: RerfColors.textMuted,
+    marginTop: 2,
+  },
+  modalSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: RerfColors.surfaceSubtle,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 38,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+  },
+  modalSearchInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 13,
+    color: RerfColors.textMain,
+  },
+  emptyUsersContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    gap: 8,
+  },
+  emptyUsersText: {
+    fontSize: 13,
+    color: RerfColors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  userAvatarPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: RerfColors.primaryYellowLight,
+    borderWidth: 1,
+    borderColor: RerfColors.primaryYellow,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  userAvatarInitials: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: RerfColors.primaryYellowText,
+  },
+  calendarCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: RerfColors.surfaceCard,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    padding: 18,
+    ...RerfShadows.cardHover,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    paddingHorizontal: 4,
+  },
+  calendarNavBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: RerfColors.surfaceSubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+  },
+  calendarMonthText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: RerfColors.textMain,
+  },
+  calendarWeekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: RerfColors.surfaceSubtle,
+    paddingBottom: 6,
+  },
+  calendarWeekDayLabel: {
+    width: '14.28%',
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '800',
+    color: RerfColors.textMuted,
+  },
+  calendarDaysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDayCell: {
+    width: '14.28%',
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  calendarDayText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: RerfColors.textMain,
+  },
+  calendarTodayCell: {
+    borderWidth: 1.5,
+    borderColor: RerfColors.primaryYellow,
+    borderRadius: 18,
+  },
+  calendarTodayText: {
+    fontWeight: '800',
+    color: RerfColors.primaryYellowHover,
+  },
+  calendarSelectedDayCell: {
+    backgroundColor: RerfColors.primaryYellow,
+    borderRadius: 18,
+  },
+  calendarSelectedDayText: {
+    color: RerfColors.primaryYellowText,
+    fontWeight: '800',
+  },
+  calendarShortcutsTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: RerfColors.textMuted,
+    marginTop: 12,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  calendarShortcutsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 4,
+  },
+  shortcutChip: {
+    flex: 1,
+    paddingVertical: 6,
+    backgroundColor: RerfColors.surfaceSubtle,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    alignItems: 'center',
+  },
+  shortcutChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: RerfColors.textMain,
   },
 });
