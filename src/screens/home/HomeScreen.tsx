@@ -18,7 +18,8 @@ import {
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity 
+  TouchableOpacity,
+  RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -27,7 +28,7 @@ import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({ navigation }) => {
-  const { user } = useApp();
+  const { user, refreshData, isRefreshing } = useApp();
   
   // Nombre limpio y profesional para la bienvenida (sin dominio @correo.com)
   const displayName = React.useMemo(() => {
@@ -84,6 +85,14 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshData}
+            colors={[RerfColors.primaryYellow, RerfColors.logisticsBlue]}
+            tintColor={RerfColors.logisticsBlue}
+          />
+        }
       >
         {/* Título RERF APP */}
         <View style={styles.appTitleContainer}>

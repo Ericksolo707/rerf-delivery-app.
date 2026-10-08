@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { logout } = useApp();
+  const { logout, refreshData, isRefreshing } = useApp();
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
 
   const topInset = Math.max(
@@ -111,6 +111,20 @@ export const Header: React.FC<HeaderProps> = ({
             </>
           ) : (
             <>
+              {/* Botón de Refrescar / Sincronizar datos */}
+              <TouchableOpacity 
+                style={styles.sketchButton}
+                onPress={refreshData}
+                activeOpacity={0.7}
+                disabled={isRefreshing}
+              >
+                <Ionicons 
+                  name={isRefreshing ? "sync" : "refresh-outline"} 
+                  size={18} 
+                  color={isRefreshing ? RerfColors.primaryYellowHover : iconColor} 
+                />
+              </TouchableOpacity>
+
               {/* Botón de Alerta / Notificaciones (!) */}
               <TouchableOpacity 
                 style={styles.sketchButton}

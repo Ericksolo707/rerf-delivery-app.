@@ -16,7 +16,8 @@ import {
   Text, 
   StyleSheet, 
   FlatList, 
-  TouchableOpacity 
+  TouchableOpacity,
+  RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -27,7 +28,7 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'>> = ({ navigation }) => {
-  const { notifications, markNotificationRead } = useApp();
+  const { notifications, markNotificationRead, refreshData, isRefreshing } = useApp();
   const [search, setSearch] = useState<string>('');
 
   const filtered = notifications.filter(n =>
@@ -81,6 +82,14 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshData}
+            colors={[RerfColors.primaryYellow, RerfColors.logisticsBlue]}
+            tintColor={RerfColors.logisticsBlue}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="notifications-off-outline" size={44} color="#94A3B8" />

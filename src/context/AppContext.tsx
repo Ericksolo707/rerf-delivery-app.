@@ -67,6 +67,10 @@ interface AppContextType {
   sendSupportMessage: (text: string) => void;
   aiMessages: ChatMessage[];
   sendAiMessage: (text: string) => void;
+
+  // Refresco y sincronización en tiempo real
+  refreshData: () => Promise<void>;
+  isRefreshing: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -85,66 +89,100 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(MOCK_CHAT_MESSAGES);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>(MOCK_AI_MESSAGES);
 
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
   // Cargar notificaciones persistidas y aisladas específicamente para el usuario en sesión
-  useEffect(() => {
-    async function cargarNotificacionesUsuario(): Promise<void> {
-      if (!user) {
-        setNotifications([]);
-        return;
+  const obtenerNotificacionesUsuario = async (currentUser: UserProfile): Promise<NotificationItem[]> => {
+    try {
+      const storageKey = `@rerf_notifications_${currentUser.id}`;
+      const guardadasRaw = await AsyncStorage.getItem(storageKey);
+      let lista: NotificationItem[] = [];
+      if (guardadasRaw) {
+        lista = JSON.parse(guardadasRaw);
+      } else if (currentUser.role === 'admin') {
+        // El Administrador inicia con notificaciones del sistema de prueba
+        lista = MOCK_NOTIFICATIONS;
+        await AsyncStorage.setItem(storageKey, JSON.stringify(MOCK_NOTIFICATIONS));
       }
-      try {
-        const storageKey = `@rerf_notifications_${user.id}`;
-        const guardadasRaw = await AsyncStorage.getItem(storageKey);
-        let lista: NotificationItem[] = [];
-        if (guardadasRaw) {
-          lista = JSON.parse(guardadasRaw);
-        } else if (user.role === 'admin') {
-          // El Administrador inicia con notificaciones del sistema de prueba
-          lista = MOCK_NOTIFICATIONS;
-          await AsyncStorage.setItem(storageKey, JSON.stringify(MOCK_NOTIFICATIONS));
-        }
 
-        // Si Supabase está disponible y el usuario tiene ID, cargar alertas remotas
-        if (isSupabaseConfigured && user.id && user.id.includes('-')) {
-          try {
-            const { data: remNotifs } = await supabase
-              .from('notificaciones')
-              .select('*')
-              .eq('user_id', user.id)
-              .order('created_at', { ascending: false });
+      // Si Supabase está disponible y el usuario tiene ID, cargar alertas remotas
+      if (isSupabaseConfigured && currentUser.id && currentUser.id.includes('-')) {
+        try {
+          const { data: remNotifs } = await supabase
+            .from('notificaciones')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
 
-            if (remNotifs && remNotifs.length > 0) {
-              const mapped: NotificationItem[] = remNotifs.map(n => ({
-                id: n.id,
-                title: n.title,
-                message: n.message,
-                type: (n.type as any) || 'info',
-                date: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                is_read: Boolean(n.is_read),
-              }));
-              const existingIds = new Set(lista.map(l => l.id));
-              const combined = [...lista];
-              for (const m of mapped) {
-                if (!existingIds.has(m.id)) {
-                  combined.push(m);
-                }
+          if (remNotifs && remNotifs.length > 0) {
+            const mapped: NotificationItem[] = remNotifs.map(n => ({
+              id: n.id,
+              title: n.title,
+              message: n.message,
+              type: (n.type as any) || 'info',
+              date: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              is_read: Boolean(n.is_read),
+            }));
+            const existingIds = new Set(lista.map(l => l.id));
+            const combined = [...lista];
+            for (const m of mapped) {
+              if (!existingIds.has(m.id)) {
+                combined.push(m);
               }
-              lista = combined;
             }
-          } catch (sbNotifErr) {
-            console.warn('[AppContext] Error consultando notificaciones en Supabase:', sbNotifErr);
+            lista = combined;
           }
+        } catch (sbNotifErr) {
+          console.warn('[AppContext] Error consultando notificaciones en Supabase:', sbNotifErr);
         }
-
-        setNotifications(lista);
-      } catch (err) {
-        console.warn('Error cargando notificaciones del usuario:', err);
-        setNotifications([]);
       }
+
+      return lista;
+    } catch (err) {
+      console.warn('Error cargando notificaciones del usuario:', err);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      return;
     }
 
-    cargarNotificacionesUsuario();
+    let isCurrent = true;
+    void obtenerNotificacionesUsuario(user).then(lista => {
+      if (isCurrent) {
+        setNotifications(lista);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
   }, [user]);
+
+  // Función pública de refresco para pull-to-refresh y botón manual
+  const refreshData = async (): Promise<void> => {
+    setIsRefreshing(true);
+    try {
+      const listaEnvios = await repositorioEnvios.listar();
+      setAllShipments(listaEnvios);
+      const listaBodega = await repositorioBodega.listar();
+      setWarehouseItems(listaBodega);
+      const listaFacturas = await repositorioFacturas.listar();
+      setInvoices(listaFacturas);
+      const actualizados = await repositorioUsuarios.listarDirectorio();
+      setUsers(actualizados);
+      if (user) {
+        const userNotifs = await obtenerNotificacionesUsuario(user);
+        setNotifications(userNotifs);
+      }
+    } catch (err) {
+      console.warn('[AppContext] Error al refrescar datos:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Guardar notificaciones del usuario en AsyncStorage
   const persistirNotificaciones = async (lista: NotificationItem[]): Promise<void> => {
@@ -548,6 +586,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sendSupportMessage,
         aiMessages,
         sendAiMessage,
+        refreshData,
+        isRefreshing,
       }}
     >
       {children}

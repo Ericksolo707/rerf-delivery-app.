@@ -17,7 +17,8 @@ import {
   Text, 
   StyleSheet, 
   FlatList, 
-  TouchableOpacity 
+  TouchableOpacity,
+  RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -27,7 +28,7 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const RecentMovementsScreen: React.FC<RootStackScreenProps<'MovimientosRecientes'>> = ({ navigation }) => {
-  const { shipments, user, users } = useApp();
+  const { shipments, user, users, refreshData, isRefreshing } = useApp();
 
   const renderMovement = ({ item }: { item: Shipment }) => {
     const isSender = item.sender_id === user?.id;
@@ -89,6 +90,14 @@ export const RecentMovementsScreen: React.FC<RootStackScreenProps<'MovimientosRe
         renderItem={renderMovement}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshData}
+            colors={[RerfColors.primaryYellow, RerfColors.logisticsBlue]}
+            tintColor={RerfColors.logisticsBlue}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="swap-horizontal-outline" size={44} color="#94A3B8" />
