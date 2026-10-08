@@ -255,18 +255,20 @@ export class RepositorioEnvios extends RepositorioBase<
   ): Promise<Shipment | undefined> {
     if (isSupabaseConfigured) {
       try {
-        let res = await supabase
-          .from(this.nombreEntidad)
-          .update(datos)
-          .or(`id.eq.${id},tracking_number.eq.${id}`)
+        const buildUpdateQuery = (table: string) => {
+          let q = supabase.from(table).update(datos);
+          if (isUuid(id)) {
+            return q.eq("id", id);
+          }
+          return q.eq("tracking_number", id);
+        };
+
+        let res = await buildUpdateQuery(this.nombreEntidad)
           .select()
           .maybeSingle();
 
         if (res.error && res.error.message.includes("does not exist")) {
-          res = await supabase
-            .from(this.tablaLegacy)
-            .update(datos)
-            .or(`id.eq.${id},tracking_number.eq.${id}`)
+          res = await buildUpdateQuery(this.tablaLegacy)
             .select()
             .maybeSingle();
         }
@@ -274,12 +276,17 @@ export class RepositorioEnvios extends RepositorioBase<
         if (!res.error && res.data) {
           const guardado = res.data as Shipment;
           const index = this.envios.findIndex(
-            (e) => e.id === id || e.tracking_number === id,
+            (e) => e.id === guardado.id || e.tracking_number === guardado.tracking_number,
           );
           if (index !== -1) {
             this.envios[index] = guardado;
           }
           return guardado;
+        } else if (res.error) {
+          console.warn(
+            "[RepositorioEnvios] Error actualizando en Supabase:",
+            res.error.message,
+          );
         }
       } catch (err) {
         console.warn(
@@ -292,16 +299,11 @@ export class RepositorioEnvios extends RepositorioBase<
     const index = this.envios.findIndex(
       (e) => e.id === id || e.tracking_number === id,
     );
-    if (index === -1) {
-      return undefined;
+    if (index !== -1) {
+      this.envios[index] = { ...this.envios[index], ...datos };
+      return this.envios[index];
     }
-
-    this.envios[index] = {
-      ...this.envios[index],
-      ...datos,
-    };
-
-    return { ...this.envios[index] };
+    return undefined;
   }
 
   /**

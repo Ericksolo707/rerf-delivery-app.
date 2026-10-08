@@ -433,7 +433,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const cancelShipment = async (shipmentId: string, reason: string): Promise<void> => {
-    await repositorioEnvios.cancelar(shipmentId, reason);
+    const res = await repositorioEnvios.cancelar(shipmentId, reason);
+
+    // Identificar el envío cancelado
+    const targetShipment = allShipments.find(s => s.id === shipmentId || s.tracking_number === shipmentId) || res;
+    const trackingCode = targetShipment?.tracking_number || shipmentId;
+
     setAllShipments(prev =>
       prev.map(s =>
         s.id === shipmentId || s.tracking_number === shipmentId
@@ -441,6 +446,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : s
       )
     );
+
+    // 1. Notificación para el usuario que realizó la cancelación
+    const notifUser: NotificationItem = {
+      id: `notif-cancel-${Date.now()}`,
+      title: 'Envío Cancelado',
+      message: `Has cancelado el envío con guía ${trackingCode}. Motivo: ${reason}`,
+      type: 'alerta',
+      date: 'Hace un momento',
+      is_read: false,
+    };
+    await persistirNotificaciones([notifUser, ...notifications]);
+
+    // 2. Si hay otro usuario involucrado (destinatario o remitente), generarle su alerta
+    if (targetShipment) {
+      try {
+        const otherUserId = targetShipment.sender_id === user?.id
+          ? (users.find(u => {
+              const uFull = `${u.first_name} ${u.last_name}`.trim().toLowerCase();
+              return uFull === (targetShipment.recipient_name || '').trim().toLowerCase() ||
+                Boolean(targetShipment.address_references && targetShipment.address_references.includes(u.id));
+            })?.id)
+          : targetShipment.sender_id;
+
+        if (otherUserId && otherUserId !== user?.id) {
+          const notifOther: NotificationItem = {
+            id: `notif-cancel-other-${Date.now()}`,
+            title: 'Envío Cancelado',
+            message: `El envío con guía ${trackingCode} (${targetShipment.description || 'Paquete'}) ha sido cancelado. Motivo: ${reason}`,
+            type: 'alerta',
+            date: 'Hace un momento',
+            is_read: false,
+          };
+
+          const destKey = `@rerf_notifications_${otherUserId}`;
+          const prevRaw = await AsyncStorage.getItem(destKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(destKey, JSON.stringify([notifOther, ...prevList]));
+
+          if (isSupabaseConfigured && otherUserId.includes('-')) {
+            try {
+              await supabase.from('notificaciones').insert({
+                user_id: otherUserId,
+                title: notifOther.title,
+                message: notifOther.message,
+                type: 'alerta',
+                is_read: false,
+              });
+            } catch (errNotifRemote) {
+              console.warn('[AppContext] Error guardando notificación remota de cancelación:', errNotifRemote);
+            }
+          }
+        }
+      } catch (eOtherNotif) {
+        console.warn('Error notificando cancelación:', eOtherNotif);
+      }
+    }
   };
 
   const updateShipment = async (shipmentId: string, updates: Partial<Shipment>): Promise<void> => {

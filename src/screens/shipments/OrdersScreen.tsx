@@ -35,6 +35,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
 
   const activeOrders = myOrders.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado');
   const pendingOrders = myOrders.filter(s => s.status === 'pendiente');
+  const cancelledOrders = myOrders.filter(s => s.status === 'cancelado');
 
   // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
@@ -166,7 +167,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
         {/* Botón [ X ]: Cancelar pedido */}
         <TouchableOpacity 
           style={[styles.squareActionButton, styles.cancelSquareButton]}
-          onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: item.id })}
+          onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: item.tracking_number || item.id })}
           activeOpacity={0.7}
         >
           <Text style={[styles.actionLetter, styles.cancelLetter]}>X</Text>
@@ -175,6 +176,64 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
     </View>
   );
 };
+
+  const renderCancelledCard = (item: Shipment) => {
+    const isSender = item.sender_id === user?.id;
+    const senderUser = users.find(u => u.id === item.sender_id);
+    const senderLabel = senderUser 
+      ? `${senderUser.first_name} ${senderUser.last_name}`.trim() 
+      : (isSender ? `${user?.first_name || 'Tú'}` : 'Remitente');
+    const displayLabel = isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`;
+
+    return (
+      <View key={item.id} style={[styles.card, { borderColor: '#FECACA', backgroundColor: '#FEF2F2' }]}>
+        <View style={styles.infoCol}>
+          <View style={styles.headerMetaRow}>
+            <Text style={styles.senderMetaText} numberOfLines={1}>
+              {displayLabel}
+            </Text>
+            <Text style={styles.idMetaText}>
+              Id pedido: {item.tracking_number}
+            </Text>
+          </View>
+
+          <View style={styles.productBlock}>
+            <Text style={styles.fieldLabel}>Nombre producto:</Text>
+            <Text style={styles.productNameText} numberOfLines={2}>
+              {item.description || 'Pedido cancelado'}
+            </Text>
+          </View>
+
+          {item.cancellation_reason ? (
+            <View style={{ marginTop: 2, marginBottom: 4 }}>
+              <Text style={[styles.fieldLabel, { color: RerfColors.errorRed }]}>
+                Motivo: <Text style={{ fontWeight: '600', color: '#7F1D1D' }}>{item.cancellation_reason}</Text>
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.statusRow}>
+            <Text style={styles.fieldLabel}>Estado: </Text>
+            <View style={[styles.statusBadge, { backgroundColor: '#FEE2E2' }]}>
+              <Text style={[styles.statusBadgeText, { color: '#DC2626' }]}>
+                Cancelado
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.actionsCol}>
+          <TouchableOpacity 
+            style={[styles.squareActionButton, { borderColor: '#FECACA' }]}
+            onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.actionLetter, { color: '#DC2626' }]}>R</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -240,6 +299,26 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
             pendingOrders.map(renderPendingCard)
           )}
         </View>
+
+        {/* SECCIÓN 3: Cancelados */}
+        {cancelledOrders.length > 0 && (
+          <View style={{ marginTop: 24 }}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.pendingTitleGroup}>
+                <Text style={[styles.sectionTitle, { color: RerfColors.errorRed }]}>Cancelados</Text>
+                <View style={[styles.statusBadge, { backgroundColor: '#FEE2E2', marginLeft: 8 }]}>
+                  <Text style={[styles.statusBadgeText, { color: '#DC2626' }]}>
+                    {cancelledOrders.length}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.cardsList}>
+              {cancelledOrders.map(renderCancelledCard)}
+            </View>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
