@@ -26,7 +26,38 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ navigation }) => {
-  const { shipments, refreshData, isRefreshing } = useApp();
+  const { shipments, user, users, refreshData, isRefreshing } = useApp();
+
+  // Para un usuario cliente, Entregas representa los paquetes dirigidos hacia él (donde es destinatario)
+  // Para el Administrador o Piloto, representa todas las entregas operativas del sistema
+  const deliveries = React.useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'admin' || user.role === 'piloto') {
+      return shipments;
+    }
+
+    const userFullName = `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase();
+    const userFirstName = (user.first_name || '').trim().toLowerCase();
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const userPhone = (user.phone || '').trim();
+
+    return shipments.filter(s => {
+      // 1. Destinatario por UID en referencias
+      if (s.address_references && s.address_references.includes(user.id)) return true;
+      // 2. Destinatario por nombre
+      const recipient = (s.recipient_name || '').trim().toLowerCase();
+      if (recipient) {
+        if (userFullName && (recipient === userFullName || recipient.includes(userFullName) || userFullName.includes(recipient))) return true;
+        if (userFirstName && userFirstName.length > 2 && recipient.includes(userFirstName)) return true;
+      }
+      // 3. Destinatario por correo
+      if (userEmail && (recipient.includes(userEmail) || (s.address_references || '').toLowerCase().includes(userEmail))) return true;
+      // 4. Destinatario por teléfono
+      if (userPhone && s.recipient_phone && s.recipient_phone === userPhone) return true;
+
+      return false;
+    });
+  }, [shipments, user]);
 
   // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
@@ -49,6 +80,12 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
 
   const renderDelivery = ({ item }: { item: Shipment; index: number }) => {
     const statusInfo = getStatusDisplay(item.status);
+    const senderUser = users.find(u => u.id === item.sender_id);
+    const senderName = senderUser 
+      ? `${senderUser.first_name} ${senderUser.last_name}`.trim() 
+      : (item.sender_id ? 'Remitente' : 'RerF Logistics');
+
+    const isRecipientView = user?.role !== 'admin' && user?.role !== 'piloto';
 
     return (
       <View style={styles.card}>
@@ -56,7 +93,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
         <View style={styles.infoCol}>
           <View style={styles.headerMetaRow}>
             <Text style={styles.recipientMetaText} numberOfLines={1}>
-              Para: {item.recipient_name || 'usuario2'}
+              {isRecipientView ? `De: ${senderName}` : `Para: ${item.recipient_name || 'Destinatario'}`}
             </Text>
             <Text style={styles.idMetaText}>
               Id entrega: {item.tracking_number}
@@ -109,7 +146,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
       <Header title="Entregas" showBack={true} />
 
       <FlatList
-        data={shipments}
+        data={deliveries}
         keyExtractor={item => item.id}
         renderItem={renderDelivery}
         contentContainerStyle={styles.listContent}
@@ -124,18 +161,11 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="bicycle-outline" size={48} color="#94A3B8" />
-            <Text style={styles.emptyTitle}>No tienes entregas registradas</Text>
+            <Ionicons name="cube-outline" size={54} color="#94A3B8" />
+            <Text style={styles.emptyTitle}>No tienes entregas en camino</Text>
             <Text style={styles.emptySub}>
-              Crea un nuevo paquete o pedido para visualizar su entrega aquí.
+              Cuando otro usuario te envíe un paquete a tu nombre o dirección, aparecerá aquí automáticamente para que puedas seguir al repartidor en el mapa GPS en tiempo real.
             </Text>
-            <TouchableOpacity 
-              style={styles.createBtn}
-              onPress={() => navigation.navigate('RealizarEnvio')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.createBtnText}>Crear Nueva Entrega</Text>
-            </TouchableOpacity>
           </View>
         }
       />
