@@ -24,10 +24,16 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ navigation }) => {
-  const { shipments } = useApp();
+  const { shipments, user, users } = useApp();
 
-  const activeOrders = shipments.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado');
-  const pendingOrders = shipments.filter(s => s.status === 'pendiente');
+  // En Pedidos mostramos los envíos realizados/solicitados por el usuario o donde él es remitente.
+  const myOrders = React.useMemo(() => {
+    const sent = shipments.filter(s => s.sender_id === user?.id);
+    return sent.length > 0 ? sent : shipments;
+  }, [shipments, user]);
+
+  const activeOrders = myOrders.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado');
+  const pendingOrders = myOrders.filter(s => s.status === 'pendiente');
 
   // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
@@ -50,6 +56,12 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
 
   const renderActiveCard = (item: Shipment, index: number) => {
     const statusInfo = getStatusDisplay(item.status);
+    const isSender = item.sender_id === user?.id;
+    const senderUser = users.find(u => u.id === item.sender_id);
+    const senderLabel = senderUser 
+      ? `${senderUser.first_name} ${senderUser.last_name}`.trim() 
+      : (isSender ? `${user?.first_name || 'Tú'}` : 'Remitente');
+    const displayLabel = isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`;
 
     return (
       <View key={item.id} style={styles.card}>
@@ -57,7 +69,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
         <View style={styles.infoCol}>
           <View style={styles.headerMetaRow}>
             <Text style={styles.senderMetaText} numberOfLines={1}>
-              De: {item.sender_id ? `usuario${(index % 5) + 1}` : 'usuario2'}
+              {displayLabel}
             </Text>
             <Text style={styles.idMetaText}>
               Id pedido: {item.tracking_number}
@@ -103,18 +115,26 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
     );
   };
 
-  const renderPendingCard = (item: Shipment, index: number) => (
-    <View key={item.id} style={styles.card}>
-      {/* Lado izquierdo */}
-      <View style={styles.infoCol}>
-        <View style={styles.headerMetaRow}>
-          <Text style={styles.senderMetaText} numberOfLines={1}>
-            De: {item.sender_id ? `usuario${(index % 5) + 1}` : 'usuario2'}
-          </Text>
-          <Text style={styles.idMetaText}>
-            Id pedido: {item.tracking_number}
-          </Text>
-        </View>
+  const renderPendingCard = (item: Shipment, index: number) => {
+    const isSender = item.sender_id === user?.id;
+    const senderUser = users.find(u => u.id === item.sender_id);
+    const senderLabel = senderUser 
+      ? `${senderUser.first_name} ${senderUser.last_name}`.trim() 
+      : (isSender ? `${user?.first_name || 'Tú'}` : 'Remitente');
+    const displayLabel = isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`;
+
+    return (
+      <View key={item.id} style={styles.card}>
+        {/* Lado izquierdo */}
+        <View style={styles.infoCol}>
+          <View style={styles.headerMetaRow}>
+            <Text style={styles.senderMetaText} numberOfLines={1}>
+              {displayLabel}
+            </Text>
+            <Text style={styles.idMetaText}>
+              Id pedido: {item.tracking_number}
+            </Text>
+          </View>
 
         <View style={styles.productBlock}>
           <Text style={styles.fieldLabel}>Nombre producto:</Text>
@@ -153,6 +173,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
       </View>
     </View>
   );
+};
 
   return (
     <View style={styles.container}>

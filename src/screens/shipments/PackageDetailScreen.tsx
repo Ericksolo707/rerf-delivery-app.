@@ -34,14 +34,18 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 import { GABRIEL_MOCK_PACKAGES } from './PackagesOverviewScreen';
 
 export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'>> = ({ route, navigation }) => {
-  const { shipments, user } = useApp();
+  const { shipments, user, users } = useApp();
   const shipmentId: string | undefined = route.params?.shipmentId;
   const demoFallback = GABRIEL_MOCK_PACKAGES.find(p => p.id === shipmentId || p.tracking_number === shipmentId) || GABRIEL_MOCK_PACKAGES[0];
   const shipment: Shipment = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId) || demoFallback;
 
   const firstPackage = shipment?.packages?.[0];
-  const senderName = user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Carlos Gómez';
-  const recipientName = shipment?.recipient_name || 'María Fernández';
+  const isSender = shipment?.sender_id === user?.id;
+  const senderUser = users.find(u => u.id === shipment?.sender_id);
+  const senderName = senderUser 
+    ? `${senderUser.first_name} ${senderUser.last_name}`.trim()
+    : (isSender ? `${user?.first_name || ''} ${user?.last_name || ''}`.trim() : 'Remitente RerF');
+  const recipientName = shipment?.recipient_name || 'Destinatario';
   const isDelivery = shipment?.status === 'entregado';
 
   return (

@@ -27,17 +27,31 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const RecentMovementsScreen: React.FC<RootStackScreenProps<'MovimientosRecientes'>> = ({ navigation }) => {
-  const { shipments } = useApp();
+  const { shipments, user, users } = useApp();
 
   const renderMovement = ({ item }: { item: Shipment }) => {
+    const isSender = item.sender_id === user?.id;
     const isDelivery = item.status === 'entregado';
-    const movementType = isDelivery ? 'Entrega' : 'Pedido';
+    const movementType = isSender ? 'Pedido / Envío' : 'Entrega';
+
+    const senderUser = users.find(u => u.id === item.sender_id);
+    const senderName = senderUser 
+      ? `${senderUser.first_name} ${senderUser.last_name}`.trim()
+      : (isSender ? `${user?.first_name || 'Tú'}` : 'Remitente RerF');
+
+    const userLabel = isSender 
+      ? `Para: ${item.recipient_name || 'Destinatario'}` 
+      : `De: ${senderName}`;
+
+    const fechaFormateada = item.created_at
+      ? (item.created_at.includes('T') ? new Date(item.created_at).toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : item.created_at)
+      : 'Hoy';
 
     return (
       <View style={styles.cardWrapper}>
         {/* Cabecera del movimiento: Fecha Tipo: Pedido/Entrega */}
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.headerDateText}>{item.created_at || '14/10/2026'}</Text>
+          <Text style={styles.headerDateText}>{fechaFormateada}</Text>
           <Text style={styles.headerTypeText}>Tipo: {movementType}</Text>
         </View>
 
@@ -48,7 +62,7 @@ export const RecentMovementsScreen: React.FC<RootStackScreenProps<'MovimientosRe
           activeOpacity={0.8}
         >
           <View style={styles.innerTopRow}>
-            <Text style={styles.userText}>Usuario: {item.recipient_name}</Text>
+            <Text style={styles.userText}>{userLabel}</Text>
             <View style={[styles.statusBadge, { backgroundColor: isDelivery ? '#DCFCE7' : '#FEF3C7' }]}>
               <Text style={[styles.statusBadgeText, { color: isDelivery ? '#15803D' : '#B45309' }]}>
                 {item.status.toUpperCase()}

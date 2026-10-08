@@ -30,6 +30,7 @@ import {
 } from '../services/mockData';
 
 import { AiLogisticsService } from '../services/aiLogisticsService';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
 interface AppContextType {
   // Autenticación y Perfil
@@ -94,16 +95,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const storageKey = `@rerf_notifications_${user.id}`;
         const guardadasRaw = await AsyncStorage.getItem(storageKey);
+        let lista: NotificationItem[] = [];
         if (guardadasRaw) {
-          setNotifications(JSON.parse(guardadasRaw));
+          lista = JSON.parse(guardadasRaw);
         } else if (user.role === 'admin') {
           // El Administrador inicia con notificaciones del sistema de prueba
-          setNotifications(MOCK_NOTIFICATIONS);
+          lista = MOCK_NOTIFICATIONS;
           await AsyncStorage.setItem(storageKey, JSON.stringify(MOCK_NOTIFICATIONS));
-        } else {
-          // Nuevo usuario registrado: Bandeja de notificaciones 100% limpia
-          setNotifications([]);
         }
+
+        // Si Supabase está disponible y el usuario tiene ID, cargar alertas remotas
+        if (isSupabaseConfigured && user.id && user.id.includes('-')) {
+          try {
+            const { data: remNotifs } = await supabase
+              .from('notificaciones')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false });
+
+            if (remNotifs && remNotifs.length > 0) {
+              const mapped: NotificationItem[] = remNotifs.map(n => ({
+                id: n.id,
+                title: n.title,
+                message: n.message,
+                type: (n.type as any) || 'info',
+                date: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                is_read: Boolean(n.is_read),
+              }));
+              const existingIds = new Set(lista.map(l => l.id));
+              const combined = [...lista];
+              for (const m of mapped) {
+                if (!existingIds.has(m.id)) {
+                  combined.push(m);
+                }
+              }
+              lista = combined;
+            }
+          } catch (sbNotifErr) {
+            console.warn('[AppContext] Error consultando notificaciones en Supabase:', sbNotifErr);
+          }
+        }
+
+        setNotifications(lista);
       } catch (err) {
         console.warn('Error cargando notificaciones del usuario:', err);
         setNotifications([]);
@@ -125,11 +158,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Filtrado de envíos: cada usuario solo ve sus propios movimientos. El Administrador ve todos.
+  // Filtrado de envíos: cada usuario ve los movimientos donde participa (como Remitente o Receptor).
+  // El Administrador ve todos los envíos del sistema.
   const userShipments = React.useMemo(() => {
     if (!user) return [];
     if (user.role === 'admin') return allShipments;
-    return allShipments.filter(s => s.sender_id === user.id);
+
+    const userFullName = `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase();
+    const userFirstName = (user.first_name || '').trim().toLowerCase();
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const userPhone = (user.phone || '').trim();
+
+    return allShipments.filter(s => {
+      // 1. Es el remitente directo
+      if (s.sender_id && s.sender_id === user.id) return true;
+
+      // 2. Es el destinatario por UID en referencias
+      if (s.address_references && s.address_references.includes(user.id)) return true;
+
+      // 3. Es el destinatario por nombre completo o primer nombre
+      const recipient = (s.recipient_name || '').trim().toLowerCase();
+      if (recipient) {
+        if (userFullName && (recipient === userFullName || recipient.includes(userFullName) || userFullName.includes(recipient))) {
+          return true;
+        }
+        if (userFirstName && userFirstName.length > 2 && recipient.includes(userFirstName)) {
+          return true;
+        }
+      }
+
+      // 4. Es el destinatario por correo
+      if (userEmail && (recipient.includes(userEmail) || (s.address_references || '').toLowerCase().includes(userEmail))) {
+        return true;
+      }
+
+      // 5. Es el destinatario por teléfono
+      if (userPhone && s.recipient_phone && s.recipient_phone === userPhone) {
+        return true;
+      }
+
+      return false;
+    });
   }, [user, allShipments]);
 
   // Filtrado de bodega: cada usuario solo ve sus propios artículos en bodega. El Administrador ve todos.
@@ -181,6 +250,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(usuarioValido);
     setIsAuthenticated(true);
     try {
+      const listaEnvios = await repositorioEnvios.listar();
+      setAllShipments(listaEnvios);
+      const listaBodega = await repositorioBodega.listar();
+      setWarehouseItems(listaBodega);
+      const listaFacturas = await repositorioFacturas.listar();
+      setInvoices(listaFacturas);
       const actualizados = await repositorioUsuarios.listarDirectorio();
       setUsers(actualizados);
     } catch {}
@@ -207,6 +282,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(nuevoUsuario);
     setIsAuthenticated(true);
     try {
+      const listaEnvios = await repositorioEnvios.listar();
+      setAllShipments(listaEnvios);
+      const listaBodega = await repositorioBodega.listar();
+      setWarehouseItems(listaBodega);
       const actualizados = await repositorioUsuarios.listarDirectorio();
       setUsers(actualizados);
     } catch {}
@@ -236,7 +315,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nuevoEnvio = await repositorioEnvios.crear(dataWithUser);
     setAllShipments(prev => [nuevoEnvio, ...prev]);
     
-    // Generar notificación de seguimiento
+    // 1. Notificación para el Remitente (usuario actual)
     const nuevaNotificacion: NotificationItem = {
       id: `notif-${Date.now()}`,
       title: 'Nuevo Envío Registrado',
@@ -246,6 +325,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       is_read: false,
     };
     await persistirNotificaciones([nuevaNotificacion, ...notifications]);
+
+    // 2. Notificación para el Destinatario (si es otro usuario del sistema)
+    try {
+      const recipientLower = (nuevoEnvio.recipient_name || '').toLowerCase().trim();
+      const destinatarioUsuario = users.find(u => {
+        const uFull = `${u.first_name} ${u.last_name}`.toLowerCase().trim();
+        return u.id !== user?.id && (
+          uFull === recipientLower || 
+          uFull.includes(recipientLower) || 
+          recipientLower.includes(uFull) ||
+          (nuevoEnvio.address_references && nuevoEnvio.address_references.includes(u.id)) ||
+          (u.email && recipientLower.includes(u.email.toLowerCase()))
+        );
+      });
+
+      if (destinatarioUsuario) {
+        const notifDest: NotificationItem = {
+          id: `notif-dest-${Date.now()}`,
+          title: '¡Tienes un Envío en Camino!',
+          message: `${user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Un usuario'} te ha enviado un paquete (${nuevoEnvio.description || 'Paquete'}) con guía ${nuevoEnvio.tracking_number}.`,
+          type: 'envio',
+          date: 'Hace un momento',
+          is_read: false,
+        };
+
+        const destKey = `@rerf_notifications_${destinatarioUsuario.id}`;
+        const prevRaw = await AsyncStorage.getItem(destKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(destKey, JSON.stringify([notifDest, ...prevList]));
+
+        if (isSupabaseConfigured && destinatarioUsuario.id && destinatarioUsuario.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: destinatarioUsuario.id,
+              title: notifDest.title,
+              message: notifDest.message,
+              type: 'envio',
+              is_read: false,
+            });
+          } catch (eSb) {
+            console.warn('[AppContext] Error guardando notificación remota para destinatario:', eSb);
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.warn('Error enviando notificación al destinatario:', notifErr);
+    }
 
     // Generar automáticamente la factura electrónica FEL asociada al envío
     try {

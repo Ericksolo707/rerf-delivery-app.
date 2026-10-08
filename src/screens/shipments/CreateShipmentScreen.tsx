@@ -70,6 +70,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
   // Campos Excalidraw Pantalla 13
   const [recipient, setRecipient] = useState<string>(existingShipment?.recipient_name || prefilled || '');
+  const [selectedRecipientUser, setSelectedRecipientUser] = useState<any>(null);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || '');
   const [address, setAddress] = useState<string>(existingShipment?.delivery_address || '');
   const [reference, setReference] = useState<string>(existingShipment?.address_references || '');
@@ -135,13 +136,25 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
       const trackingNumber = `RERF-${randomCode}`;
       const baseCost = selectedItem ? 45.00 : 35.00;
 
+      // Buscar si el destinatario coincide con un usuario registrado
+      const matchedUser = selectedRecipientUser || users.find(u => {
+        const uFull = `${u.first_name} ${u.last_name}`.trim().toLowerCase();
+        return uFull === recipient.trim().toLowerCase() || (u.email && u.email.toLowerCase() === recipient.trim().toLowerCase());
+      });
+
+      const recipientPhone = matchedUser?.phone || '5555-1234';
+      let finalReferences = reference.trim();
+      if (matchedUser?.id && !finalReferences.includes(matchedUser.id)) {
+        finalReferences = finalReferences ? `${finalReferences} [UID:${matchedUser.id}]` : `[UID:${matchedUser.id}]`;
+      }
+
       const newShipment = await addShipment({
         tracking_number: trackingNumber,
         sender_id: user?.id || 'usr-001',
         recipient_name: recipient.trim(),
-        recipient_phone: '5555-1234',
+        recipient_phone: recipientPhone,
         delivery_address: address.trim(),
-        address_references: reference.trim(),
+        address_references: finalReferences,
         scheduled_date: '14/10/2026',
         description: selectedItem ? `${selectedItem.product_type}: ${description}` : description,
         status: 'aprobado',
@@ -329,7 +342,8 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
                   key={u.id}
                   style={styles.userPickRow}
                   onPress={() => {
-                    setRecipient(`${u.first_name} ${u.last_name}`);
+                    setSelectedRecipientUser(u);
+                    setRecipient(`${u.first_name} ${u.last_name}`.trim());
                     if (u.address) setAddress(u.address);
                     setShowRecipientModal(false);
                   }}

@@ -24,8 +24,8 @@ export class RepositorioEnvios extends RepositorioBase<
   Shipment,
   Omit<Shipment, "id" | "created_at">
 > {
-  public readonly nombreEntidad: string = "shipments";
-  public readonly tablaLegacy: string = "envios";
+  public readonly nombreEntidad: string = "envios";
+  public readonly tablaLegacy: string = "shipments";
 
   // Referencia Singleton única en memoria (Sesión 6)
   private static instancia: RepositorioEnvios | null = null;
@@ -180,7 +180,12 @@ export class RepositorioEnvios extends RepositorioBase<
           driver_phone: datos.driver_phone || null,
         };
 
-        payload.sender_id = null;
+        if (datos.sender_id && isUuid(datos.sender_id)) {
+          payload.sender_id = datos.sender_id;
+        } else {
+          payload.sender_id = null;
+        }
+
         if (isUuid(datos.warehouse_item_id)) {
           payload.warehouse_item_id = datos.warehouse_item_id;
         }
@@ -211,7 +216,10 @@ export class RepositorioEnvios extends RepositorioBase<
         }
 
         if (!res.error && res.data) {
-          const guardado = res.data as Shipment;
+          const guardado: Shipment = {
+            ...(res.data as Shipment),
+            sender_id: (res.data as Shipment).sender_id || datos.sender_id,
+          };
           this.envios = [guardado, ...this.envios];
           return guardado;
         } else if (res.error) {
