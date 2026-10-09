@@ -62,6 +62,8 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
   // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
     switch (status) {
+      case 'aprobado':
+        return { label: 'Aprobado', bg: '#DCFCE7', color: '#15803D' };
       case 'recolectado':
         return { label: 'Recoger', bg: '#FEF3C7', color: '#B45309' };
       case 'en_bodega':

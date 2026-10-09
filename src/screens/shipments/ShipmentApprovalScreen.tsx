@@ -171,11 +171,17 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
         cancelText="Ir a Inicio"
         onCancel={() => {
           setShowSuccessModal(false);
-          navigation.navigate('Principal');
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Principal' }],
+          });
         }}
         onConfirm={() => {
           setShowSuccessModal(false);
-          navigation.navigate('Pedidos');
+          navigation.reset({
+            index: 1,
+            routes: [{ name: 'Principal' }, { name: 'Pedidos' }],
+          });
         }}
       />
     </View>
