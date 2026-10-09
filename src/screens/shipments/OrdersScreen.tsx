@@ -28,7 +28,9 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
   const { shipments, user, users, refreshData, isRefreshing } = useApp();
 
   // En Pedidos mostramos los envíos realizados/solicitados por el usuario o donde él es remitente.
+  // Si el usuario es Administrador, ve todos los pedidos del sistema.
   const myOrders = React.useMemo(() => {
+    if (user?.role === 'admin') return shipments;
     const sent = shipments.filter(s => s.sender_id === user?.id);
     return sent.length > 0 ? sent : shipments;
   }, [shipments, user]);
