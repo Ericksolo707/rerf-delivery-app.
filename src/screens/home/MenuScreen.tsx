@@ -29,7 +29,7 @@ export const MenuScreen: React.FC<RootStackScreenProps<'Menu'>> = ({ navigation 
     {
       badge: 'Env',
       title: 'Realizar Envío',
-      onPress: () => navigation.navigate('RealizarEnvio'),
+      onPress: () => navigation.navigate('GestionEnvio'),
       bgColor: RerfColors.primaryYellowLight,
       borderColor: RerfColors.primaryYellow,
       textColor: RerfColors.primaryYellowHover,

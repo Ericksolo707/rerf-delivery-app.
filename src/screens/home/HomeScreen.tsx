@@ -127,22 +127,6 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
           </View>
         </View>
 
-        {/* Botón Principal Destacado: Realizar Envío */}
-        <TouchableOpacity 
-          style={styles.realizarEnvioHeroBtn}
-          onPress={() => navigation.navigate('RealizarEnvio')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.realizarEnvioIconCircle}>
-            <Ionicons name="paper-plane" size={22} color="#0F172A" />
-          </View>
-          <View style={styles.realizarEnvioInfo}>
-            <Text style={styles.realizarEnvioTitle}>Realizar Envío</Text>
-            <Text style={styles.realizarEnvioSubtitle}>Crear orden y programar entrega express</Text>
-          </View>
-          <Ionicons name="arrow-forward-circle" size={26} color="#0F172A" />
-        </TouchableOpacity>
-
         {/* Botón: Movimientos recientes */}
         <TouchableOpacity 
           style={styles.recentMovementsButton}
@@ -157,10 +141,10 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
         <View style={styles.gridContainer}>
           {/* Fila 1: Envíos y Pedidos */}
           <View style={styles.gridRow}>
-            {/* Botón Realizar Envío */}
+            {/* Botón Realizar Envío (Pantalla 12: Enviar Paquete y Gestión) */}
             <TouchableOpacity 
               style={styles.gridCard}
-              onPress={() => navigation.navigate('RealizarEnvio')}
+              onPress={() => navigation.navigate('GestionEnvio')}
               activeOpacity={0.8}
             >
               <View style={[styles.iconCircle, { backgroundColor: RerfColors.primaryYellowLight }]}>
@@ -236,30 +220,22 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Fila 4: Directorio y Menú de Opciones */}
+          {/* Fila 4: Directorio de Usuarios */}
           <View style={styles.gridRow}>
             {/* Botón Directorio de Usuarios */}
             <TouchableOpacity 
-              style={styles.gridCard}
+              style={[styles.gridCard, styles.fullWidthCard]}
               onPress={() => navigation.navigate('Usuarios')}
               activeOpacity={0.8}
             >
-              <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="people-outline" size={28} color="#B45309" />
+              <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7', width: 44, height: 44, borderRadius: 22, marginBottom: 0, marginRight: 14 }]}>
+                <Ionicons name="people-outline" size={24} color="#B45309" />
               </View>
-              <Text style={styles.gridCardText}>Usuarios</Text>
-            </TouchableOpacity>
-
-            {/* Botón Menú Completo */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('Menu')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#F1F5F9' }]}>
-                <Ionicons name="grid-outline" size={28} color="#334155" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fullWidthCardTitle}>Directorio de Usuarios</Text>
+                <Text style={styles.fullWidthCardSubtitle}>Consultar clientes, pilotos y administradores</Text>
               </View>
-              <Text style={styles.gridCardText}>Más Opciones</Text>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
           </View>
         </View>
@@ -353,59 +329,23 @@ const styles = StyleSheet.create({
     color: RerfColors.textSecondary,
     lineHeight: 16,
   },
-  realizarEnvioHeroBtn: {
-    backgroundColor: RerfColors.primaryYellow,
-    borderRadius: 14,
+  recentMovementsButton: {
+    height: 50,
+    borderRadius: 25,
     borderWidth: 1,
     borderColor: RerfColors.primaryYellowHover,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    ...RerfShadows.card,
-  },
-  realizarEnvioIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    ...RerfShadows.card,
-  },
-  realizarEnvioInfo: {
-    flex: 1,
-  },
-  realizarEnvioTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: RerfColors.primaryYellowText,
-  },
-  realizarEnvioSubtitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#78350F',
-    marginTop: 1,
-  },
-  recentMovementsButton: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: RerfColors.surfaceCardBorder,
-    backgroundColor: RerfColors.surfaceCard,
+    backgroundColor: RerfColors.primaryYellow,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     marginBottom: 20,
     ...RerfShadows.card,
   },
   recentMovementsText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: RerfColors.textMain,
+    fontSize: 15,
+    fontWeight: '800',
+    color: RerfColors.primaryYellowText,
   },
   gridContainer: {
     gap: 16,
@@ -425,6 +365,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     ...RerfShadows.card,
+  },
+  fullWidthCard: {
+    aspectRatio: undefined,
+    height: 68,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  fullWidthCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: RerfColors.textMain,
+  },
+  fullWidthCardSubtitle: {
+    fontSize: 11,
+    color: RerfColors.textSecondary,
+    marginTop: 2,
   },
   iconCircle: {
     width: 52,
