@@ -17,7 +17,7 @@
  *   - Fila inferior: [ nombreusuario1 remitente ]  [ nombreusuario2 receptor ]
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -27,6 +27,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
+import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
@@ -47,6 +48,28 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
     : (isSender ? `${user?.first_name || ''} ${user?.last_name || ''}`.trim() : 'Remitente RerF');
   const recipientName = shipment?.recipient_name || 'Destinatario';
   const isDelivery = shipment?.status === 'entregado';
+
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [isApproving, setIsApproving] = useState<boolean>(false);
+
+  const handlePromptApprove = () => {
+    setShowConfirmModal(true);
+  };
+
+  const handleExecuteApprove = async () => {
+    if (!shipment?.id) return;
+    setIsApproving(true);
+    try {
+      await updateShipment(shipment.id, { status: 'aprobado' });
+      setShowConfirmModal(false);
+      setShowSuccessModal(true);
+    } catch {
+      setShowConfirmModal(false);
+    } finally {
+      setIsApproving(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -148,12 +171,7 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
         {shipment?.status === 'pendiente' && (
           <TouchableOpacity
             style={styles.approveActionButton}
-            onPress={async () => {
-              if (shipment?.id) {
-                await updateShipment(shipment.id, { status: 'aprobado' });
-                navigation.navigate('Pedidos');
-              }
-            }}
+            onPress={handlePromptApprove}
             activeOpacity={0.85}
           >
             <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
@@ -211,6 +229,38 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
           <Text style={styles.tabText}>Perfil</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal 1: Confirmación previa a la aprobación */}
+      <ModalDialog
+        visible={showConfirmModal}
+        title="¿Aprobar y Despachar?"
+        message={`¿Deseas autorizar la orden ${shipment?.tracking_number || ''}? Pasará a la lista de pedidos activos y se habilitará el rastreo satelital GPS.`}
+        iconName="help-circle-outline"
+        iconColor="#16A34A"
+        confirmText={isApproving ? "Aprobando..." : "Sí, Aprobar"}
+        cancelText="Volver"
+        onConfirm={handleExecuteApprove}
+        onCancel={() => setShowConfirmModal(false)}
+      />
+
+      {/* Modal 2: Anuncio formal de aprobación exitosa */}
+      <ModalDialog
+        visible={showSuccessModal}
+        title="¡Pedido Aprobado con Éxito!"
+        message={`La orden ${shipment?.tracking_number || ''} ahora está activa en el sistema. El piloto asignado y el remitente han sido notificados, y el mapa GPS ya se encuentra disponible.`}
+        iconName="checkmark-circle"
+        iconColor="#16A34A"
+        confirmText="Ver en GPS"
+        cancelText="Ir a Pedidos"
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          navigation.navigate('TrackingGPS', { shipmentId: shipment?.id });
+        }}
+        onCancel={() => {
+          setShowSuccessModal(false);
+          navigation.navigate('Pedidos');
+        }}
+      />
     </View>
   );
 };
