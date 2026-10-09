@@ -233,7 +233,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         address_references: finalReferences,
         scheduled_date: selectedDate,
         description: selectedItem ? `${selectedItem.product_type}: ${description}` : description,
-        status: 'aprobado',
+        status: 'pendiente',
         payment_status: 'pendiente',
         payment_method: 'contra_entrega',
         total_amount: baseCost,
@@ -252,7 +252,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
   const handleContinueToApproved = (): void => {
     setShowReceivedModal(false);
-    navigation.replace('AprobacionEnvio', { shipment: createdShipment });
+    navigation.replace('Pedidos');
   };
 
   return (
@@ -579,7 +579,11 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           <View style={styles.sketchConfirmCard}>
             <Text style={styles.sketchAppName}>RERF APP</Text>
             <Text style={styles.sketchReceivedText}>
-              Tu gestión de envío fue recibida, en breve obtendrás una confirmación.
+              {editShipmentId 
+                ? 'Los cambios en tu envío han sido guardados exitosamente.' 
+                : createdShipment?.tracking_number
+                  ? `Tu gestión de envío (${createdShipment.tracking_number}) fue recibida, en breve obtendrás una confirmación.`
+                  : 'Tu gestión de envío fue recibida, en breve obtendrás una confirmación.'}
             </Text>
             
             <TouchableOpacity 
