@@ -127,8 +127,12 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
 
     return (
       <View key={item.id} style={styles.card}>
-        {/* Lado izquierdo */}
-        <View style={styles.infoCol}>
+        {/* Lado izquierdo interactivo: Abre Detalle del Paquete */}
+        <TouchableOpacity 
+          style={styles.infoCol}
+          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+          activeOpacity={0.7}
+        >
           <View style={styles.headerMetaRow}>
             <Text style={styles.senderMetaText} numberOfLines={1}>
               {displayLabel}
@@ -138,20 +142,20 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
             </Text>
           </View>
 
-        <View style={styles.productBlock}>
-          <Text style={styles.fieldLabel}>Nombre producto:</Text>
-          <Text style={styles.productNameText} numberOfLines={2}>
-            {item.description || 'Pedido programado'}
-          </Text>
-        </View>
+          <View style={styles.productBlock}>
+            <Text style={styles.fieldLabel}>Nombre producto:</Text>
+            <Text style={styles.productNameText} numberOfLines={2}>
+              {item.description || 'Pedido programado'}
+            </Text>
+          </View>
 
-        <View style={styles.dateBlock}>
-          <Text style={styles.fieldLabel}>Fecha programada: </Text>
-          <Text style={styles.dateValueText}>
-            {item.scheduled_date || 'Hoy (14/10/2026)'}
-          </Text>
-        </View>
-      </View>
+          <View style={styles.dateBlock}>
+            <Text style={styles.fieldLabel}>Fecha programada: </Text>
+            <Text style={styles.dateValueText}>
+              {item.scheduled_date || 'Hoy (14/10/2026)'}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
       {/* Lado derecho: Botones [ E ] (Editar) y [ X ] (Cancelar) */}
       <View style={styles.actionsCol}>

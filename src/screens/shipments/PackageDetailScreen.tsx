@@ -34,7 +34,7 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 import { GABRIEL_MOCK_PACKAGES } from './PackagesOverviewScreen';
 
 export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'>> = ({ route, navigation }) => {
-  const { shipments, user, users } = useApp();
+  const { shipments, user, users, updateShipment } = useApp();
   const shipmentId: string | undefined = route.params?.shipmentId;
   const demoFallback = GABRIEL_MOCK_PACKAGES.find(p => p.id === shipmentId || p.tracking_number === shipmentId) || GABRIEL_MOCK_PACKAGES[0];
   const shipment: Shipment = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId) || demoFallback;
@@ -135,6 +135,23 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Si el pedido está pendiente, botón para Aprobar y Pasar a Ruta */}
+        {shipment?.status === 'pendiente' && (
+          <TouchableOpacity
+            style={styles.approveActionButton}
+            onPress={async () => {
+              if (shipment?.id) {
+                await updateShipment(shipment.id, { status: 'aprobado' });
+                navigation.navigate('Pedidos');
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
+            <Text style={styles.approveActionText}>Aprobar Pedido y Pasar a Ruta</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Acciones directas de Seguimiento y Cancelación */}
         <TouchableOpacity
@@ -302,6 +319,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: RerfColors.textMuted,
     textTransform: 'uppercase',
+  },
+  approveActionButton: {
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#16A34A',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    ...RerfShadows.card,
+  },
+  approveActionText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   gpsActionButton: {
     height: 50,

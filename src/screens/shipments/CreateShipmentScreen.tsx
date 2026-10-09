@@ -61,6 +61,15 @@ const parseDateDDMMYYYY = (str?: string): Date | null => {
   return null;
 };
 
+const isFutureScheduledDate = (str?: string): boolean => {
+  const parsed = parseDateDDMMYYYY(str);
+  if (!parsed) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  parsed.setHours(0, 0, 0, 0);
+  return parsed.getTime() > today.getTime();
+};
+
 export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ route, navigation }) => {
   const { addShipment, updateShipment, shipments, warehouseItems, users, user } = useApp();
   const prefilled = route.params?.prefilledRecipient;
@@ -224,6 +233,9 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         finalReferences = finalReferences ? `${finalReferences} [UID:${matchedUser.id}]` : `[UID:${matchedUser.id}]`;
       }
 
+      const isFutureScheduled = isFutureScheduledDate(selectedDate);
+      const initialStatus = isFutureScheduled ? 'pendiente' : 'aprobado';
+
       const newShipment = await addShipment({
         tracking_number: trackingNumber,
         sender_id: user?.id || 'usr-001',
@@ -233,7 +245,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         address_references: finalReferences,
         scheduled_date: selectedDate,
         description: selectedItem ? `${selectedItem.product_type}: ${description}` : description,
-        status: 'pendiente',
+        status: initialStatus,
         payment_status: 'pendiente',
         payment_method: 'contra_entrega',
         total_amount: baseCost,
@@ -581,9 +593,11 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             <Text style={styles.sketchReceivedText}>
               {editShipmentId 
                 ? 'Los cambios en tu envío han sido guardados exitosamente.' 
-                : createdShipment?.tracking_number
-                  ? `Tu gestión de envío (${createdShipment.tracking_number}) fue recibida, en breve obtendrás una confirmación.`
-                  : 'Tu gestión de envío fue recibida, en breve obtendrás una confirmación.'}
+                : isFutureScheduledDate(selectedDate)
+                  ? `Tu envío (${createdShipment?.tracking_number || ''}) ha sido programado para el ${selectedDate} y se encuentra pendiente de confirmación.`
+                  : createdShipment?.tracking_number
+                    ? `Tu gestión de envío (${createdShipment.tracking_number}) fue recibida y se encuentra activa.`
+                    : 'Tu gestión de envío fue recibida con éxito.'}
             </Text>
             
             <TouchableOpacity 
