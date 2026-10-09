@@ -275,18 +275,17 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           )}
         </View>
 
-        {/* SECCIÓN 2: Pendientes [ + ] -> */}
+        {/* SECCIÓN 2: Pendientes */}
         <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
           <View style={styles.pendingTitleGroup}>
             <Text style={styles.sectionTitle}>Pendientes</Text>
-            {/* Botón cuadrado [ + ] del boceto Excalidraw */}
-            <TouchableOpacity
-              style={styles.addSquareButton}
-              onPress={() => navigation.navigate('RealizarEnvio')}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="add" size={20} color="#0F172A" />
-            </TouchableOpacity>
+            {pendingOrders.length > 0 && (
+              <View style={[styles.statusBadge, { backgroundColor: '#FEF3C7', marginLeft: 8 }]}>
+                <Text style={[styles.statusBadgeText, { color: '#B45309' }]}>
+                  {pendingOrders.length}
+                </Text>
+              </View>
+            )}
           </View>
           <Ionicons name="arrow-forward" size={18} color="#0F172A" />
         </View>
@@ -295,13 +294,6 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           {pendingOrders.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyCardText}>No tienes pedidos pendientes programados.</Text>
-              <TouchableOpacity
-                style={styles.addPendingBtn}
-                onPress={() => navigation.navigate('RealizarEnvio')}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.addPendingBtnText}>+ Crear Pedido</Text>
-              </TouchableOpacity>
             </View>
           ) : (
             pendingOrders.map(renderPendingCard)

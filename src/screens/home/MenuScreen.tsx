@@ -27,6 +27,14 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 export const MenuScreen: React.FC<RootStackScreenProps<'Menu'>> = ({ navigation }) => {
   const menuOptions = [
     {
+      badge: 'Env',
+      title: 'Realizar Envío',
+      onPress: () => navigation.navigate('RealizarEnvio'),
+      bgColor: RerfColors.primaryYellowLight,
+      borderColor: RerfColors.primaryYellow,
+      textColor: RerfColors.primaryYellowHover,
+    },
+    {
       badge: 'Co',
       title: 'Cotizador de envío',
       onPress: () => navigation.navigate('Cotizador'),
