@@ -58,7 +58,15 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
           {/* Fila superior: Categoría Entrega/Envío y Fecha */}
           <View style={styles.topMetaRow}>
             <Text style={styles.categoryTitle}>
-              Categoría: {isDelivery ? 'Entrega Concluida' : 'Envío Activo'}
+              Categoría: {
+                shipment?.status === 'pendiente'
+                  ? 'Envío Pendiente'
+                  : shipment?.status === 'cancelado'
+                  ? 'Envío Cancelado'
+                  : isDelivery
+                  ? 'Entrega Concluida'
+                  : 'Envío Activo'
+              }
             </Text>
             <Text style={styles.dateMeta}>
               {shipment?.scheduled_date || '14/10/2026'}
@@ -154,14 +162,16 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
         )}
 
         {/* Acciones directas de Seguimiento y Cancelación */}
-        <TouchableOpacity
-          style={styles.gpsActionButton}
-          onPress={() => navigation.navigate('TrackingGPS', { shipmentId: shipment?.id })}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="navigate-outline" size={20} color="#0F172A" />
-          <Text style={styles.gpsActionText}>Localizar en GPS</Text>
-        </TouchableOpacity>
+        {shipment?.status !== 'pendiente' && (
+          <TouchableOpacity
+            style={styles.gpsActionButton}
+            onPress={() => navigation.navigate('TrackingGPS', { shipmentId: shipment?.id })}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="navigate-outline" size={20} color="#0F172A" />
+            <Text style={styles.gpsActionText}>Localizar en GPS</Text>
+          </TouchableOpacity>
+        )}
 
         {shipment?.status !== 'cancelado' && shipment?.status !== 'entregado' && (
           <TouchableOpacity
