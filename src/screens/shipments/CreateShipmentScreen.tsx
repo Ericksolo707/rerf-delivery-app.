@@ -264,7 +264,11 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
   const handleContinueToApproved = (): void => {
     setShowReceivedModal(false);
-    navigation.replace('Pedidos');
+    if (editShipmentId) {
+      navigation.replace('Pedidos');
+    } else {
+      navigation.replace('AprobacionEnvio', { shipment: createdShipment });
+    }
   };
 
   return (

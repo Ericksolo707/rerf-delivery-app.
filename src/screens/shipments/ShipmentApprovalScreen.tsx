@@ -22,12 +22,15 @@ import {
 } from 'react-native';
 import { Header } from '../../components/Header';
 import { ModalDialog } from '../../components/ModalDialog';
+import { useApp } from '../../context/AppContext';
 import { PaymentMethod } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEnvio'>> = ({ route, navigation }) => {
+  const { updateShipment } = useApp();
   const shipment = route.params?.shipment || {
+    id: undefined,
     tracking_number: 'RERF-98234-GT',
     recipient_name: 'María Fernández',
     delivery_address: 'Calle Juárez #12, Zona 10',
@@ -37,9 +40,21 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('contra_entrega');
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  const handleFinish = (): void => {
-    setShowSuccessModal(true);
+  const handleFinish = async (): Promise<void> => {
+    setIsSaving(true);
+    try {
+      if (shipment?.id) {
+        await updateShipment(shipment.id, {
+          payment_method: selectedMethod,
+          payment_status: selectedMethod === 'tarjeta' ? 'pagado' : 'pendiente',
+        });
+      }
+    } finally {
+      setIsSaving(false);
+      setShowSuccessModal(true);
+    }
   };
 
   return (
@@ -130,11 +145,12 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
 
         {/* Botón de Finalización */}
         <TouchableOpacity 
-          style={styles.finishButton}
+          style={[styles.finishButton, isSaving && { opacity: 0.7 }]}
           onPress={handleFinish}
+          disabled={isSaving}
           activeOpacity={0.85}
         >
-          <Text style={styles.finishButtonText}>Aceptar y Finalizar</Text>
+          <Text style={styles.finishButtonText}>{isSaving ? 'Guardando...' : 'Aceptar y Finalizar'}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -142,10 +158,16 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
       <ModalDialog
         visible={showSuccessModal}
         title="RERF APP"
-        message={`Tu envío ${shipment.tracking_number || ''} ha sido confirmado con éxito. Puedes rastrear su ubicación en el mapa satelital.`}
+        message={`Tu envío ${shipment.tracking_number || ''} ha sido registrado con éxito. Método de pago: ${
+          selectedMethod === 'efectivo'
+            ? 'Efectivo'
+            : selectedMethod === 'tarjeta'
+            ? 'Tarjeta Déb./Créd.'
+            : 'Pago contra entrega'
+        }.`}
         iconName="checkmark-circle-outline"
         iconColor="#16A34A"
-        confirmText="Ver en GPS"
+        confirmText="Ver en Pedidos"
         cancelText="Ir a Inicio"
         onCancel={() => {
           setShowSuccessModal(false);
@@ -153,7 +175,7 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
         }}
         onConfirm={() => {
           setShowSuccessModal(false);
-          navigation.navigate('TrackingGPS', { shipmentId: shipment.tracking_number });
+          navigation.navigate('Pedidos');
         }}
       />
     </View>
