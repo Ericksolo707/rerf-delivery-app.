@@ -181,7 +181,7 @@ export const GpsTrackingService = {
           {
             event: 'UPDATE',
             schema: 'public',
-            table: 'shipments',
+            table: 'envios',
             filter: `tracking_number=eq.${trackingNumber}`,
           },
           (payload: any) => {
@@ -223,7 +223,7 @@ export const GpsTrackingService = {
 
     try {
       const { error } = await supabase
-        .from('shipments')
+        .from('envios')
         .update({
           current_latitude: coords.latitude,
           current_longitude: coords.longitude,
