@@ -10,7 +10,7 @@
  *   - Cuerpo del mensaje: Texto informativo
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -27,39 +27,137 @@ import { NotificationItem } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
+const getNotificationTimestamp = (item: NotificationItem): number => {
+  if (item.created_at) {
+    const parsed = new Date(item.created_at).getTime();
+    if (!isNaN(parsed)) return parsed;
+  }
+  const match = item.id.match(/\d{10,}/);
+  if (match) {
+    const parsed = parseInt(match[0], 10);
+    if (!isNaN(parsed)) return parsed;
+  }
+  if (item.date) {
+    const dLower = item.date.toLowerCase();
+    const now = Date.now();
+    if (dLower.includes('min')) {
+      const mins = parseInt(dLower.replace(/\D/g, '') || '10', 10);
+      return now - mins * 60 * 1000;
+    }
+    if (dLower.includes('hora')) {
+      const hours = parseInt(dLower.replace(/\D/g, '') || '1', 10);
+      return now - hours * 3600 * 1000;
+    }
+    if (dLower.includes('ayer')) {
+      return now - 24 * 3600 * 1000;
+    }
+    if (dLower.includes('día') || dLower.includes('dia')) {
+      const days = parseInt(dLower.replace(/\D/g, '') || '1', 10);
+      return now - days * 24 * 3600 * 1000;
+    }
+    if (dLower.includes('hoy') || dLower.includes('momento')) {
+      return now;
+    }
+    const parsedDate = new Date(item.date).getTime();
+    if (!isNaN(parsedDate)) return parsedDate;
+  }
+  return 0;
+};
+
+const getDisplayDateTime = (item: NotificationItem): { dateLabel: string; timeLabel: string } => {
+  let dateObj: Date | null = null;
+  if (item.created_at) {
+    const d = new Date(item.created_at);
+    if (!isNaN(d.getTime())) dateObj = d;
+  } else {
+    const match = item.id.match(/\d{10,}/);
+    if (match) {
+      const d = new Date(parseInt(match[0], 10));
+      if (!isNaN(d.getTime())) dateObj = d;
+    }
+  }
+
+  if (dateObj) {
+    const now = new Date();
+    const isToday =
+      dateObj.getDate() === now.getDate() &&
+      dateObj.getMonth() === now.getMonth() &&
+      dateObj.getFullYear() === now.getFullYear();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday =
+      dateObj.getDate() === yesterday.getDate() &&
+      dateObj.getMonth() === yesterday.getMonth() &&
+      dateObj.getFullYear() === yesterday.getFullYear();
+
+    let dateLabel = '';
+    if (isToday) {
+      dateLabel = 'Hoy';
+    } else if (isYesterday) {
+      dateLabel = 'Ayer';
+    } else {
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      dateLabel = `${day}/${month}/${dateObj.getFullYear()}`;
+    }
+
+    const timeLabel = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    return { dateLabel, timeLabel };
+  }
+
+  return {
+    dateLabel: item.date || 'Hoy',
+    timeLabel: item.date && item.date.includes(':') ? item.date : (item.is_read ? 'Leído' : 'Reciente'),
+  };
+};
+
 export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'>> = ({ navigation }) => {
   const { notifications, markNotificationRead, refreshData, isRefreshing } = useApp();
   const [search, setSearch] = useState<string>('');
 
-  const filtered = notifications.filter(n =>
-    n.title.toLowerCase().includes(search.toLowerCase()) ||
-    n.message.toLowerCase().includes(search.toLowerCase())
-  );
+  const sortedNotifications = useMemo(() => {
+    const term = search.toLowerCase().trim();
+    const filtered = notifications.filter(n =>
+      n.title.toLowerCase().includes(term) ||
+      n.message.toLowerCase().includes(term)
+    );
 
-  const renderItem = ({ item }: { item: NotificationItem }) => (
-    <TouchableOpacity 
-      style={[styles.notifCard, !item.is_read && styles.unreadCard]}
-      onPress={() => markNotificationRead(item.id)}
-      activeOpacity={0.8}
-    >
-      {/* Fila superior: Fecha | Hora | Estado */}
-      <View style={styles.topInfoRow}>
-        <Text style={styles.dateText}>{item.date || 'Hoy'}</Text>
-        <Text style={styles.timeText}>{item.is_read ? '14:30' : '09:15'}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: item.is_read ? '#E2E8F0' : '#FEF3C7' }]}>
-          <Text style={[styles.statusText, { color: item.is_read ? '#475569' : '#B45309' }]}>
-            {item.is_read ? 'Leído' : 'Activo'}
-          </Text>
+    return [...filtered].sort((a, b) => {
+      const timeA = getNotificationTimestamp(a);
+      const timeB = getNotificationTimestamp(b);
+      return timeB - timeA;
+    });
+  }, [notifications, search]);
+
+  const renderItem = ({ item }: { item: NotificationItem }) => {
+    const { dateLabel, timeLabel } = getDisplayDateTime(item);
+
+    return (
+      <TouchableOpacity 
+        style={[styles.notifCard, !item.is_read && styles.unreadCard]}
+        onPress={() => markNotificationRead(item.id)}
+        activeOpacity={0.8}
+      >
+        {/* Fila superior: Fecha | Hora | Estado */}
+        <View style={styles.topInfoRow}>
+          <Text style={styles.dateText}>{dateLabel}</Text>
+          <Text style={styles.timeText}>{timeLabel}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: item.is_read ? '#E2E8F0' : '#FEF3C7' }]}>
+            <Text style={[styles.statusText, { color: item.is_read ? '#475569' : '#B45309' }]}>
+              {item.is_read ? 'Leído' : 'Activo'}
+            </Text>
+          </View>
         </View>
-      </View>
 
-      {/* Cuerpo de la tarjeta: Texto Informativo */}
-      <View style={styles.contentBox}>
-        <Text style={styles.informativeTitle}>{item.title}</Text>
-        <Text style={styles.informativeText}>{item.message}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+        {/* Cuerpo de la tarjeta: Texto Informativo */}
+        <View style={styles.contentBox}>
+          <Text style={styles.informativeTitle}>{item.title}</Text>
+          <Text style={styles.informativeText}>{item.message}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -77,7 +175,7 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
       </View>
 
       <FlatList
-        data={filtered}
+        data={sortedNotifications}
         keyExtractor={item => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}

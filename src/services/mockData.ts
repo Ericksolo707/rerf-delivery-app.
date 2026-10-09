@@ -275,6 +275,7 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
     type: 'envio',
     date: 'Hace 25 min',
     is_read: false,
+    created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
   },
   {
     id: 'notif-2',
@@ -283,6 +284,7 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
     type: 'info',
     date: 'Hace 2 horas',
     is_read: false,
+    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: 'notif-3',
@@ -291,6 +293,7 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
     type: 'pago',
     date: 'Ayer',
     is_read: true,
+    created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: 'notif-4',
@@ -299,6 +302,7 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
     type: 'sistema' as any,
     date: 'Hace 3 días',
     is_read: true,
+    created_at: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
   },
 ];
 

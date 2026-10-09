@@ -91,6 +91,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
+  const ordenarNotificacionesRecientes = (lista: NotificationItem[]): NotificationItem[] => {
+    return [...lista].sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : parseInt(a.id.match(/\d{10,}/)?.[0] || '0', 10);
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : parseInt(b.id.match(/\d{10,}/)?.[0] || '0', 10);
+      return timeB - timeA;
+    });
+  };
+
   // Cargar notificaciones persistidas y aisladas específicamente para el usuario en sesión
   const obtenerNotificacionesUsuario = async (currentUser: UserProfile): Promise<NotificationItem[]> => {
     try {
@@ -122,12 +130,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               type: (n.type as any) || 'info',
               date: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               is_read: Boolean(n.is_read),
+              created_at: n.created_at,
             }));
-            const existingIds = new Set(lista.map(l => l.id));
-            const combined = [...lista];
-            for (const m of mapped) {
-              if (!existingIds.has(m.id)) {
-                combined.push(m);
+            const existingIds = new Set(mapped.map(m => m.id));
+            const combined = [...mapped];
+            for (const l of lista) {
+              if (!existingIds.has(l.id)) {
+                combined.push(l);
               }
             }
             lista = combined;
@@ -137,7 +146,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      return lista;
+      return ordenarNotificacionesRecientes(lista);
     } catch (err) {
       console.warn('Error cargando notificaciones del usuario:', err);
       return [];
@@ -186,10 +195,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Guardar notificaciones del usuario en AsyncStorage
   const persistirNotificaciones = async (lista: NotificationItem[]): Promise<void> => {
-    setNotifications(lista);
+    const ordenadas = ordenarNotificacionesRecientes(lista);
+    setNotifications(ordenadas);
     if (user) {
       try {
-        await AsyncStorage.setItem(`@rerf_notifications_${user.id}`, JSON.stringify(lista));
+        await AsyncStorage.setItem(`@rerf_notifications_${user.id}`, JSON.stringify(ordenadas));
       } catch (err) {
         console.warn('Error persistiendo notificaciones:', err);
       }
@@ -354,15 +364,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllShipments(prev => [nuevoEnvio, ...prev]);
     
     // 1. Notificación para el Remitente (usuario actual)
+    const now = new Date();
     const nuevaNotificacion: NotificationItem = {
-      id: `notif-${Date.now()}`,
+      id: `notif-${now.getTime()}`,
       title: 'Nuevo Envío Registrado',
       message: `El envío ${nuevoEnvio.tracking_number} para ${nuevoEnvio.recipient_name} está en proceso.`,
       type: 'envio',
-      date: 'Hace un momento',
+      date: 'Hoy',
       is_read: false,
+      created_at: now.toISOString(),
     };
     await persistirNotificaciones([nuevaNotificacion, ...notifications]);
+
+    if (isSupabaseConfigured && user?.id && user.id.includes('-')) {
+      try {
+        await supabase.from('notificaciones').insert({
+          user_id: user.id,
+          title: nuevaNotificacion.title,
+          message: nuevaNotificacion.message,
+          type: 'envio',
+          is_read: false,
+        });
+      } catch (eSb) {
+        console.warn('[AppContext] Error guardando notificación en Supabase:', eSb);
+      }
+    }
 
     // 2. Notificación para el Destinatario (si es otro usuario del sistema)
     try {
@@ -380,12 +406,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (destinatarioUsuario) {
         const notifDest: NotificationItem = {
-          id: `notif-dest-${Date.now()}`,
+          id: `notif-dest-${now.getTime()}`,
           title: '¡Tienes un Envío en Camino!',
           message: `${user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Un usuario'} te ha enviado un paquete (${nuevoEnvio.description || 'Paquete'}) con guía ${nuevoEnvio.tracking_number}.`,
           type: 'envio',
-          date: 'Hace un momento',
+          date: 'Hoy',
           is_read: false,
+          created_at: now.toISOString(),
         };
 
         const destKey = `@rerf_notifications_${destinatarioUsuario.id}`;
@@ -448,15 +475,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     // 1. Notificación para el usuario que realizó la cancelación
+    const nowCancel = new Date();
     const notifUser: NotificationItem = {
-      id: `notif-cancel-${Date.now()}`,
+      id: `notif-cancel-${nowCancel.getTime()}`,
       title: 'Envío Cancelado',
       message: `Has cancelado el envío con guía ${trackingCode}. Motivo: ${reason}`,
       type: 'alerta',
-      date: 'Hace un momento',
+      date: 'Hoy',
       is_read: false,
+      created_at: nowCancel.toISOString(),
     };
     await persistirNotificaciones([notifUser, ...notifications]);
+
+    if (isSupabaseConfigured && user?.id && user.id.includes('-')) {
+      try {
+        await supabase.from('notificaciones').insert({
+          user_id: user.id,
+          title: notifUser.title,
+          message: notifUser.message,
+          type: 'alerta',
+          is_read: false,
+        });
+      } catch (eSb) {
+        console.warn('[AppContext] Error guardando alerta de cancelación en Supabase:', eSb);
+      }
+    }
 
     // 2. Si hay otro usuario involucrado (destinatario o remitente), generarle su alerta
     if (targetShipment) {
@@ -471,12 +514,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (otherUserId && otherUserId !== user?.id) {
           const notifOther: NotificationItem = {
-            id: `notif-cancel-other-${Date.now()}`,
+            id: `notif-cancel-other-${nowCancel.getTime()}`,
             title: 'Envío Cancelado',
             message: `El envío con guía ${trackingCode} (${targetShipment.description || 'Paquete'}) ha sido cancelado. Motivo: ${reason}`,
             type: 'alerta',
-            date: 'Hace un momento',
+            date: 'Hoy',
             is_read: false,
+            created_at: nowCancel.toISOString(),
           };
 
           const destKey = `@rerf_notifications_${otherUserId}`;
