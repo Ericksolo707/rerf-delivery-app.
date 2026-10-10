@@ -28,7 +28,7 @@ export const MenuScreen: React.FC<RootStackScreenProps<'Menu'>> = ({ navigation 
   const menuOptions = [
     {
       badge: 'Env',
-      title: 'Realizar Envío',
+      title: 'Envíos',
       onPress: () => navigation.navigate('GestionEnvio'),
       bgColor: RerfColors.primaryYellowLight,
       borderColor: RerfColors.primaryYellow,
@@ -57,14 +57,6 @@ export const MenuScreen: React.FC<RootStackScreenProps<'Menu'>> = ({ navigation 
       bgColor: RerfColors.successGreenLight,
       borderColor: '#BBF7D0',
       textColor: RerfColors.successGreen,
-    },
-    {
-      badge: 'Dcs',
-      title: 'Listado de todos los paquetes',
-      onPress: () => navigation.navigate('DesglosePaquetes'),
-      bgColor: '#F3E8FF',
-      borderColor: '#E9D5FF',
-      textColor: '#7E22CE',
     },
   ];
 

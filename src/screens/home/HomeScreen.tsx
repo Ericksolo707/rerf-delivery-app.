@@ -139,9 +139,9 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
 
         {/* Cuadrícula de Accesos Directos del Menú Principal */}
         <View style={styles.gridContainer}>
-          {/* Fila 1: Envíos y Pedidos */}
+          {/* Fila 1: Operaciones Principales */}
           <View style={styles.gridRow}>
-            {/* Botón Realizar Envío (Pantalla 12: Enviar Paquete y Gestión) */}
+            {/* Botón Envíos (Pantalla 12: Enviar Paquete y Gestión) */}
             <TouchableOpacity 
               style={styles.gridCard}
               onPress={() => navigation.navigate('GestionEnvio')}
@@ -150,7 +150,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               <View style={[styles.iconCircle, { backgroundColor: RerfColors.primaryYellowLight }]}>
                 <Ionicons name="paper-plane-outline" size={28} color={RerfColors.primaryYellowHover} />
               </View>
-              <Text style={styles.gridCardText}>Realizar Envío</Text>
+              <Text style={styles.gridCardText}>Envíos</Text>
             </TouchableOpacity>
 
             {/* Botón Pedidos (Pantalla 8) */}
@@ -193,20 +193,8 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Fila 3: Paquetes y Facturación */}
+          {/* Fila 3: Facturación y Contactos */}
           <View style={styles.gridRow}>
-            {/* Botón Listar Paquetes (Pantalla 29) */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('DesglosePaquetes')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#F3E8FF' }]}>
-                <Ionicons name="cube-outline" size={28} color="#7E22CE" />
-              </View>
-              <Text style={styles.gridCardText}>Listar Paquetes</Text>
-            </TouchableOpacity>
-
             {/* Botón Facturas FEL (Pantalla 28) */}
             <TouchableOpacity 
               style={styles.gridCard}
@@ -218,24 +206,17 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               </View>
               <Text style={styles.gridCardText}>Facturas FEL</Text>
             </TouchableOpacity>
-          </View>
 
-          {/* Fila 4: Directorio de Usuarios */}
-          <View style={styles.gridRow}>
             {/* Botón Directorio de Usuarios */}
             <TouchableOpacity 
-              style={[styles.gridCard, styles.fullWidthCard]}
+              style={styles.gridCard}
               onPress={() => navigation.navigate('Usuarios')}
               activeOpacity={0.8}
             >
-              <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7', width: 44, height: 44, borderRadius: 22, marginBottom: 0, marginRight: 14 }]}>
-                <Ionicons name="people-outline" size={24} color="#B45309" />
+              <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="people-outline" size={28} color="#B45309" />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fullWidthCardTitle}>Directorio de Usuarios</Text>
-                <Text style={styles.fullWidthCardSubtitle}>Consultar clientes, pilotos y administradores</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              <Text style={styles.gridCardText}>Usuarios</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -365,24 +346,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     ...RerfShadows.card,
-  },
-  fullWidthCard: {
-    aspectRatio: undefined,
-    height: 68,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  fullWidthCardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: RerfColors.textMain,
-  },
-  fullWidthCardSubtitle: {
-    fontSize: 11,
-    color: RerfColors.textSecondary,
-    marginTop: 2,
   },
   iconCircle: {
     width: 52,
