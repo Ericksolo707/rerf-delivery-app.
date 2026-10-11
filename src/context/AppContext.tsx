@@ -96,7 +96,8 @@ interface AppContextType {
   
   // Notificaciones
   notifications: NotificationItem[];
-  markNotificationRead: (id: string) => void;
+  markNotificationRead: (id: string) => Promise<void> | void;
+  markAllNotificationsAsRead: () => Promise<void>;
   
   // Facturas y Directorio
   invoices: Invoice[];
@@ -239,11 +240,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const STORAGE_KEY_READ_NOTIFS = '@rerf_read_notifications_global';
+
+  const obtenerIdsLeidos = async (): Promise<Set<string>> => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY_READ_NOTIFS);
+      return raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
+    } catch {
+      return new Set<string>();
+    }
+  };
+
+  const registrarNotificacionesLeidas = async (
+    items: { id: string; title?: string; message?: string }[]
+  ): Promise<void> => {
+    try {
+      const set = await obtenerIdsLeidos();
+      for (const it of items) {
+        if (it.id) set.add(it.id);
+        if (it.title && it.message) {
+          set.add(`${(it.title || '').trim()}|${(it.message || '').trim()}`);
+        }
+      }
+      await AsyncStorage.setItem(STORAGE_KEY_READ_NOTIFS, JSON.stringify(Array.from(set)));
+    } catch (err) {
+      console.warn('[AppContext] Error registrando notificaciones leídas:', err);
+    }
+  };
+
   // Cargar notificaciones persistidas y aisladas específicamente para el usuario en sesión
   const obtenerNotificacionesUsuario = async (currentUser: UserProfile): Promise<NotificationItem[]> => {
     try {
       const storageKey = `@rerf_notifications_${currentUser.id}`;
-      const guardadasRaw = await AsyncStorage.getItem(storageKey);
+      const emailKey = currentUser.email ? `@rerf_notifications_${currentUser.email.toLowerCase().trim()}` : null;
+      const guardadasRaw = (await AsyncStorage.getItem(storageKey)) || (emailKey ? await AsyncStorage.getItem(emailKey) : null);
       let lista: NotificationItem[] = [];
       if (guardadasRaw) {
         lista = JSON.parse(guardadasRaw);
@@ -252,6 +282,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         lista = MOCK_NOTIFICATIONS;
         await AsyncStorage.setItem(storageKey, JSON.stringify(MOCK_NOTIFICATIONS));
       }
+
+      // Obtener el registro persistente de notificaciones ya leídas
+      const readSet = await obtenerIdsLeidos();
 
       // Si Supabase está disponible y el usuario tiene ID, cargar alertas remotas
       if (isSupabaseConfigured && currentUser.id && currentUser.id.includes('-')) {
@@ -291,7 +324,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (!seen.has(sig) && !seen.has(m.id)) {
                 seen.add(sig);
                 seen.add(m.id);
-                const wasRead = Boolean(m.is_read || localReadMap.get(m.id) || localReadMap.get(sig));
+                const wasRead = Boolean(
+                  m.is_read || 
+                  localReadMap.get(m.id) || 
+                  localReadMap.get(sig) || 
+                  readSet.has(m.id) || 
+                  readSet.has(sig)
+                );
                 combined.push({
                   ...m,
                   is_read: wasRead,
@@ -305,7 +344,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (!seen.has(sig) && !seen.has(l.id)) {
                 seen.add(sig);
                 seen.add(l.id);
-                combined.push(l);
+                const wasRead = Boolean(
+                  l.is_read || 
+                  readSet.has(l.id) || 
+                  readSet.has(sig)
+                );
+                combined.push({
+                  ...l,
+                  is_read: wasRead,
+                });
               }
             }
 
@@ -316,7 +363,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      // Deduplicación final por firma y ID
+      // Deduplicación final por firma y ID aplicando el set de lectura
       const finalUnique: NotificationItem[] = [];
       const finalSeen = new Set<string>();
       for (const item of lista) {
@@ -324,11 +371,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!finalSeen.has(sig) && !finalSeen.has(item.id)) {
           finalSeen.add(sig);
           finalSeen.add(item.id);
-          finalUnique.push(item);
+          const wasRead = Boolean(item.is_read || readSet.has(item.id) || readSet.has(sig));
+          finalUnique.push({
+            ...item,
+            is_read: wasRead,
+          });
         }
       }
 
-      return ordenarNotificacionesRecientes(finalUnique);
+      const ordenadas = ordenarNotificacionesRecientes(finalUnique);
+
+      // Persistir de inmediato la consolidación limpia para futuras sesiones
+      await AsyncStorage.setItem(storageKey, JSON.stringify(ordenadas));
+      if (emailKey) {
+        await AsyncStorage.setItem(emailKey, JSON.stringify(ordenadas));
+      }
+
+      return ordenadas;
     } catch (err) {
       console.warn('Error cargando notificaciones del usuario:', err);
       return [];
@@ -409,6 +468,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (user) {
       try {
         await AsyncStorage.setItem(`@rerf_notifications_${user.id}`, JSON.stringify(ordenadas));
+        if (user.email) {
+          await AsyncStorage.setItem(`@rerf_notifications_${user.email.toLowerCase().trim()}`, JSON.stringify(ordenadas));
+        }
       } catch (err) {
         console.warn('Error persistiendo notificaciones:', err);
       }
@@ -976,24 +1038,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const markNotificationRead = (id: string): void => {
+  const markNotificationRead = async (id: string): Promise<void> => {
     const target = notifications.find(n => n.id === id);
     const actualizadas = notifications.map(n => (n.id === id ? { ...n, is_read: true } : n));
-    persistirNotificaciones(actualizadas);
+    await persistirNotificaciones(actualizadas);
+
+    await registrarNotificacionesLeidas([
+      { id, title: target?.title, message: target?.message }
+    ]);
 
     if (isSupabaseConfigured) {
-      if (id.includes('-') && isUuid(id)) {
-        void supabase
+      try {
+        if (id.includes('-') && isUuid(id)) {
+          await supabase
+            .from('notificaciones')
+            .update({ is_read: true })
+            .eq('id', id);
+        } else if (target && user?.id) {
+          if (isUuid(user.id)) {
+            await supabase
+              .from('notificaciones')
+              .update({ is_read: true })
+              .eq('user_id', user.id)
+              .eq('title', target.title);
+          }
+        }
+      } catch (err) {
+        console.warn('[AppContext] Error actualizando lectura en Supabase:', err);
+      }
+    }
+  };
+
+  const markAllNotificationsAsRead = async (): Promise<void> => {
+    if (notifications.length === 0) return;
+    const actualizadas = notifications.map(n => ({ ...n, is_read: true }));
+    await persistirNotificaciones(actualizadas);
+
+    await registrarNotificacionesLeidas(
+      notifications.map(n => ({ id: n.id, title: n.title, message: n.message }))
+    );
+
+    if (isSupabaseConfigured && user?.id && isUuid(user.id)) {
+      try {
+        await supabase
           .from('notificaciones')
           .update({ is_read: true })
-          .eq('id', id);
-      } else if (target && user?.id) {
-        void supabase
-          .from('notificaciones')
-          .update({ is_read: true })
-          .eq('user_id', user.id)
-          .eq('title', target.title)
-          .eq('message', target.message);
+          .eq('user_id', user.id);
+      } catch (err) {
+        console.warn('[AppContext] Error actualizando todas en Supabase:', err);
       }
     }
   };
@@ -1236,6 +1328,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         authorizeWarehouseItem,
         notifications,
         markNotificationRead,
+        markAllNotificationsAsRead,
         invoices: userInvoices,
         users,
         toggleFavoriteUser,

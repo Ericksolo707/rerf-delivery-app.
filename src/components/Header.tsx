@@ -42,8 +42,9 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { logout, refreshData, isRefreshing } = useApp();
+  const { logout, refreshData, isRefreshing, notifications } = useApp();
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
+  const hasUnread = notifications.some(n => !n.is_read);
 
   const topInset = Math.max(
     insets.top,
@@ -107,6 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.exclamationText, { color: textColor }]}>!</Text>
+                  {hasUnread && <View style={styles.unreadDot} />}
                 </TouchableOpacity>
               )}
               {rightIcon && (
@@ -138,6 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
                 activeOpacity={0.7}
               >
                 <Text style={[styles.exclamationText, { color: textColor }]}>!</Text>
+                {hasUnread && <View style={styles.unreadDot} />}
               </TouchableOpacity>
 
               {/* Botón de Salir / Cerrar Sesión ([->]) */}
@@ -211,5 +214,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     lineHeight: 18,
     color: RerfColors.primaryYellowHover,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#EF4444',
   },
 });

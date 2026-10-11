@@ -113,13 +113,15 @@ const getDisplayDateTime = (item: NotificationItem): { dateLabel: string; timeLa
 };
 
 export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'>> = ({ navigation }) => {
-  const { notifications, markNotificationRead, refreshData, isRefreshing, shipments, user, users } = useApp();
+  const { notifications, markNotificationRead, markAllNotificationsAsRead, refreshData, isRefreshing, shipments, user, users } = useApp();
   const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState<string>('');
 
-  const handlePressNotification = (item: NotificationItem) => {
+  const unreadCount = useMemo(() => notifications.filter(n => !n.is_read).length, [notifications]);
+
+  const handlePressNotification = async (item: NotificationItem) => {
     // 1. Marcar como leída
-    markNotificationRead(item.id);
+    await markNotificationRead(item.id);
 
     // 2. Redirigir al movimiento o módulo específico
 
@@ -297,6 +299,31 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
         />
       </View>
 
+      {/* Barra de estado y acción rápida para marcar todas como leídas */}
+      <View style={styles.statusBarRow}>
+        <View style={styles.unreadCounterBadge}>
+          <Ionicons 
+            name={unreadCount > 0 ? "notifications-circle" : "checkmark-circle"} 
+            size={16} 
+            color={unreadCount > 0 ? '#B45309' : '#15803D'} 
+          />
+          <Text style={[styles.unreadCounterText, { color: unreadCount > 0 ? '#B45309' : '#15803D' }]}>
+            {unreadCount > 0 ? `${unreadCount} ${unreadCount === 1 ? 'activa' : 'activas'}` : 'Todas leídas'}
+          </Text>
+        </View>
+
+        {unreadCount > 0 && (
+          <TouchableOpacity 
+            style={styles.markAllBtn}
+            onPress={() => void markAllNotificationsAsRead()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="checkmark-done" size={15} color={RerfColors.logisticsBlue} />
+            <Text style={styles.markAllBtnText}>Marcar todas leídas</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
         data={sortedNotifications}
         keyExtractor={item => item.id}
@@ -330,7 +357,38 @@ const styles = StyleSheet.create({
   searchBox: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 8,
+    paddingBottom: 4,
+  },
+  statusBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginBottom: 2,
+  },
+  unreadCounterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  unreadCounterText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  markAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: RerfColors.logisticsBlueLight,
+  },
+  markAllBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: RerfColors.logisticsBlue,
   },
   listContent: {
     padding: 16,
