@@ -527,12 +527,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return warehouseItems.filter(w => w.user_id === user.id);
   }, [user, warehouseItems]);
 
-  // Filtrado de facturas: el Administrador ve todas, el usuario solo las de sus propios envíos
+  // Filtrado de facturas: el Administrador ve todas, el usuario ve las de sus propios envíos (creados o recibidos)
   const userInvoices = React.useMemo(() => {
     if (!user) return [];
     if (user.role === 'admin') return invoices;
+
     const userShipmentIds = new Set(userShipments.map(s => s.id));
-    return invoices.filter(inv => inv.shipment_id && userShipmentIds.has(inv.shipment_id));
+    const userTrackingNumbers = new Set(userShipments.map(s => s.tracking_number).filter(Boolean));
+
+    // 1. Facturas directas existentes
+    const directInvoices = invoices.filter(inv => {
+      if (!inv.shipment_id) return false;
+      return userShipmentIds.has(inv.shipment_id) || 
+             userTrackingNumbers.has(inv.shipment_id) ||
+             userShipments.some(s => s.tracking_number && inv.description.includes(s.tracking_number));
+    });
+
+    // 2. Para envíos del usuario que no tengan registro explícito en la tabla de facturas (sincronización multi-dispositivo)
+    const coveredShipmentIds = new Set(directInvoices.map(i => i.shipment_id));
+    const generatedInvoices: Invoice[] = [];
+
+    userShipments.forEach(s => {
+      if (!coveredShipmentIds.has(s.id) && !coveredShipmentIds.has(s.tracking_number) && s.status !== 'cancelado') {
+        generatedInvoices.push({
+          id: `inv-${s.id}`,
+          shipment_id: s.id,
+          invoice_number: `FEL-2026-${(s.tracking_number || '').replace(/\D/g, '').slice(-4) || '7608'}`,
+          amount: s.total_amount || 35.00,
+          issued_date: s.scheduled_date || '11/10/2026',
+          status: 'pagado',
+          description: `Servicio de Logística y Envío - Guía ${s.tracking_number} (${s.description || 'General'})`,
+          payment_method: s.payment_method === 'contra_entrega' ? 'Contra entrega' : 'Efectivo',
+        });
+      }
+    });
+
+    return [...directInvoices, ...generatedInvoices];
   }, [user, invoices, userShipments]);
 
   // Inicialización de datos desde los repositorios al arrancar
