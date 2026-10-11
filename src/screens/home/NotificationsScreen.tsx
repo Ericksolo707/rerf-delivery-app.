@@ -23,7 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
-import { NotificationItem } from '../../types';
+import { NotificationItem, UserProfile } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
@@ -113,15 +113,73 @@ const getDisplayDateTime = (item: NotificationItem): { dateLabel: string; timeLa
 };
 
 export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'>> = ({ navigation }) => {
-  const { notifications, markNotificationRead, refreshData, isRefreshing, shipments } = useApp();
+  const { notifications, markNotificationRead, refreshData, isRefreshing, shipments, user, users } = useApp();
+  const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState<string>('');
 
   const handlePressNotification = (item: NotificationItem) => {
     // 1. Marcar como leída
     markNotificationRead(item.id);
 
-    // 2. Redirigir al movimiento específico
-    // A. Buscar por shipment_id o tracking_number explícito
+    // 2. Redirigir al movimiento o módulo específico
+
+    // A. Notificación de consulta o chat de soporte (Cliente ⇄ Administrador)
+    const isSupportNotification = 
+      item.title.toLowerCase().includes('soporte') ||
+      item.title.toLowerCase().includes('consulta') ||
+      item.title.toLowerCase().includes('moderación') ||
+      item.title.toLowerCase().includes('moderacion') ||
+      item.message.toLowerCase().includes('ha escrito:') ||
+      item.message.toLowerCase().includes('consulta') ||
+      item.message.toLowerCase().includes('administración ha respondido') ||
+      item.message.toLowerCase().includes('administracion ha respondido');
+
+    if (isSupportNotification) {
+      if (isAdmin) {
+        // Encontrar qué cliente envió esta consulta
+        let targetClient: UserProfile | undefined;
+        const haEscritoMatch = item.message.match(/^(.+?)\s+ha escrito:/i);
+        if (haEscritoMatch) {
+          const clientNameRaw = haEscritoMatch[1].trim().toLowerCase();
+          targetClient = users.find(u => {
+            const uFull = `${u.first_name} ${u.last_name || ''}`.trim().toLowerCase();
+            return uFull === clientNameRaw || uFull.includes(clientNameRaw) || clientNameRaw.includes(uFull);
+          });
+        }
+        
+        if (!targetClient) {
+          targetClient = users.find(u => {
+            const uFull = `${u.first_name} ${u.last_name || ''}`.trim().toLowerCase();
+            return uFull.length > 2 && item.message.toLowerCase().includes(uFull);
+          });
+        }
+
+        const clientId = targetClient?.id || 'usr-001';
+        const clientFullName = targetClient ? `${targetClient.first_name} ${targetClient.last_name || ''}`.trim() : 'Cliente';
+        const clientEmail = targetClient?.email || 'Cliente';
+
+        navigation.navigate('ChatSoporte', {
+          contact: {
+            id: clientId,
+            name: clientFullName,
+            role: clientEmail,
+          },
+        });
+        return;
+      } else {
+        // Para clientes: ir directamente a su chat privado de soporte
+        navigation.navigate('ChatSoporte', {
+          contact: {
+            id: user?.id || 'usr-001',
+            name: 'Soporte y Atención al Cliente',
+            role: 'Administración RerF',
+          },
+        });
+        return;
+      }
+    }
+
+    // B. Buscar por shipment_id o tracking_number explícito
     if (item.shipment_id || item.tracking_number) {
       const found = shipments.find(s => 
         (item.shipment_id && s.id === item.shipment_id) || 
@@ -133,7 +191,7 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
       }
     }
 
-    // B. Buscar por regex de guía RERF-... en el título o mensaje
+    // C. Buscar por regex de guía RERF-... en el título o mensaje
     const match = (item.title + ' ' + item.message).match(/RERF-[A-Z0-9-]+/i);
     if (match) {
       const code = match[0].toUpperCase();
@@ -148,13 +206,13 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
       }
     }
 
-    // C. Si es pago o factura
+    // D. Si es pago o factura
     if (item.type === 'pago' || item.title.toLowerCase().includes('factura') || item.message.toLowerCase().includes('factura')) {
       navigation.navigate('Facturas');
       return;
     }
 
-    // D. Si es de almacenaje o bodega
+    // E. Si es de almacenaje o bodega
     if (item.message.toLowerCase().includes('bodega') || item.title.toLowerCase().includes('almacenaje')) {
       const bdgMatch = (item.title + ' ' + item.message).match(/BDG-\d+/i);
       if (bdgMatch) {
@@ -168,7 +226,7 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
       return;
     }
 
-    // E. Si es alerta o envío genérico
+    // F. Si es alerta o envío genérico
     if (item.type === 'envio' || item.type === 'alerta') {
       navigation.navigate('Pedidos');
       return;

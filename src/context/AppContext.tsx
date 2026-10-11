@@ -36,69 +36,39 @@ const isUuid = (str?: string): boolean => {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
 };
 
-const DEFAULT_CHANNELS_MESSAGES: ChatMessage[] = [
-  // Canal Moderación 1
+const DEFAULT_SUPPORT_MESSAGES: ChatMessage[] = [
   {
-    id: 'msg-mod1-1',
-    sender_id: 'support-mod-1',
-    sender_name: 'Moderación 1',
-    message: '¡Hola! Bienvenido a Moderación 1. ¿En qué podemos orientarte hoy con tus envíos?',
-    created_at: '10:00 AM',
+    id: 'msg-carlos-1',
+    sender_id: 'support-rerf',
+    sender_name: 'Soporte RerF',
+    receiver_id: 'usr-001',
+    client_id: 'usr-001',
+    client_name: 'Carlos Gómez',
+    message: '¡Hola Carlos! Bienvenido al soporte técnico y de atención de RERF APP. ¿En qué podemos orientarte hoy?',
+    created_at: '10:14 AM',
     is_support: true,
-    channel_id: 'mod-1',
-    channel_name: 'Moderación 1',
   },
   {
-    id: 'msg-mod1-2',
+    id: 'msg-carlos-2',
     sender_id: 'usr-001',
     sender_name: 'Carlos Gómez',
+    receiver_id: 'support-rerf',
+    client_id: 'usr-001',
+    client_name: 'Carlos Gómez',
     message: 'Hola, quería consultar la hora estimada de llegada de mi paquete RERF-98234-GT.',
     created_at: '10:15 AM',
-    channel_id: 'mod-1',
-    channel_name: 'Moderación 1',
+    is_support: false,
   },
   {
-    id: 'msg-mod1-3',
-    sender_id: 'support-mod-1',
-    sender_name: 'Moderación 1',
+    id: 'msg-carlos-3',
+    sender_id: 'support-rerf',
+    sender_name: 'Soporte RerF',
+    receiver_id: 'usr-001',
+    client_id: 'usr-001',
+    client_name: 'Carlos Gómez',
     message: 'El piloto se encuentra a aproximadamente 15 minutos de la dirección registrada. Puedes seguir la ruta en tiempo real desde la sección GPS.',
     created_at: '10:17 AM',
     is_support: true,
-    channel_id: 'mod-1',
-    channel_name: 'Moderación 1',
-  },
-  // Canal Moderación 2
-  {
-    id: 'msg-mod2-1',
-    sender_id: 'support-mod-2',
-    sender_name: 'Moderación 2',
-    message: 'Bienvenido a Moderación 2. Canal para revisión de guías de envío, cotizaciones y aclaraciones de cobro.',
-    created_at: '09:30 AM',
-    is_support: true,
-    channel_id: 'mod-2',
-    channel_name: 'Moderación 2',
-  },
-  // Canal Moderación 3
-  {
-    id: 'msg-mod3-1',
-    sender_id: 'support-mod-3',
-    sender_name: 'Moderación 3',
-    message: 'Bienvenido a Moderación 3. Canal para gestión de incidencias, reclamos y soporte técnico en ruta.',
-    created_at: '09:00 AM',
-    is_support: true,
-    channel_id: 'mod-3',
-    channel_name: 'Moderación 3',
-  },
-  // Canal Asistencia General
-  {
-    id: 'msg-mod4-1',
-    sender_id: 'support-mod-4',
-    sender_name: 'Asistencia General',
-    message: 'Bienvenido a Asistencia General. Atención general al cliente, horarios de bodega central e información institucional.',
-    created_at: '08:45 AM',
-    is_support: true,
-    channel_id: 'mod-4',
-    channel_name: 'Asistencia General',
   },
 ];
 
@@ -136,7 +106,7 @@ interface AppContextType {
   
   // Soporte y Chat IA
   supportMessages: ChatMessage[];
-  sendSupportMessage: (text: string, channelId?: string, channelName?: string) => Promise<void>;
+  sendSupportMessage: (text: string, targetClientId?: string, targetClientName?: string) => Promise<void>;
   aiMessages: ChatMessage[];
   sendAiMessage: (text: string) => void;
 
@@ -158,28 +128,106 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [users, setUsers] = useState<UserProfile[]>([]);
   
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(DEFAULT_CHANNELS_MESSAGES);
+  const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(DEFAULT_SUPPORT_MESSAGES);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>(MOCK_AI_MESSAGES);
 
-  // Cargar historial de canales de soporte persistido
-  useEffect(() => {
-    const cargarMensajesSoporte = async () => {
-      try {
-        const storedRaw = await AsyncStorage.getItem('@rerf_support_messages_channels');
-        if (storedRaw) {
+  // Cargar historial de soporte privado persistido y desde Supabase
+  const cargarMensajesSoporte = async (): Promise<ChatMessage[]> => {
+    try {
+      let mensajesLocales: ChatMessage[] = [];
+      const storedRaw = await AsyncStorage.getItem('@rerf_private_support_messages');
+      if (storedRaw) {
+        try {
           const parsed = JSON.parse(storedRaw);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setSupportMessages(parsed);
-            return;
+            mensajesLocales = parsed;
           }
-        }
-        await AsyncStorage.setItem('@rerf_support_messages_channels', JSON.stringify(DEFAULT_CHANNELS_MESSAGES));
-      } catch (err) {
-        console.warn('Error cargando mensajes de soporte persistidos:', err);
+        } catch {}
       }
-    };
-    cargarMensajesSoporte();
-  }, []);
+
+      // Migrar mensajes antiguos si existían en los canales de prueba
+      const legacyRaw = await AsyncStorage.getItem('@rerf_support_messages_channels');
+      if (legacyRaw) {
+        try {
+          const parsedLegacy = JSON.parse(legacyRaw);
+          if (Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
+            for (const lm of parsedLegacy) {
+              if (lm.id && !lm.id.startsWith('msg-mod')) {
+                const cId = lm.sender_id;
+                const existe = mensajesLocales.some(m => m.id === lm.id || (m.sender_id === lm.sender_id && m.message === lm.message));
+                if (!existe) {
+                  mensajesLocales.push({
+                    id: lm.id,
+                    sender_id: lm.sender_id,
+                    sender_name: lm.sender_name || 'Cliente',
+                    receiver_id: lm.is_support ? undefined : 'support-rerf',
+                    client_id: cId,
+                    client_name: lm.sender_name || 'Cliente',
+                    message: lm.message,
+                    created_at: lm.created_at || 'Reciente',
+                    is_support: Boolean(lm.is_support),
+                  });
+                }
+              }
+            }
+          }
+        } catch {}
+      }
+
+      if (mensajesLocales.length === 0) {
+        mensajesLocales = DEFAULT_SUPPORT_MESSAGES;
+        await AsyncStorage.setItem('@rerf_private_support_messages', JSON.stringify(DEFAULT_SUPPORT_MESSAGES));
+      }
+
+      // Si Supabase está configurado, sincronizar con la tabla mensajes
+      if (isSupabaseConfigured) {
+        try {
+          const { data: remoteMsgs } = await supabase
+            .from('mensajes')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+          if (remoteMsgs && remoteMsgs.length > 0) {
+            const mappedRemotes: ChatMessage[] = remoteMsgs.map((rm: any) => {
+              const cId = rm.is_support ? (rm.receiver_id || rm.sender_id) : (rm.sender_id || rm.receiver_id);
+              return {
+                id: rm.id,
+                sender_id: rm.sender_id,
+                sender_name: rm.is_support ? 'Administración RerF' : 'Cliente',
+                receiver_id: rm.receiver_id,
+                client_id: cId,
+                client_name: rm.is_support ? 'Administración RerF' : 'Cliente',
+                message: rm.message,
+                created_at: new Date(rm.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                is_support: Boolean(rm.is_support),
+                is_bot: Boolean(rm.is_bot),
+              };
+            });
+
+            const seen = new Set<string>();
+            const combinados: ChatMessage[] = [];
+            for (const m of [...mensajesLocales, ...mappedRemotes]) {
+              const sig = `${m.sender_id}|${m.message}|${m.created_at}`;
+              if (!seen.has(m.id) && !seen.has(sig)) {
+                seen.add(m.id);
+                seen.add(sig);
+                combinados.push(m);
+              }
+            }
+            mensajesLocales = combinados;
+          }
+        } catch (sbErr) {
+          console.warn('[AppContext] Aviso al consultar tabla mensajes:', sbErr);
+        }
+      }
+
+      setSupportMessages(mensajesLocales);
+      return mensajesLocales;
+    } catch (err) {
+      console.warn('Error cargando mensajes de soporte:', err);
+      return DEFAULT_SUPPORT_MESSAGES;
+    }
+  };
 
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
@@ -302,6 +350,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       isCurrent = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Re-aplicar cancelaciones locales persistidas sobre la lista de envíos
@@ -341,6 +390,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInvoices(listaFacturas);
       const actualizados = await repositorioUsuarios.listarDirectorio();
       setUsers(actualizados);
+      await cargarMensajesSoporte();
       if (user) {
         const userNotifs = await obtenerNotificacionesUsuario(user);
         setNotifications(userNotifs);
@@ -441,6 +491,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setWarehouseItems(listaBodega);
         setInvoices(listaFacturas);
         setUsers(listaUsuarios);
+        await cargarMensajesSoporte();
       } catch (error: unknown) {
         console.error('Error al inicializar datos desde repositorios:', error);
       }
@@ -466,6 +517,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInvoices(listaFacturas);
       const actualizados = await repositorioUsuarios.listarDirectorio();
       setUsers(actualizados);
+      await cargarMensajesSoporte();
     } catch {}
     return true;
   };
@@ -497,6 +549,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setWarehouseItems(listaBodega);
       const actualizados = await repositorioUsuarios.listarDirectorio();
       setUsers(actualizados);
+      await cargarMensajesSoporte();
     } catch {}
     return true;
   };
@@ -956,78 +1009,80 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const sendSupportMessage = async (
     text: string, 
-    channelId: string = 'mod-1', 
-    channelName: string = 'Moderación 1'
+    targetClientId?: string, 
+    targetClientName?: string
   ): Promise<void> => {
     const isAdmin = user?.role === 'admin';
     const now = new Date();
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     if (isAdmin) {
-      // 1. EL ADMINISTRADOR ESTÁ RESPONDIENDO EN EL CANAL
+      // 1. EL ADMINISTRADOR ESTÁ RESPONDIENDO DIRECTAMENTE AL CLIENTE
+      const clientUser = users.find(u => u.id === targetClientId) ||
+        users.find(u => `${u.first_name} ${u.last_name || ''}`.trim().toLowerCase() === (targetClientName || '').toLowerCase().trim());
+      const resolvedClientId = clientUser?.id || targetClientId || 'usr-001';
+      const resolvedClientName = clientUser 
+        ? `${clientUser.first_name} ${clientUser.last_name || ''}`.trim() 
+        : (targetClientName || 'Cliente');
+
       const adminMessage: ChatMessage = {
         id: `msg-admin-${now.getTime()}`,
         sender_id: user?.id || 'admin-root',
         sender_name: `Administración (${user?.first_name || 'Admin'})`,
+        receiver_id: resolvedClientId,
+        client_id: resolvedClientId,
+        client_name: resolvedClientName,
         message: text,
         created_at: timeStr,
         is_support: true,
-        channel_id: channelId,
-        channel_name: channelName,
       };
 
       setSupportMessages(prev => {
         const actualizados = [...prev, adminMessage];
-        void AsyncStorage.setItem('@rerf_support_messages_channels', JSON.stringify(actualizados));
+        void AsyncStorage.setItem('@rerf_private_support_messages', JSON.stringify(actualizados));
         return actualizados;
       });
 
-      if (isSupabaseConfigured && user?.id) {
+      if (isSupabaseConfigured) {
         try {
           await supabase.from('mensajes').insert({
-            sender_id: user.id,
+            sender_id: isUuid(user?.id) ? user?.id : null,
+            receiver_id: isUuid(resolvedClientId) ? resolvedClientId : null,
             is_support: true,
-            message: `[${channelName}] ${text}`,
+            message: text,
           });
         } catch (eSb) {
           console.warn('[AppContext] Error guardando mensaje admin en Supabase:', eSb);
         }
       }
 
-      // Notificar a los clientes que hayan participado en este canal
+      // Notificar al cliente específico
       try {
-        const clientsInChannel = supportMessages
-          .filter(m => m.channel_id === channelId && !m.is_support && m.sender_id !== user?.id)
-          .map(m => m.sender_id);
-        const uniqueClientIds = Array.from(new Set(clientsInChannel));
+        const notifClient: NotificationItem = {
+          id: `notif-reply-${now.getTime()}`,
+          title: 'Respuesta de Soporte RerF',
+          message: `La Administración RerF ha respondido a tu consulta: "${text}"`,
+          type: 'info',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+        };
 
-        for (const clientId of uniqueClientIds) {
-          const notifClient: NotificationItem = {
-            id: `notif-reply-${now.getTime()}-${clientId}`,
-            title: `Respuesta en ${channelName}`,
-            message: `El administrador ha respondido a tu consulta: "${text}"`,
-            type: 'info',
-            date: 'Hoy',
-            is_read: false,
-            created_at: now.toISOString(),
-          };
+        const clientKey = `@rerf_notifications_${resolvedClientId}`;
+        const prevRaw = await AsyncStorage.getItem(clientKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(clientKey, JSON.stringify([notifClient, ...prevList]));
 
-          const clientKey = `@rerf_notifications_${clientId}`;
-          const prevRaw = await AsyncStorage.getItem(clientKey);
-          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
-          await AsyncStorage.setItem(clientKey, JSON.stringify([notifClient, ...prevList]));
-
-          if (isSupabaseConfigured && clientId.includes('-')) {
-            try {
-              await supabase.from('notificaciones').insert({
-                user_id: clientId,
-                title: notifClient.title,
-                message: notifClient.message,
-                type: 'info',
-                is_read: false,
-              });
-            } catch {}
-          }
+        if (isSupabaseConfigured && isUuid(resolvedClientId)) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: resolvedClientId,
+              title: notifClient.title,
+              message: notifClient.message,
+              type: 'info',
+              is_read: false,
+            });
+          } catch {}
         }
       } catch (errNotif) {
         console.warn('Error notificando a cliente:', errNotif);
@@ -1037,30 +1092,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    // 2. UN CLIENTE ENVÍA SU CONSULTA AL CANAL
+    // 2. UN CLIENTE ENVÍA SU CONSULTA PRIVADA AL ADMINISTRADOR
+    const clientId = user?.id || 'usr-client';
+    const clientName = user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Cliente';
+
     const clientMessage: ChatMessage = {
       id: `msg-client-${now.getTime()}`,
-      sender_id: user?.id || 'usr-client',
-      sender_name: user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Cliente',
+      sender_id: clientId,
+      sender_name: clientName,
+      receiver_id: 'support-rerf',
+      client_id: clientId,
+      client_name: clientName,
       message: text,
       created_at: timeStr,
       is_support: false,
-      channel_id: channelId,
-      channel_name: channelName,
     };
 
     setSupportMessages(prev => {
       const actualizados = [...prev, clientMessage];
-      void AsyncStorage.setItem('@rerf_support_messages_channels', JSON.stringify(actualizados));
+      void AsyncStorage.setItem('@rerf_private_support_messages', JSON.stringify(actualizados));
       return actualizados;
     });
 
-    if (isSupabaseConfigured && user?.id) {
+    if (isSupabaseConfigured) {
       try {
         await supabase.from('mensajes').insert({
-          sender_id: user.id,
+          sender_id: isUuid(clientId) ? clientId : null,
+          receiver_id: null,
           is_support: false,
-          message: `[${channelName}] ${text}`,
+          message: text,
         });
       } catch (eSb) {
         console.warn('[AppContext] Error guardando mensaje cliente en Supabase:', eSb);
@@ -1070,13 +1130,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Notificar a administradores de la nueva consulta
     try {
       const adminUsers = users.filter(u => u.role === 'admin' && u.id !== user?.id);
-      const requesterName = user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Un cliente';
 
       for (const admin of adminUsers) {
         const notifAdmin: NotificationItem = {
           id: `notif-chat-admin-${now.getTime()}-${admin.id}`,
-          title: `Nueva consulta en ${channelName}`,
-          message: `${requesterName} ha escrito: "${text}"`,
+          title: 'Nueva consulta de Soporte',
+          message: `${clientName} ha escrito: "${text}"`,
           type: 'alerta',
           date: 'Hoy',
           is_read: false,
@@ -1088,7 +1147,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const prevList = prevRaw ? JSON.parse(prevRaw) : [];
         await AsyncStorage.setItem(adminKey, JSON.stringify([notifAdmin, ...prevList]));
 
-        if (isSupabaseConfigured && admin.id.includes('-')) {
+        if (isSupabaseConfigured && isUuid(admin.id)) {
           try {
             await supabase.from('notificaciones').insert({
               user_id: admin.id,
@@ -1104,22 +1163,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Error notificando a administradores:', errAdmin);
     }
 
-    // Confirmación automática de recepción en el canal para el cliente
+    // Confirmación automática de recepción para el cliente
     setTimeout(() => {
       const ackMessage: ChatMessage = {
         id: `msg-ack-${Date.now()}`,
-        sender_id: `support-${channelId}`,
-        sender_name: channelName,
-        message: `Hola ${user?.first_name || 'estimado cliente'}. Tu mensaje fue recibido por ${channelName}. El administrador revisará tu consulta y te responderá en breve.`,
+        sender_id: 'support-rerf',
+        sender_name: 'Soporte RerF',
+        receiver_id: clientId,
+        client_id: clientId,
+        client_name: clientName,
+        message: `Hola ${user?.first_name || 'estimado cliente'}. Tu mensaje ha sido recibido por la Administración de RERF Logistics. Un moderador revisará tu consulta y te responderá en breve.`,
         created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         is_support: true,
-        channel_id: channelId,
-        channel_name: channelName,
       };
 
       setSupportMessages(prev => {
         const listaConAck = [...prev, ackMessage];
-        void AsyncStorage.setItem('@rerf_support_messages_channels', JSON.stringify(listaConAck));
+        void AsyncStorage.setItem('@rerf_private_support_messages', JSON.stringify(listaConAck));
         return listaConAck;
       });
     }, 1200);
