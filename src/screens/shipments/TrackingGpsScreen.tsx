@@ -38,6 +38,7 @@ import {
   GpsTrackingService,
   GpsCoordinates
 } from '../../services/gpsTrackingService';
+import { sortShipmentsDesc } from './OrdersScreen';
 
 interface TrackingGpsScreenProps {
   route?: { params?: { shipmentId?: string } };
@@ -47,6 +48,12 @@ interface TrackingGpsScreenProps {
 export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, navigation }) => {
   const { shipments, getShipmentByTracking, updateShipment } = useApp();
   const initialShipmentId = route?.params?.shipmentId;
+
+  // Lista de envíos ordenados de más reciente a más antiguo para selección rápida
+  const recentShipments = useMemo(() => {
+    const valid = shipments.filter(s => s.status !== 'cancelado' && s.status !== 'rechazado');
+    return sortShipmentsDesc(valid);
+  }, [shipments]);
 
   // Encontrar envío si se pasó por navegación
   const defaultShipment = useMemo(() => {
@@ -469,13 +476,13 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
             <Text style={styles.emptyDrawerText}>
               Ingresa el número de guía o selecciona un envío para rastrear:
             </Text>
-            {shipments && shipments.length > 0 && (
+            {recentShipments && recentShipments.length > 0 && (
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false} 
                 contentContainerStyle={styles.quickChipsList}
               >
-                {shipments.map((s) => {
+                {recentShipments.map((s) => {
                   const sDelivered = s.status === 'entregado';
                   return (
                     <TouchableOpacity
