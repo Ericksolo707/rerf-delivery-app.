@@ -12,14 +12,15 @@
  * - Botón inferior: [ Cotizar ]
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   TextInput, 
-  TouchableOpacity 
+  TouchableOpacity,
+  Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -31,18 +32,29 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
   const [weight, setWeight] = useState<string>('5');
   const [material, setMaterial] = useState<'fragil' | 'fuerte'>('fragil');
   const [destinationZone, setDestinationZone] = useState<'capital' | 'departamento'>('capital');
-  const [totalEstimated, setTotalEstimated] = useState<string>('Q 45.00');
 
-  const handleCotizar = (): void => {
+  const calculatedTotal = useMemo(() => {
     const qty = parseInt(quantity, 10) || 1;
     const w = parseFloat(weight) || 1;
     const materialSurcharge = material === 'fragil' ? 15.00 : 5.00;
     const zoneSurcharge = destinationZone === 'departamento' ? 15.00 : 0.00;
     const baseRate = 25.00;
     const weightRate = w > 1 ? (w - 1) * 3.50 : 0;
-    const total = (baseRate + weightRate + materialSurcharge + zoneSurcharge) * qty;
+    return (baseRate + weightRate + materialSurcharge + zoneSurcharge) * qty;
+  }, [quantity, weight, material, destinationZone]);
 
-    setTotalEstimated(`Q ${total.toFixed(2)}`);
+  const handleProceedToShipment = (): void => {
+    const qty = parseInt(quantity, 10) || 1;
+    const w = parseFloat(weight) || 1;
+    const desc = `Cotización RerF: ${qty} paquete(s) (${w} kg/lb, ${material === 'fragil' ? 'Frágil' : 'Fuerte'}, ${destinationZone === 'capital' ? 'Capital (Local)' : 'Departamental'})`;
+
+    navigation.navigate('RealizarEnvio', {
+      quotedAmount: calculatedTotal,
+      quotedDescription: desc,
+      quotedWeight: weight,
+      quotedMaterial: material,
+      quotedDestination: destinationZone,
+    });
   };
 
   return (
@@ -50,12 +62,17 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
       <Header title="Cotizador" showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* LOGO Rómbico Central y Cotizador RERF APP */}
+        {/* LOGO Corporativo RerF (Reemplaza placeholder LOGO) */}
         <View style={styles.logoContainer}>
           <Text style={styles.cotizadorHeaderTitle}>Cotizador</Text>
           <Text style={styles.cotizadorHeaderSubtitle}>RERF APP</Text>
           <View style={styles.diamondBox}>
-            <Text style={styles.diamondText}>LOGO</Text>
+            <View style={styles.diamondInnerContent}>
+              <Ionicons name="cube" size={16} color={RerfColors.primaryYellow} />
+              <Text style={styles.diamondBrandText}>
+                Rer<Text style={styles.diamondBrandHighlight}>F.</Text>
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -141,7 +158,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
           <View style={styles.fieldBlock}>
             <Text style={styles.fieldLabel}>Total estimado:</Text>
             <View style={styles.totalBox}>
-              <Text style={styles.totalText}>{totalEstimated}</Text>
+              <Text style={styles.totalText}>Q {calculatedTotal.toFixed(2)}</Text>
             </View>
           </View>
 
@@ -150,7 +167,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
             <Text style={styles.breakdownTitle}>Detalle del cálculo:</Text>
             <Text style={styles.breakdownItem}>• Tarifa base estándar: Q 25.00</Text>
             <Text style={styles.breakdownItem}>• Material ({material === 'fragil' ? 'Frágil' : 'Fuerte'}): Q {material === 'fragil' ? '15.00' : '5.00'}</Text>
-            <Text style={styles.breakdownItem}>• Recargo por peso ({weight} kg): Q {parseFloat(weight) > 1 ? ((parseFloat(weight) - 1) * 3.50).toFixed(2) : '0.00'}</Text>
+            <Text style={styles.breakdownItem}>• Recargo por peso ({weight || '1'} kg): Q {parseFloat(weight) > 1 ? ((parseFloat(weight) - 1) * 3.50).toFixed(2) : '0.00'}</Text>
             {destinationZone === 'departamento' && (
               <Text style={styles.breakdownItem}>• Cobertura departamental: Q 15.00</Text>
             )}
@@ -159,7 +176,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
           {/* Botón [ Cotizar ] */}
           <TouchableOpacity
             style={styles.cotizarBtn}
-            onPress={handleCotizar}
+            onPress={() => Keyboard.dismiss()}
             activeOpacity={0.85}
           >
             <Text style={styles.cotizarBtnText}>Calcular Cotización</Text>
@@ -168,7 +185,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
           {/* Botón [ Realizar Envío con esta Cotización ] */}
           <TouchableOpacity
             style={styles.crearEnvioBtn}
-            onPress={() => navigation.navigate('RealizarEnvio')}
+            onPress={handleProceedToShipment}
             activeOpacity={0.85}
           >
             <Ionicons name="paper-plane" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
@@ -233,11 +250,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   diamondBox: {
-    width: 60,
-    height: 60,
+    width: 64,
+    height: 64,
     borderWidth: 2,
     borderColor: RerfColors.primaryYellow,
-    borderRadius: 10,
+    borderRadius: 12,
     transform: [{ rotate: '45deg' }],
     justifyContent: 'center',
     alignItems: 'center',
@@ -245,12 +262,20 @@ const styles = StyleSheet.create({
     marginVertical: 14,
     ...RerfShadows.cardHover,
   },
-  diamondText: {
+  diamondInnerContent: {
     transform: [{ rotate: '-45deg' }],
-    fontSize: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1,
+  },
+  diamondBrandText: {
+    fontSize: 13,
     fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  diamondBrandHighlight: {
     color: RerfColors.primaryYellow,
-    letterSpacing: 0.5,
   },
   formContainer: {
     gap: 16,

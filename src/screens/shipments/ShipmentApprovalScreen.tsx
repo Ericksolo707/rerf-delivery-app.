@@ -12,13 +12,14 @@
  *   [ Tarjeta Déb./Créd. ]
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity 
+  TouchableOpacity,
+  BackHandler
 } from 'react-native';
 import { Header } from '../../components/Header';
 import { ModalDialog } from '../../components/ModalDialog';
@@ -42,6 +43,19 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
+  // Evitar que el botón atrás de hardware o gestos regrese a la cotización
+  useEffect(() => {
+    const backAction = (): boolean => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Principal' }],
+      });
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [navigation]);
+
   const handleFinish = async (): Promise<void> => {
     setIsSaving(true);
     try {
@@ -59,7 +73,7 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
 
   return (
     <View style={styles.container}>
-      <Header title="Realizar Envío" showBack={true} />
+      <Header title="Realizar Envío" showBack={false} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Título: ¡Envío confirmado! */}

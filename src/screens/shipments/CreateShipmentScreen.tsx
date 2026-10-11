@@ -74,6 +74,8 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const { addShipment, updateShipment, shipments, warehouseItems, users, user } = useApp();
   const prefilled = route.params?.prefilledRecipient;
   const editShipmentId = route.params?.editShipmentId;
+  const quotedAmount = route.params?.quotedAmount;
+  const quotedDescription = route.params?.quotedDescription;
   const existingShipment = editShipmentId ? shipments.find(s => s.id === editShipmentId || s.tracking_number === editShipmentId) : undefined;
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -120,7 +122,9 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const [calendarMonth, setCalendarMonth] = useState<number>(initialDateObj.getMonth());
   const [pickedDate, setPickedDate] = useState<Date>(initialDateObj);
 
-  const [description, setDescription] = useState<string>(existingShipment?.description || '');
+  const [description, setDescription] = useState<string>(
+    existingShipment?.description || quotedDescription || ''
+  );
 
   // Modales y filtros
   const [showRecipientModal, setShowRecipientModal] = useState<boolean>(false);
@@ -219,7 +223,9 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
       const randomCode = Math.floor(1000 + Math.random() * 9000);
       const trackingNumber = `RERF-${randomCode}`;
-      const baseCost = selectedItem ? 45.00 : 35.00;
+      const baseCost = quotedAmount !== undefined 
+        ? quotedAmount 
+        : (selectedItem ? 45.00 : 35.00);
 
       // Buscar si el destinatario coincide con un usuario registrado
       const matchedUser = selectedRecipientUser || users.find(u => {
@@ -267,7 +273,14 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
     if (editShipmentId) {
       navigation.replace('Pedidos');
     } else {
-      navigation.replace('AprobacionEnvio', { shipment: createdShipment });
+      // Reemplazamos la ruta limpiando el historial para que no se regrese al Cotizador
+      navigation.reset({
+        index: 1,
+        routes: [
+          { name: 'Principal' },
+          { name: 'AprobacionEnvio', params: { shipment: createdShipment } },
+        ],
+      });
     }
   };
 
@@ -294,6 +307,21 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           <View style={styles.errorAlert}>
             <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
             <Text style={styles.errorAlertText}>{errorBanner}</Text>
+          </View>
+        ) : null}
+
+        {quotedAmount !== undefined ? (
+          <View style={styles.quoteNoticeCard}>
+            <View style={styles.quoteNoticeHeader}>
+              <View style={styles.quoteNoticeBadge}>
+                <Ionicons name="calculator-outline" size={18} color="#B45309" />
+                <Text style={styles.quoteNoticeTitle}>Tarifa Cotizada Aplicada</Text>
+              </View>
+              <Text style={styles.quoteNoticeAmount}>Q {quotedAmount.toFixed(2)}</Text>
+            </View>
+            <Text style={styles.quoteNoticeSubtitle}>
+              Monto calculado desde el Cotizador aplicado directamente a este envío.
+            </Text>
           </View>
         ) : null}
 
@@ -1199,5 +1227,39 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: RerfColors.textMain,
+  },
+  quoteNoticeCard: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    gap: 4,
+  },
+  quoteNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  quoteNoticeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  quoteNoticeTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  quoteNoticeAmount: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#B45309',
+  },
+  quoteNoticeSubtitle: {
+    fontSize: 11,
+    color: '#78350F',
+    fontWeight: '600',
   },
 });

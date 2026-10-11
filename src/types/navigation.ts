@@ -30,7 +30,15 @@ export type RootStackParamList = {
   Pedidos: undefined;
   Entregas: undefined;
   GestionEnvio: undefined;
-  RealizarEnvio: { prefilledRecipient?: string; editShipmentId?: string } | undefined;
+  RealizarEnvio: {
+    prefilledRecipient?: string;
+    editShipmentId?: string;
+    quotedAmount?: number;
+    quotedDescription?: string;
+    quotedWeight?: string;
+    quotedMaterial?: 'fragil' | 'fuerte';
+    quotedDestination?: 'capital' | 'departamento';
+  } | undefined;
   AprobacionEnvio: { shipment?: Partial<Shipment> } | undefined;
   EnvioRechazado: { shipment?: Partial<Shipment> } | undefined;
   CancelarEnvio: { shipmentId?: string } | undefined;
