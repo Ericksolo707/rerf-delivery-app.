@@ -547,6 +547,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAllShipments(conCancelaciones);
       const listaBodega = await repositorioBodega.listar();
       setWarehouseItems(listaBodega);
+      const listaFacturas = await repositorioFacturas.listar();
+      setInvoices(listaFacturas);
       const actualizados = await repositorioUsuarios.listarDirectorio();
       setUsers(actualizados);
       await cargarMensajesSoporte();
