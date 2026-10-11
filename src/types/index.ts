@@ -110,6 +110,8 @@ export interface NotificationItem {
   date: string;
   is_read: boolean;
   created_at?: string;
+  shipment_id?: string;
+  tracking_number?: string;
 }
 
 export interface ChatMessage {

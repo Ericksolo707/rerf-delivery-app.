@@ -24,6 +24,35 @@ import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
+const getShipmentTimestamp = (item: Shipment): number => {
+  if (item.created_at) {
+    const parsed = new Date(item.created_at.replace(' ', 'T')).getTime();
+    if (!isNaN(parsed)) return parsed;
+    const directParsed = new Date(item.created_at).getTime();
+    if (!isNaN(directParsed)) return directParsed;
+  }
+  const numId = parseInt(item.id, 10);
+  if (!isNaN(numId) && numId > 1600000000000) {
+    return numId;
+  }
+  if (item.scheduled_date) {
+    if (item.scheduled_date.includes('/')) {
+      const parts = item.scheduled_date.split('/');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10)).getTime();
+        if (!isNaN(d)) return d;
+      }
+    }
+    const parsedSched = new Date(item.scheduled_date).getTime();
+    if (!isNaN(parsedSched)) return parsedSched;
+  }
+  return 0;
+};
+
+export const sortShipmentsDesc = (list: Shipment[]): Shipment[] => {
+  return [...list].sort((a, b) => getShipmentTimestamp(b) - getShipmentTimestamp(a));
+};
+
 export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ navigation }) => {
   const { shipments, user, users, refreshData, isRefreshing } = useApp();
   const [adminScope, setAdminScope] = useState<'mis_pedidos' | 'todos'>('mis_pedidos');
@@ -49,9 +78,18 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
     });
   }, [shipments, user, adminScope]);
 
-  const activeOrders = myOrders.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado');
-  const pendingOrders = myOrders.filter(s => s.status === 'pendiente');
-  const cancelledOrders = myOrders.filter(s => s.status === 'cancelado');
+  const activeOrders = React.useMemo(
+    () => sortShipmentsDesc(myOrders.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado')),
+    [myOrders]
+  );
+  const pendingOrders = React.useMemo(
+    () => sortShipmentsDesc(myOrders.filter(s => s.status === 'pendiente')),
+    [myOrders]
+  );
+  const cancelledOrders = React.useMemo(
+    () => sortShipmentsDesc(myOrders.filter(s => s.status === 'cancelado')),
+    [myOrders]
+  );
 
   // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
@@ -209,7 +247,11 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
 
     return (
       <View key={item.id} style={[styles.card, { borderColor: '#FECACA', backgroundColor: '#FEF2F2' }]}>
-        <View style={styles.infoCol}>
+        <TouchableOpacity 
+          style={styles.infoCol}
+          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+          activeOpacity={0.7}
+        >
           <View style={styles.headerMetaRow}>
             <Text style={styles.senderMetaText} numberOfLines={1}>
               {displayLabel}
@@ -226,13 +268,14 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
             </Text>
           </View>
 
-          {item.cancellation_reason ? (
-            <View style={{ marginTop: 2, marginBottom: 4 }}>
-              <Text style={[styles.fieldLabel, { color: RerfColors.errorRed }]}>
-                Motivo: <Text style={{ fontWeight: '600', color: '#7F1D1D' }}>{item.cancellation_reason}</Text>
+          <View style={{ marginTop: 2, marginBottom: 4 }}>
+            <Text style={[styles.fieldLabel, { color: RerfColors.errorRed }]}>
+              Motivo:{' '}
+              <Text style={{ fontWeight: '700', color: '#7F1D1D' }}>
+                {item.cancellation_reason || 'Cancelado por el usuario'}
               </Text>
-            </View>
-          ) : null}
+            </Text>
+          </View>
 
           <View style={styles.statusRow}>
             <Text style={styles.fieldLabel}>Estado: </Text>
@@ -242,15 +285,16 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
               </Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.actionsCol}>
           <TouchableOpacity 
-            style={[styles.squareActionButton, { borderColor: '#FECACA' }]}
+            style={styles.detailPillButton}
             onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
             activeOpacity={0.7}
           >
-            <Text style={[styles.actionLetter, { color: '#DC2626' }]}>R</Text>
+            <Ionicons name="document-text-outline" size={15} color="#DC2626" />
+            <Text style={styles.detailPillText}>Detalle</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -564,5 +608,22 @@ const styles = StyleSheet.create({
   },
   adminFilterTextActive: {
     color: RerfColors.primaryYellowText,
+  },
+  detailPillButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    ...RerfShadows.card,
+  },
+  detailPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#DC2626',
   },
 });
