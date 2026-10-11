@@ -41,7 +41,9 @@ export const UsersListScreen: React.FC<RootStackScreenProps<'ListadoUsuarios'>> 
         <Text style={styles.fotoText}>foto</Text>
       </View>
       <Text style={styles.userNameText} numberOfLines={1}>
-        {item.first_name.toLowerCase()}{item.last_name.toLowerCase()}
+        {item.alias 
+          ? (item.alias.startsWith('@') ? item.alias : `@${item.alias}`) 
+          : (item.username || `${item.first_name.toLowerCase()}${item.last_name.toLowerCase()}`)}
       </Text>
     </TouchableOpacity>
   );

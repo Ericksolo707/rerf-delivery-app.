@@ -76,12 +76,14 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
         <View style={styles.infoFieldsContainer}>
           <Text style={styles.infoLine}>
             <Text style={styles.infoLabel}>Nombre: </Text>
-            {targetUser.first_name} {targetUser.last_name}
+            {targetUser.username || `${targetUser.first_name} ${targetUser.last_name}`.trim()}
           </Text>
 
           <Text style={styles.infoLine}>
             <Text style={styles.infoLabel}>Alias: </Text>
-            @{targetUser.first_name.toLowerCase()}{targetUser.last_name.toLowerCase()}
+            {targetUser.alias 
+              ? (targetUser.alias.startsWith('@') ? targetUser.alias : `@${targetUser.alias}`)
+              : `@${targetUser.first_name.toLowerCase()}${targetUser.last_name.toLowerCase()}`}
           </Text>
 
           <Text style={styles.infoLine}>
@@ -94,7 +96,7 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
         <View style={styles.descCard}>
           <Text style={styles.descTitle}>Descripción {targetUser.first_name}:</Text>
           <Text style={styles.descText}>
-            {targetUser.bio || 'Sin descripción adicional registrada por el usuario.'}
+            {targetUser.description || targetUser.bio || 'Sin descripción adicional registrada por el usuario.'}
           </Text>
         </View>
 

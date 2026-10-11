@@ -394,15 +394,21 @@ export class RepositorioUsuarios {
       this.usuarioActual = { ...ADMIN_USER };
     }
 
+    const bioOdesc = datos.description !== undefined ? datos.description : datos.bio;
+
     this.usuarioActual = {
       ...this.usuarioActual,
       ...datos,
+      bio: bioOdesc !== undefined ? bioOdesc : this.usuarioActual.bio,
+      description: bioOdesc !== undefined ? bioOdesc : (this.usuarioActual.description || this.usuarioActual.bio),
     };
 
     // Actualizar en el directorio
     const idx = this.directorio.findIndex((u) => u.id === this.usuarioActual?.id);
     if (idx !== -1) {
       this.directorio[idx] = { ...this.usuarioActual };
+    } else {
+      this.directorio.unshift({ ...this.usuarioActual });
     }
 
     try {
@@ -413,11 +419,16 @@ export class RepositorioUsuarios {
         const updatePayload: Record<string, any> = {};
         if (datos.first_name) updatePayload.first_name = datos.first_name;
         if (datos.last_name !== undefined) updatePayload.last_name = datos.last_name;
+        if (datos.username !== undefined) updatePayload.username = datos.username;
+        if (datos.alias !== undefined) updatePayload.alias = datos.alias;
         if (datos.phone !== undefined) updatePayload.phone = datos.phone;
         if (datos.address !== undefined) updatePayload.address = datos.address;
         if (datos.address_references !== undefined) updatePayload.address_references = datos.address_references;
         if (datos.avatar_url !== undefined) updatePayload.avatar_url = datos.avatar_url;
-        if (datos.bio !== undefined) updatePayload.bio = datos.bio;
+        if (bioOdesc !== undefined) {
+          updatePayload.bio = bioOdesc;
+          updatePayload.description = bioOdesc;
+        }
 
         let resU = await supabase.from('usuarios').update(updatePayload).eq('id', this.usuarioActual.id);
         if (resU.error && resU.error.message.includes('does not exist')) {
@@ -447,18 +458,26 @@ export class RepositorioUsuarios {
         const data = res.data;
         const error = res.error;
         if (!error && data && data.length > 0) {
-          const remoteUsers: UserProfile[] = data.map((p) => ({
-            id: p.id,
-            first_name: p.first_name,
-            last_name: p.last_name,
-            email: p.email,
-            phone: p.phone || '',
-            address: p.address || '',
-            address_references: p.address_references || '',
-            avatar_url: p.avatar_url,
-            bio: p.bio,
-            role: p.role || 'cliente',
-          }));
+          const remoteUsers: UserProfile[] = data.map((p) => {
+            const bioVal = p.description || p.bio || '';
+            const aliasVal = p.alias || (p.first_name ? `@${p.first_name.toLowerCase()}${p.last_name ? p.last_name.toLowerCase() : ''}` : '');
+            const usernameVal = p.username || `${p.first_name || ''} ${p.last_name || ''}`.trim();
+            return {
+              id: p.id,
+              first_name: p.first_name,
+              last_name: p.last_name,
+              username: usernameVal,
+              alias: aliasVal,
+              email: p.email,
+              phone: p.phone || '',
+              address: p.address || '',
+              address_references: p.address_references || '',
+              avatar_url: p.avatar_url,
+              bio: bioVal,
+              description: bioVal,
+              role: p.role || 'cliente',
+            };
+          });
 
           // Consultar favoritos de Supabase si hay usuario en sesión
           const favoriteIds = new Set<string>();

@@ -4,12 +4,15 @@ export interface UserProfile {
   id: string;
   first_name: string;
   last_name: string;
+  username?: string;
+  alias?: string;
   email: string;
   phone?: string;
   address?: string;
   address_references?: string;
   avatar_url?: string;
   bio?: string;
+  description?: string;
   role: UserRole;
   is_favorite?: boolean;
 }
