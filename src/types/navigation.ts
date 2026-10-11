@@ -41,6 +41,7 @@ export type RootStackParamList = {
 
   // Bodega Personal
   SolicitudAlmacenaje: undefined;
+  DetalleAlmacenaje: { itemId?: string; storageCode?: string } | undefined;
 
   // Directorio y Perfiles de Usuario
   Usuarios: undefined;

@@ -35,6 +35,7 @@ import { PackageDetailScreen } from "../screens/shipments/PackageDetailScreen";
 
 // Pantallas de Bodega Personal
 import { WarehouseRequestScreen } from "../screens/warehouse/WarehouseRequestScreen";
+import { WarehouseDetailScreen } from "../screens/warehouse/WarehouseDetailScreen";
 
 // Pantallas de Directorio de Usuarios
 import { UserSearchScreen } from "../screens/users/UserSearchScreen";
@@ -114,6 +115,10 @@ export const RootNavigator: React.FC = () => {
             <Stack.Screen
               name="SolicitudAlmacenaje"
               component={WarehouseRequestScreen}
+            />
+            <Stack.Screen
+              name="DetalleAlmacenaje"
+              component={WarehouseDetailScreen}
             />
 
             {/* Directorio de Usuarios */}
