@@ -46,39 +46,64 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
     return base.charAt(0).toUpperCase() + base.slice(1);
   }, [user]);
 
-  const [usernameInput, setUsernameInput] = useState<string>(() => initialUsername);
-  const [alias, setAlias] = useState<string>(() => 
-    user?.alias || `@${(user?.first_name || 'usuario').toLowerCase()}`
-  );
-  const [description, setDescription] = useState<string>(() => 
-    user?.description || user?.bio || 'Cliente frecuente de envíos nacionales y almacenaje en bodega.'
-  );
-  const [phone, setPhone] = useState<string>(() => user?.phone || '+502 5598-1234');
-  const [address, setAddress] = useState<string>(() => user?.address || 'Zona 10, Ciudad de Guatemala');
-  const [references, setReferences] = useState<string>(() => user?.address_references || 'Frente a plaza comercial');
+  // Valores derivados en vivo desde el usuario en sesión
+  const displayedUsername = user?.username || (user?.first_name ? `${user.first_name}${user.last_name ? ` ${user.last_name}` : ''}`.trim() : initialUsername);
+  const displayedAlias = user?.alias || `@${(user?.first_name || 'usuario').toLowerCase()}`;
+  const displayedDesc = user?.description || user?.bio || 'Cliente frecuente de envíos nacionales y almacenaje en bodega.';
+  const displayedPhone = user?.phone || '+502 5598-1234';
+  const displayedAddress = user?.address || 'Zona 10, Ciudad de Guatemala';
+  const displayedRefs = user?.address_references || 'Frente a plaza comercial';
+
+  // Estados de borrador para los campos en edición
+  const [usernameInput, setUsernameInput] = useState<string>(displayedUsername);
+  const [alias, setAlias] = useState<string>(displayedAlias);
+  const [description, setDescription] = useState<string>(displayedDesc);
+  const [phone, setPhone] = useState<string>(displayedPhone);
+  const [address, setAddress] = useState<string>(displayedAddress);
+  const [references, setReferences] = useState<string>(displayedRefs);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
+  const handleToggleEdit = (field: string) => {
+    if (editingField === field) {
+      setEditingField(null);
+    } else {
+      if (field === 'username') setUsernameInput(displayedUsername);
+      if (field === 'alias') setAlias(displayedAlias);
+      if (field === 'phone') setPhone(displayedPhone);
+      if (field === 'address') setAddress(displayedAddress);
+      if (field === 'references') setReferences(displayedRefs);
+      if (field === 'description') setDescription(displayedDesc);
+      setEditingField(field);
+    }
+  };
+
   const handleSave = async (): Promise<void> => {
-    const trimmedUsername = usernameInput.trim();
-    const parts = trimmedUsername.split(' ');
+    const activeUsername = editingField === 'username' ? usernameInput.trim() : displayedUsername;
+    const parts = activeUsername.split(' ');
     const firstName = parts[0] || user?.first_name || 'Usuario';
     const lastName = parts.slice(1).join(' ') || user?.last_name || '';
 
-    const cleanAlias = alias.trim() 
-      ? (alias.trim().startsWith('@') ? alias.trim() : `@${alias.trim()}`)
+    const rawAlias = editingField === 'alias' ? alias.trim() : displayedAlias;
+    const cleanAlias = rawAlias
+      ? (rawAlias.startsWith('@') ? rawAlias : `@${rawAlias}`)
       : `@${firstName.toLowerCase()}`;
+
+    const activeDesc = editingField === 'description' ? description.trim() : displayedDesc;
+    const activePhone = editingField === 'phone' ? phone.trim() : displayedPhone;
+    const activeAddress = editingField === 'address' ? address.trim() : displayedAddress;
+    const activeRefs = editingField === 'references' ? references.trim() : displayedRefs;
 
     await updateProfile({
       first_name: firstName,
       last_name: lastName,
-      username: trimmedUsername,
+      username: activeUsername,
       alias: cleanAlias,
-      description: description.trim(),
-      bio: description.trim(),
-      phone: phone.trim(),
-      address: address.trim(),
-      address_references: references.trim(),
+      description: activeDesc,
+      bio: activeDesc,
+      phone: activePhone,
+      address: activeAddress,
+      address_references: activeRefs,
     });
 
     setEditingField(null);
@@ -100,8 +125,8 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
             size={100} 
             style={styles.avatarStyle} 
           />
-          <Text style={styles.usernameTitle}>{usernameInput || initialUsername}</Text>
-          <Text style={styles.userAliasSubtitle}>{alias}</Text>
+          <Text style={styles.usernameTitle}>{displayedUsername}</Text>
+          <Text style={styles.userAliasSubtitle}>{displayedAlias}</Text>
         </View>
 
         {savedSuccess && (
@@ -127,12 +152,12 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{usernameInput || 'Sin nombre registrado'}</Text>
+                <Text style={styles.fieldValue}>{displayedUsername}</Text>
               )}
             </View>
             <TouchableOpacity 
               style={styles.editBtn} 
-              onPress={() => setEditingField(editingField === 'username' ? null : 'username')}
+              onPress={() => handleToggleEdit('username')}
             >
               <Text style={styles.editBtnText}>
                 {editingField === 'username' ? 'cerrar' : 'editar'}
@@ -155,12 +180,12 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{alias}</Text>
+                <Text style={styles.fieldValue}>{displayedAlias}</Text>
               )}
             </View>
             <TouchableOpacity 
               style={styles.editBtn} 
-              onPress={() => setEditingField(editingField === 'alias' ? null : 'alias')}
+              onPress={() => handleToggleEdit('alias')}
             >
               <Text style={styles.editBtnText}>
                 {editingField === 'alias' ? 'cerrar' : 'editar'}
@@ -197,12 +222,12 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{phone || 'Sin teléfono'}</Text>
+                <Text style={styles.fieldValue}>{displayedPhone}</Text>
               )}
             </View>
             <TouchableOpacity 
               style={styles.editBtn} 
-              onPress={() => setEditingField(editingField === 'phone' ? null : 'phone')}
+              onPress={() => handleToggleEdit('phone')}
             >
               <Text style={styles.editBtnText}>
                 {editingField === 'phone' ? 'cerrar' : 'editar'}
@@ -224,12 +249,12 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{address || 'Sin dirección'}</Text>
+                <Text style={styles.fieldValue}>{displayedAddress}</Text>
               )}
             </View>
             <TouchableOpacity 
               style={styles.editBtn} 
-              onPress={() => setEditingField(editingField === 'address' ? null : 'address')}
+              onPress={() => handleToggleEdit('address')}
             >
               <Text style={styles.editBtnText}>
                 {editingField === 'address' ? 'cerrar' : 'editar'}
@@ -251,12 +276,12 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{references || 'Sin referencias'}</Text>
+                <Text style={styles.fieldValue}>{displayedRefs}</Text>
               )}
             </View>
             <TouchableOpacity 
               style={styles.editBtn} 
-              onPress={() => setEditingField(editingField === 'references' ? null : 'references')}
+              onPress={() => handleToggleEdit('references')}
             >
               <Text style={styles.editBtnText}>
                 {editingField === 'references' ? 'cerrar' : 'editar'}
@@ -280,14 +305,12 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValueDesc}>
-                  {description || 'Sin descripción registrada. Toca editar para agregar una.'}
-                </Text>
+                <Text style={styles.fieldValueDesc}>{displayedDesc}</Text>
               )}
             </View>
             <TouchableOpacity 
               style={styles.editBtn} 
-              onPress={() => setEditingField(editingField === 'description' ? null : 'description')}
+              onPress={() => handleToggleEdit('description')}
             >
               <Text style={styles.editBtnText}>
                 {editingField === 'description' ? 'cerrar' : 'editar'}

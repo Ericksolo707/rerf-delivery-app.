@@ -15,6 +15,7 @@ import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 const STORAGE_KEY_USERS = '@rerf_registered_users';
 const STORAGE_KEY_CREDS = '@rerf_user_credentials';
 const STORAGE_KEY_SESSION = '@rerf_active_session';
+const STORAGE_KEY_OVERRIDES = '@rerf_user_profile_overrides';
 
 const isUuid = (str?: string): boolean => {
   if (!str) return false;
@@ -387,6 +388,33 @@ export class RepositorioUsuarios {
   }
 
   /**
+   * Obtiene el almacén de personalizaciones y overrides de perfiles
+   */
+  private async obtenerOverrides(): Promise<Record<string, Partial<UserProfile>>> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY_OVERRIDES);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch {}
+    return {};
+  }
+
+  /**
+   * Guarda personalizaciones de usuario por ID y correo
+   */
+  private async guardarOverride(userId: string, email: string | undefined, data: Partial<UserProfile>): Promise<void> {
+    try {
+      const overrides = await this.obtenerOverrides();
+      if (userId) overrides[userId] = { ...overrides[userId], ...data };
+      if (email) overrides[email.toLowerCase()] = { ...overrides[email.toLowerCase()], ...data };
+      await AsyncStorage.setItem(STORAGE_KEY_OVERRIDES, JSON.stringify(overrides));
+    } catch (err) {
+      console.warn('[RepositorioUsuarios] Error guardando override:', err);
+    }
+  }
+
+  /**
    * Actualiza los datos del perfil del usuario en sesión
    */
   public async actualizarPerfil(datos: Partial<UserProfile>): Promise<UserProfile> {
@@ -403,8 +431,21 @@ export class RepositorioUsuarios {
       description: bioOdesc !== undefined ? bioOdesc : (this.usuarioActual.description || this.usuarioActual.bio),
     };
 
-    // Actualizar en el directorio
-    const idx = this.directorio.findIndex((u) => u.id === this.usuarioActual?.id);
+    // 1. Guardar en overrides persistentes (blindado contra columnas faltantes en base de datos remota)
+    await this.guardarOverride(this.usuarioActual.id, this.usuarioActual.email, {
+      first_name: this.usuarioActual.first_name,
+      last_name: this.usuarioActual.last_name,
+      username: this.usuarioActual.username,
+      alias: this.usuarioActual.alias,
+      description: this.usuarioActual.description,
+      bio: this.usuarioActual.bio,
+      phone: this.usuarioActual.phone,
+      address: this.usuarioActual.address,
+      address_references: this.usuarioActual.address_references,
+    });
+
+    // 2. Actualizar en el directorio local
+    const idx = this.directorio.findIndex((u) => u.id === this.usuarioActual?.id || u.email?.toLowerCase() === this.usuarioActual?.email?.toLowerCase());
     if (idx !== -1) {
       this.directorio[idx] = { ...this.usuarioActual };
     } else {
@@ -416,23 +457,43 @@ export class RepositorioUsuarios {
       await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
 
       if (isSupabaseConfigured && this.usuarioActual?.id) {
-        const updatePayload: Record<string, any> = {};
-        if (datos.first_name) updatePayload.first_name = datos.first_name;
-        if (datos.last_name !== undefined) updatePayload.last_name = datos.last_name;
-        if (datos.username !== undefined) updatePayload.username = datos.username;
-        if (datos.alias !== undefined) updatePayload.alias = datos.alias;
-        if (datos.phone !== undefined) updatePayload.phone = datos.phone;
-        if (datos.address !== undefined) updatePayload.address = datos.address;
-        if (datos.address_references !== undefined) updatePayload.address_references = datos.address_references;
-        if (datos.avatar_url !== undefined) updatePayload.avatar_url = datos.avatar_url;
-        if (bioOdesc !== undefined) {
-          updatePayload.bio = bioOdesc;
-          updatePayload.description = bioOdesc;
-        }
+        // Intentar actualizar metadata de Auth
+        try {
+          await supabase.auth.updateUser({
+            data: {
+              first_name: this.usuarioActual.first_name,
+              last_name: this.usuarioActual.last_name,
+              username: this.usuarioActual.username,
+              alias: this.usuarioActual.alias,
+              bio: this.usuarioActual.bio,
+              description: this.usuarioActual.description,
+            }
+          });
+        } catch {}
 
-        let resU = await supabase.from('usuarios').update(updatePayload).eq('id', this.usuarioActual.id);
-        if (resU.error && resU.error.message.includes('does not exist')) {
-          await supabase.from('profiles').update(updatePayload).eq('id', this.usuarioActual.id);
+        // Payload estándar garantizado en tabla usuarios / profiles
+        const standardPayload: Record<string, any> = {};
+        if (datos.first_name) standardPayload.first_name = datos.first_name;
+        if (datos.last_name !== undefined) standardPayload.last_name = datos.last_name;
+        if (datos.phone !== undefined) standardPayload.phone = datos.phone;
+        if (datos.address !== undefined) standardPayload.address = datos.address;
+        if (datos.address_references !== undefined) standardPayload.address_references = datos.address_references;
+        if (datos.avatar_url !== undefined) standardPayload.avatar_url = datos.avatar_url;
+        if (bioOdesc !== undefined) standardPayload.bio = bioOdesc;
+
+        // Intentar primero con todas las columnas
+        const fullPayload: Record<string, any> = { ...standardPayload };
+        if (datos.username !== undefined) fullPayload.username = datos.username;
+        if (datos.alias !== undefined) fullPayload.alias = datos.alias;
+        if (bioOdesc !== undefined) fullPayload.description = bioOdesc;
+
+        let resU = await supabase.from('usuarios').update(fullPayload).eq('id', this.usuarioActual.id);
+        if (resU.error) {
+          // Si falló por columnas no existentes en PostgreSQL, hacer fallback al standardPayload
+          resU = await supabase.from('usuarios').update(standardPayload).eq('id', this.usuarioActual.id);
+          if (resU.error && resU.error.message.includes('does not exist')) {
+            await supabase.from('profiles').update(standardPayload).eq('id', this.usuarioActual.id);
+          }
         }
       }
     } catch (err) {
@@ -458,21 +519,25 @@ export class RepositorioUsuarios {
         const data = res.data;
         const error = res.error;
         if (!error && data && data.length > 0) {
+          const overrides = await this.obtenerOverrides();
           const remoteUsers: UserProfile[] = data.map((p) => {
-            const bioVal = p.description || p.bio || '';
-            const aliasVal = p.alias || (p.first_name ? `@${p.first_name.toLowerCase()}${p.last_name ? p.last_name.toLowerCase() : ''}` : '');
-            const usernameVal = p.username || `${p.first_name || ''} ${p.last_name || ''}`.trim();
+            const ov = overrides[p.id] || overrides[p.email?.toLowerCase()] || this.directorio.find(u => u.id === p.id || u.email?.toLowerCase() === p.email?.toLowerCase());
+
+            const bioVal = ov?.description || ov?.bio || p.description || p.bio || '';
+            const aliasVal = ov?.alias || p.alias || (p.first_name ? `@${p.first_name.toLowerCase()}${p.last_name ? p.last_name.toLowerCase() : ''}` : '');
+            const usernameVal = ov?.username || p.username || `${p.first_name || ''} ${p.last_name || ''}`.trim();
+
             return {
               id: p.id,
-              first_name: p.first_name,
-              last_name: p.last_name,
+              first_name: ov?.first_name || p.first_name,
+              last_name: ov?.last_name !== undefined ? ov.last_name : p.last_name,
               username: usernameVal,
               alias: aliasVal,
               email: p.email,
-              phone: p.phone || '',
-              address: p.address || '',
-              address_references: p.address_references || '',
-              avatar_url: p.avatar_url,
+              phone: ov?.phone || p.phone || '',
+              address: ov?.address || p.address || '',
+              address_references: ov?.address_references || p.address_references || '',
+              avatar_url: ov?.avatar_url || p.avatar_url,
               bio: bioVal,
               description: bioVal,
               role: p.role || 'cliente',
@@ -511,6 +576,23 @@ export class RepositorioUsuarios {
               is_favorite: isFav,
             };
           });
+
+          // Garantizar que la versión de usuarioActual en memoria esté sincronizada en el directorio
+          if (this.usuarioActual) {
+            const uIdx = merged.findIndex(u => u.id === this.usuarioActual?.id || u.email?.toLowerCase() === this.usuarioActual?.email?.toLowerCase());
+            if (uIdx !== -1) {
+              merged[uIdx] = { 
+                ...merged[uIdx], 
+                ...this.usuarioActual,
+                is_favorite: Boolean(this.usuarioActual.is_favorite ?? merged[uIdx].is_favorite),
+              };
+            } else {
+              merged.unshift({ 
+                ...this.usuarioActual,
+                is_favorite: Boolean(this.usuarioActual.is_favorite),
+              });
+            }
+          }
 
           this.directorio = merged;
           await AsyncStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(this.directorio));
