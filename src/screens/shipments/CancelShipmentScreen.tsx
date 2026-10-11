@@ -11,7 +11,7 @@
  * - Modales Pantalla 18: Confirmación "¿Desea cancelar el pedido/paquete?" y "Tu envío fue cancelado con éxito"
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -22,16 +22,19 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
-  Keyboard
+  Keyboard,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { useApp } from '../../context/AppContext';
+import { repositorioEnvios } from '../../repositories';
+import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'>> = ({ route, navigation }) => {
-  const { cancelShipment } = useApp();
+  const { cancelShipment, shipments } = useApp();
   const initialCode = route.params?.shipmentId || '';
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -64,16 +67,114 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
   const [trackingCode, setTrackingCode] = useState<string>(initialCode);
   const [reason, setReason] = useState<string>('');
   const [errorBanner, setErrorBanner] = useState<string>('');
+  const [verifiedShipment, setVerifiedShipment] = useState<Shipment | null>(null);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
   // Modales Pantalla 18
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
-  const handlePromptCancel = (): void => {
-    if (!trackingCode.trim()) {
+  // Validación estricta de nomenclatura/formato de guía
+  const isValidGuideFormat = (code: string): boolean => {
+    const clean = code.trim();
+    if (clean.length < 4) return false;
+    const validChars = /^[A-Za-z0-9-_]+$/;
+    if (!validChars.test(clean)) return false;
+    const isStandardCode = /^(RERF|ORD|SHIP|PAQUETE|[A-Z0-9]{3,})[-_]?[A-Z0-9-_]+$/i.test(clean);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clean);
+    return isStandardCode || isUuid;
+  };
+
+  const findShipment = useCallback(async (code: string): Promise<Shipment | null> => {
+    const clean = code.trim().toUpperCase();
+    // 1. Buscar en envíos locales cargados
+    const local = shipments.find(s => 
+      s.tracking_number?.toUpperCase() === clean || 
+      s.id?.toUpperCase() === clean
+    );
+    if (local) return local;
+
+    // 2. Buscar en base de datos remota/repositorio
+    try {
+      const remote = await repositorioEnvios.obtener(code.trim());
+      if (remote) return remote;
+    } catch {
+      // Ignorar error
+    }
+
+    return null;
+  }, [shipments]);
+
+  // Verificar automáticamente si se recibe el ID en los parámetros de navegación
+  useEffect(() => {
+    if (initialCode) {
+      void findShipment(initialCode).then(found => {
+        if (found) {
+          setVerifiedShipment(found);
+        }
+      });
+    }
+  }, [initialCode, findShipment]);
+
+  const handleSearchGuide = async (): Promise<Shipment | null> => {
+    const code = trackingCode.trim();
+    if (!code) {
+      setErrorBanner('Por favor ingrese el ID o guía del envío.');
+      setVerifiedShipment(null);
+      return null;
+    }
+
+    if (!isValidGuideFormat(code)) {
+      setErrorBanner('Formato de guía incorrecto. Debe tener una nomenclatura válida (ej. RERF-98234-GT u ORD-9841).');
+      setVerifiedShipment(null);
+      return null;
+    }
+
+    setIsSearching(true);
+    setErrorBanner('');
+    try {
+      const found = await findShipment(code);
+      if (!found) {
+        setErrorBanner('Guía no encontrada. El envío no existe dentro del sistema o base de datos.');
+        setVerifiedShipment(null);
+        return null;
+      }
+
+      setVerifiedShipment(found);
+      if (found.status === 'cancelado') {
+        setErrorBanner('Este envío ya fue cancelado previamente.');
+      } else {
+        setErrorBanner('');
+      }
+      return found;
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handlePromptCancel = async (): Promise<void> => {
+    const code = trackingCode.trim();
+    if (!code) {
       setErrorBanner('Por favor ingrese el ID o guía del envío a cancelar.');
       return;
     }
+
+    if (!isValidGuideFormat(code)) {
+      setErrorBanner('Formato de guía incorrecto. Debe tener una nomenclatura válida (ej. RERF-98234-GT u ORD-9841).');
+      return;
+    }
+
+    let target = verifiedShipment;
+    if (!target || (target.tracking_number.toUpperCase() !== code.toUpperCase() && target.id.toUpperCase() !== code.toUpperCase())) {
+      target = await handleSearchGuide();
+      if (!target) return;
+    }
+
+    if (target.status === 'cancelado') {
+      setErrorBanner('Este envío ya fue cancelado previamente.');
+      return;
+    }
+
     if (!reason.trim()) {
       setErrorBanner('Por favor especifique el motivo de cancelación.');
       return;
@@ -126,19 +227,85 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
           </View>
         ) : null}
 
-        {/* Campo: Envío a cancelar */}
+        {/* Campo: Envío a cancelar con Botón Buscar */}
         <View style={styles.fieldBlock}>
           <Text style={styles.fieldLabel}>Envío a cancelar: (ID / Guía)</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="ej. RERF-1001"
-            placeholderTextColor="#94A3B8"
-            value={trackingCode}
-            onChangeText={setTrackingCode}
-            onFocus={() => handleInputFocus(50)}
-            autoCapitalize="characters"
-          />
+          <View style={styles.searchGuideRow}>
+            <TextInput
+              style={[styles.textInput, styles.guideInput]}
+              placeholder="ej. RERF-98234-GT u ORD-9841"
+              placeholderTextColor="#94A3B8"
+              value={trackingCode}
+              onChangeText={(text) => {
+                setTrackingCode(text);
+                setVerifiedShipment(null);
+                setErrorBanner('');
+              }}
+              onFocus={() => handleInputFocus(50)}
+              autoCapitalize="characters"
+            />
+            <TouchableOpacity 
+              style={styles.searchGuideBtn}
+              onPress={handleSearchGuide}
+              activeOpacity={0.8}
+              disabled={isSearching}
+            >
+              {isSearching ? (
+                <ActivityIndicator size="small" color={RerfColors.primaryYellowText} />
+              ) : (
+                <>
+                  <Ionicons name="search" size={16} color={RerfColors.primaryYellowText} />
+                  <Text style={styles.searchGuideBtnText}>Buscar</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* Tarjeta de Envío Verificado */}
+        {verifiedShipment && (
+          <View style={[styles.verifiedCard, verifiedShipment.status === 'cancelado' && styles.verifiedCardCancelled]}>
+            <View style={styles.verifiedHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                <Ionicons 
+                  name={verifiedShipment.status === 'cancelado' ? "close-circle" : "checkmark-circle"} 
+                  size={18} 
+                  color={verifiedShipment.status === 'cancelado' ? "#DC2626" : "#16A34A"} 
+                />
+                <Text style={[styles.verifiedHeaderTitle, { color: verifiedShipment.status === 'cancelado' ? "#DC2626" : "#16A34A" }]}>
+                  {verifiedShipment.status === 'cancelado' ? "Envío Ya Cancelado" : "Envío Encontrado"}
+                </Text>
+              </View>
+              <View style={[styles.statusBadge, { backgroundColor: verifiedShipment.status === 'cancelado' ? '#FEE2E2' : '#E0F2FE' }]}>
+                <Text style={[styles.statusBadgeText, { color: verifiedShipment.status === 'cancelado' ? '#DC2626' : '#0369A1' }]}>
+                  {verifiedShipment.status.toUpperCase()}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.verifiedRowText}>
+              <Text style={{ fontWeight: '800', color: '#475569' }}>Guía: </Text>
+              <Text style={{ fontWeight: '800', color: '#0F172A' }}>{verifiedShipment.tracking_number}</Text>
+            </Text>
+
+            <Text style={styles.verifiedRowText} numberOfLines={1}>
+              <Text style={{ fontWeight: '800', color: '#475569' }}>Paquete: </Text>
+              {verifiedShipment.description || 'Envío estándar'}
+            </Text>
+
+            <Text style={styles.verifiedRowText} numberOfLines={1}>
+              <Text style={{ fontWeight: '800', color: '#475569' }}>Destinatario: </Text>
+              {verifiedShipment.recipient_name}
+            </Text>
+
+            {verifiedShipment.cancellation_reason && (
+              <Text style={[styles.verifiedRowText, { color: '#B91C1C', marginTop: 2 }]}>
+                <Text style={{ fontWeight: '800' }}>Motivo cancelación: </Text>
+                {verifiedShipment.cancellation_reason}
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Campo: Motivo de cancelación */}
         <View style={styles.fieldBlock}>
@@ -281,6 +448,70 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: RerfColors.textMain,
     marginBottom: 8,
+  },
+  searchGuideRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  guideInput: {
+    flex: 1,
+  },
+  searchGuideBtn: {
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: RerfColors.primaryYellow,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    ...RerfShadows.card,
+  },
+  searchGuideBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: RerfColors.primaryYellowText,
+  },
+  verifiedCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 18,
+    gap: 4,
+    ...RerfShadows.card,
+  },
+  verifiedCardCancelled: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  verifiedHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#DCFCE7',
+    paddingBottom: 6,
+    marginBottom: 4,
+  },
+  verifiedHeaderTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  verifiedRowText: {
+    fontSize: 12,
+    color: '#334155',
   },
   textInput: {
     borderWidth: 1,
