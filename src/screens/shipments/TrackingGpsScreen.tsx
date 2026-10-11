@@ -261,6 +261,16 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
     }
   };
 
+  const handleClearSearch = (): void => {
+    setSearchInput('');
+    setActiveShipment(null);
+    setSearchError('');
+    if (simulationTimerRef.current) clearInterval(simulationTimerRef.current);
+    setIsSimulating(false);
+    setSpeedKmh(0);
+    setCurrentStepIndex(0);
+  };
+
   const handleCallDriver = (): void => {
     if (!activeShipment) return;
     const pilotName = activeShipment.agent_name || 'Piloto Asignado';
@@ -291,13 +301,16 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
             onChangeText={(text) => {
               setSearchInput(text);
               if (searchError) setSearchError('');
+              if (text.trim() === '') {
+                handleClearSearch();
+              }
             }}
             onSubmitEditing={() => handleSearch()}
             autoCapitalize="characters"
             returnKeyType="search"
           />
           {searchInput.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchInput('')} style={styles.clearBtn}>
+            <TouchableOpacity onPress={handleClearSearch} style={styles.clearBtn} activeOpacity={0.7}>
               <Ionicons name="close-circle" size={18} color="#94A3B8" />
             </TouchableOpacity>
           )}
@@ -422,9 +435,20 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
                 <Text style={styles.moderatorBadgeText}>Habilitado por Moderador</Text>
               </View>
 
-              <Text style={[styles.statusPill, isDelivered && styles.statusPillDelivered]}>
-                {activeShipment.status.replace('_', ' ').toUpperCase()}
-              </Text>
+              <View style={styles.drawerTopRightActions}>
+                <TouchableOpacity 
+                  onPress={handleClearSearch}
+                  style={styles.switchShipmentBtn}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="swap-horizontal" size={13} color="#2563EB" />
+                  <Text style={styles.switchShipmentBtnText}>Ver guías</Text>
+                </TouchableOpacity>
+
+                <Text style={[styles.statusPill, isDelivered && styles.statusPillDelivered]}>
+                  {activeShipment.status.replace('_', ' ').toUpperCase()}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.drawerColumns}>
@@ -468,6 +492,35 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
                 <Ionicons name="call" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
+
+            {/* Selector rápido de otras entregas sin tener que borrar */}
+            {recentShipments && recentShipments.length > 1 && (
+              <View style={styles.otherShipmentsRow}>
+                <Text style={styles.otherShipmentsLabel}>Otras entregas:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickChipsListMini}>
+                  {recentShipments
+                    .filter(s => s.tracking_number !== activeShipment.tracking_number)
+                    .map((s) => (
+                      <TouchableOpacity
+                        key={s.id}
+                        style={styles.quickChipMini}
+                        onPress={() => {
+                          setSearchInput(s.tracking_number);
+                          void handleSearch(s.tracking_number);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons 
+                          name={s.status === 'entregado' ? 'checkmark-circle' : 'cube-outline'} 
+                          size={12} 
+                          color={s.status === 'entregado' ? '#15803D' : '#1D4ED8'} 
+                        />
+                        <Text style={styles.quickChipMiniText}>{s.tracking_number}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </ScrollView>
+              </View>
+            )}
           </ScrollView>
         ) : (
           <View style={styles.emptyDrawer}>
@@ -744,7 +797,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
-    maxHeight: 180,
+    maxHeight: 220,
     ...RerfShadows.card,
   },
   drawerContentContainer: {
@@ -769,6 +822,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: '#15803D',
+  },
+  drawerTopRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  switchShipmentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  switchShipmentBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#2563EB',
   },
   statusPill: {
     fontSize: 10,
@@ -822,6 +896,41 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#F59E0B',
     ...RerfShadows.card,
+  },
+  otherShipmentsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: 6,
+  },
+  otherShipmentsLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  quickChipsListMini: {
+    gap: 6,
+    flexDirection: 'row',
+    paddingVertical: 2,
+  },
+  quickChipMini: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  quickChipMiniText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#334155',
   },
   emptyDrawer: {
     paddingVertical: 8,
