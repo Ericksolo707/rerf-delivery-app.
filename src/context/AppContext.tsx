@@ -25,7 +25,6 @@ import {
 } from '../repositories';
 import { 
   MOCK_NOTIFICATIONS, 
-  MOCK_CHAT_MESSAGES, 
   MOCK_AI_MESSAGES 
 } from '../services/mockData';
 
@@ -36,6 +35,72 @@ const isUuid = (str?: string): boolean => {
   if (!str) return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
 };
+
+const DEFAULT_CHANNELS_MESSAGES: ChatMessage[] = [
+  // Canal Moderación 1
+  {
+    id: 'msg-mod1-1',
+    sender_id: 'support-mod-1',
+    sender_name: 'Moderación 1',
+    message: '¡Hola! Bienvenido a Moderación 1. ¿En qué podemos orientarte hoy con tus envíos?',
+    created_at: '10:00 AM',
+    is_support: true,
+    channel_id: 'mod-1',
+    channel_name: 'Moderación 1',
+  },
+  {
+    id: 'msg-mod1-2',
+    sender_id: 'usr-001',
+    sender_name: 'Carlos Gómez',
+    message: 'Hola, quería consultar la hora estimada de llegada de mi paquete RERF-98234-GT.',
+    created_at: '10:15 AM',
+    channel_id: 'mod-1',
+    channel_name: 'Moderación 1',
+  },
+  {
+    id: 'msg-mod1-3',
+    sender_id: 'support-mod-1',
+    sender_name: 'Moderación 1',
+    message: 'El piloto se encuentra a aproximadamente 15 minutos de la dirección registrada. Puedes seguir la ruta en tiempo real desde la sección GPS.',
+    created_at: '10:17 AM',
+    is_support: true,
+    channel_id: 'mod-1',
+    channel_name: 'Moderación 1',
+  },
+  // Canal Moderación 2
+  {
+    id: 'msg-mod2-1',
+    sender_id: 'support-mod-2',
+    sender_name: 'Moderación 2',
+    message: 'Bienvenido a Moderación 2. Canal para revisión de guías de envío, cotizaciones y aclaraciones de cobro.',
+    created_at: '09:30 AM',
+    is_support: true,
+    channel_id: 'mod-2',
+    channel_name: 'Moderación 2',
+  },
+  // Canal Moderación 3
+  {
+    id: 'msg-mod3-1',
+    sender_id: 'support-mod-3',
+    sender_name: 'Moderación 3',
+    message: 'Bienvenido a Moderación 3. Canal para gestión de incidencias, reclamos y soporte técnico en ruta.',
+    created_at: '09:00 AM',
+    is_support: true,
+    channel_id: 'mod-3',
+    channel_name: 'Moderación 3',
+  },
+  // Canal Asistencia General
+  {
+    id: 'msg-mod4-1',
+    sender_id: 'support-mod-4',
+    sender_name: 'Asistencia General',
+    message: 'Bienvenido a Asistencia General. Atención general al cliente, horarios de bodega central e información institucional.',
+    created_at: '08:45 AM',
+    is_support: true,
+    channel_id: 'mod-4',
+    channel_name: 'Asistencia General',
+  },
+];
 
 interface AppContextType {
   // Autenticación y Perfil
@@ -71,7 +136,7 @@ interface AppContextType {
   
   // Soporte y Chat IA
   supportMessages: ChatMessage[];
-  sendSupportMessage: (text: string) => void;
+  sendSupportMessage: (text: string, channelId?: string, channelName?: string) => Promise<void>;
   aiMessages: ChatMessage[];
   sendAiMessage: (text: string) => void;
 
@@ -93,8 +158,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [users, setUsers] = useState<UserProfile[]>([]);
   
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(MOCK_CHAT_MESSAGES);
+  const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(DEFAULT_CHANNELS_MESSAGES);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>(MOCK_AI_MESSAGES);
+
+  // Cargar historial de canales de soporte persistido
+  useEffect(() => {
+    const cargarMensajesSoporte = async () => {
+      try {
+        const storedRaw = await AsyncStorage.getItem('@rerf_support_messages_channels');
+        if (storedRaw) {
+          const parsed = JSON.parse(storedRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSupportMessages(parsed);
+            return;
+          }
+        }
+        await AsyncStorage.setItem('@rerf_support_messages_channels', JSON.stringify(DEFAULT_CHANNELS_MESSAGES));
+      } catch (err) {
+        console.warn('Error cargando mensajes de soporte persistidos:', err);
+      }
+    };
+    cargarMensajesSoporte();
+  }, []);
 
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
@@ -869,29 +954,174 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const sendSupportMessage = (text: string): void => {
-    const nuevoMensaje: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender_id: user?.id || 'usr-001',
-      sender_name: user ? `${user.first_name} ${user.last_name}` : 'Usuario',
-      message: text,
-      created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setSupportMessages(prev => [...prev, nuevoMensaje]);
+  const sendSupportMessage = async (
+    text: string, 
+    channelId: string = 'mod-1', 
+    channelName: string = 'Moderación 1'
+  ): Promise<void> => {
+    const isAdmin = user?.role === 'admin';
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Respuesta simulada de soporte institucional
+    if (isAdmin) {
+      // 1. EL ADMINISTRADOR ESTÁ RESPONDIENDO EN EL CANAL
+      const adminMessage: ChatMessage = {
+        id: `msg-admin-${now.getTime()}`,
+        sender_id: user?.id || 'admin-root',
+        sender_name: `Administración (${user?.first_name || 'Admin'})`,
+        message: text,
+        created_at: timeStr,
+        is_support: true,
+        channel_id: channelId,
+        channel_name: channelName,
+      };
+
+      setSupportMessages(prev => {
+        const actualizados = [...prev, adminMessage];
+        void AsyncStorage.setItem('@rerf_support_messages_channels', JSON.stringify(actualizados));
+        return actualizados;
+      });
+
+      if (isSupabaseConfigured && user?.id) {
+        try {
+          await supabase.from('mensajes').insert({
+            sender_id: user.id,
+            is_support: true,
+            message: `[${channelName}] ${text}`,
+          });
+        } catch (eSb) {
+          console.warn('[AppContext] Error guardando mensaje admin en Supabase:', eSb);
+        }
+      }
+
+      // Notificar a los clientes que hayan participado en este canal
+      try {
+        const clientsInChannel = supportMessages
+          .filter(m => m.channel_id === channelId && !m.is_support && m.sender_id !== user?.id)
+          .map(m => m.sender_id);
+        const uniqueClientIds = Array.from(new Set(clientsInChannel));
+
+        for (const clientId of uniqueClientIds) {
+          const notifClient: NotificationItem = {
+            id: `notif-reply-${now.getTime()}-${clientId}`,
+            title: `Respuesta en ${channelName}`,
+            message: `El administrador ha respondido a tu consulta: "${text}"`,
+            type: 'info',
+            date: 'Hoy',
+            is_read: false,
+            created_at: now.toISOString(),
+          };
+
+          const clientKey = `@rerf_notifications_${clientId}`;
+          const prevRaw = await AsyncStorage.getItem(clientKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(clientKey, JSON.stringify([notifClient, ...prevList]));
+
+          if (isSupabaseConfigured && clientId.includes('-')) {
+            try {
+              await supabase.from('notificaciones').insert({
+                user_id: clientId,
+                title: notifClient.title,
+                message: notifClient.message,
+                type: 'info',
+                is_read: false,
+              });
+            } catch {}
+          }
+        }
+      } catch (errNotif) {
+        console.warn('Error notificando a cliente:', errNotif);
+      }
+
+      // El administrador no recibe respuestas de bots automáticos
+      return;
+    }
+
+    // 2. UN CLIENTE ENVÍA SU CONSULTA AL CANAL
+    const clientMessage: ChatMessage = {
+      id: `msg-client-${now.getTime()}`,
+      sender_id: user?.id || 'usr-client',
+      sender_name: user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Cliente',
+      message: text,
+      created_at: timeStr,
+      is_support: false,
+      channel_id: channelId,
+      channel_name: channelName,
+    };
+
+    setSupportMessages(prev => {
+      const actualizados = [...prev, clientMessage];
+      void AsyncStorage.setItem('@rerf_support_messages_channels', JSON.stringify(actualizados));
+      return actualizados;
+    });
+
+    if (isSupabaseConfigured && user?.id) {
+      try {
+        await supabase.from('mensajes').insert({
+          sender_id: user.id,
+          is_support: false,
+          message: `[${channelName}] ${text}`,
+        });
+      } catch (eSb) {
+        console.warn('[AppContext] Error guardando mensaje cliente en Supabase:', eSb);
+      }
+    }
+
+    // Notificar a administradores de la nueva consulta
+    try {
+      const adminUsers = users.filter(u => u.role === 'admin' && u.id !== user?.id);
+      const requesterName = user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Un cliente';
+
+      for (const admin of adminUsers) {
+        const notifAdmin: NotificationItem = {
+          id: `notif-chat-admin-${now.getTime()}-${admin.id}`,
+          title: `Nueva consulta en ${channelName}`,
+          message: `${requesterName} ha escrito: "${text}"`,
+          type: 'alerta',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+        };
+
+        const adminKey = `@rerf_notifications_${admin.id}`;
+        const prevRaw = await AsyncStorage.getItem(adminKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(adminKey, JSON.stringify([notifAdmin, ...prevList]));
+
+        if (isSupabaseConfigured && admin.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: admin.id,
+              title: notifAdmin.title,
+              message: notifAdmin.message,
+              type: 'alerta',
+              is_read: false,
+            });
+          } catch {}
+        }
+      }
+    } catch (errAdmin) {
+      console.warn('Error notificando a administradores:', errAdmin);
+    }
+
+    // Confirmación automática de recepción en el canal para el cliente
     setTimeout(() => {
-      setSupportMessages(prev => [
-        ...prev,
-        {
-          id: `msg-rep-${Date.now()}`,
-          sender_id: 'support-1',
-          sender_name: 'Moderación RERF',
-          message: 'Gracias por escribirnos. Estamos revisando tu consulta y te responderemos en breve.',
-          created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          is_support: true,
-        },
-      ]);
+      const ackMessage: ChatMessage = {
+        id: `msg-ack-${Date.now()}`,
+        sender_id: `support-${channelId}`,
+        sender_name: channelName,
+        message: `Hola ${user?.first_name || 'estimado cliente'}. Tu mensaje fue recibido por ${channelName}. El administrador revisará tu consulta y te responderá en breve.`,
+        created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        is_support: true,
+        channel_id: channelId,
+        channel_name: channelName,
+      };
+
+      setSupportMessages(prev => {
+        const listaConAck = [...prev, ackMessage];
+        void AsyncStorage.setItem('@rerf_support_messages_channels', JSON.stringify(listaConAck));
+        return listaConAck;
+      });
     }, 1200);
   };
 

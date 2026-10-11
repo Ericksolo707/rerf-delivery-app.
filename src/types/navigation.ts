@@ -49,7 +49,7 @@ export type RootStackParamList = {
   VerPerfilUsuario: { user?: UserProfile } | undefined;
 
   // Soporte y Facturas
-  ChatSoporte: { contact?: { name: string; role?: string } } | undefined;
+  ChatSoporte: { contact?: { id?: string; name: string; role?: string } } | undefined;
   ChatIA: undefined;
   Facturas: undefined;
 
