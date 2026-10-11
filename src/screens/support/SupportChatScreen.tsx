@@ -8,7 +8,7 @@
  * - Barra inferior: "Escribir mensaje" + botón circular de envío
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -17,7 +17,8 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   TextInput, 
-  TouchableOpacity 
+  TouchableOpacity,
+  Keyboard 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -31,11 +32,43 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
   const contactName: string = route.params?.contact?.name || 'Moderación 1';
 
   const [inputText, setInputText] = useState<string>('');
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+  const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const hideListener = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  }, [supportMessages.length]);
 
   const handleSend = () => {
     if (!inputText.trim()) return;
     sendSupportMessage(inputText.trim());
     setInputText('');
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
   const renderBubble = ({ item }: { item: ChatMessage }) => {
@@ -55,18 +88,24 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={[
+        styles.container,
+        Platform.OS === 'android' && keyboardHeight > 0 ? { paddingBottom: keyboardHeight } : null
+      ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <Header title={contactName} showBack={true} />
 
       <FlatList
+        ref={flatListRef}
         data={supportMessages}
         keyExtractor={item => item.id}
         renderItem={renderBubble}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
       {/* Barra de entrada: "Escribir mensaje" + botón circular (Excalidraw Pantalla 22) */}
@@ -77,6 +116,8 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
           placeholderTextColor="#94A3B8"
           value={inputText}
           onChangeText={setInputText}
+          returnKeyType="send"
+          onSubmitEditing={handleSend}
         />
         <TouchableOpacity 
           style={[styles.circleSendBtn, !inputText.trim() && styles.disabledSendBtn]} 
