@@ -34,6 +34,11 @@ import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 import { UserProfile } from '../../types';
+import { 
+  GUATEMALA_DEPARTMENTS, 
+  getDepartmentRegion, 
+  assignLogisticsFleet 
+} from '../../constants/logisticsFleet';
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -76,6 +81,8 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const editShipmentId = route.params?.editShipmentId;
   const quotedAmount = route.params?.quotedAmount;
   const quotedDescription = route.params?.quotedDescription;
+  const quotedWeight = route.params?.quotedWeight;
+  const quotedDestination = route.params?.quotedDestination;
   const existingShipment = editShipmentId ? shipments.find(s => s.id === editShipmentId || s.tracking_number === editShipmentId) : undefined;
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -110,6 +117,22 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const [recipient, setRecipient] = useState<string>(existingShipment?.recipient_name || prefilled || '');
   const [selectedRecipientUser, setSelectedRecipientUser] = useState<UserProfile | null>(null);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || '');
+
+  // Inicializar Departamento dentro de los 22 departamentos de Guatemala
+  const getInitialDepartment = (): string => {
+    if (existingShipment?.delivery_address) {
+      const match = GUATEMALA_DEPARTMENTS.find(d => 
+        existingShipment.delivery_address.toLowerCase().includes(d.name.toLowerCase())
+      );
+      if (match) return match.name;
+    }
+    if (quotedDestination === 'departamento') return 'Quetzaltenango';
+    return 'Guatemala';
+  };
+
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(getInitialDepartment);
+  const [showDepartmentModal, setShowDepartmentModal] = useState<boolean>(false);
+  const [departmentSearch, setDepartmentSearch] = useState<string>('');
   const [address, setAddress] = useState<string>(existingShipment?.delivery_address || '');
   const [reference, setReference] = useState<string>(existingShipment?.address_references || '');
 
@@ -198,10 +221,15 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
     setIsSubmitting(true);
 
     try {
+      const cleanAddress = address.trim();
+      const finalAddress = cleanAddress.toLowerCase().includes(selectedDepartment.toLowerCase())
+        ? cleanAddress
+        : `${cleanAddress}, ${selectedDepartment}`;
+
       if (editShipmentId && existingShipment) {
         await updateShipment(existingShipment.id, {
           recipient_name: recipient.trim(),
-          delivery_address: address.trim(),
+          delivery_address: finalAddress,
           address_references: reference.trim(),
           scheduled_date: selectedDate,
           description: selectedItem ? `${selectedItem.product_type}: ${description}` : description,
@@ -211,7 +239,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         setCreatedShipment({
           ...existingShipment,
           recipient_name: recipient.trim(),
-          delivery_address: address.trim(),
+          delivery_address: finalAddress,
           address_references: reference.trim(),
           scheduled_date: selectedDate,
           description: description.trim(),
@@ -242,21 +270,35 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
       const isFutureScheduled = isFutureScheduledDate(selectedDate);
       const initialStatus = isFutureScheduled ? 'pendiente' : 'aprobado';
 
+      // Asignar piloto, placas guatemaltecas y vehículo de reparto realista
+      const parsedWeight = quotedWeight ? parseFloat(quotedWeight) : undefined;
+      const isDept = selectedDepartment.toLowerCase() !== 'guatemala';
+      const finalDescription = selectedItem ? `${selectedItem.product_type}: ${description}` : description;
+      const assignedFleet = assignLogisticsFleet({
+        seed: trackingNumber,
+        weightKg: parsedWeight,
+        description: finalDescription,
+        isDepartmental: isDept,
+      });
+
       const newShipment = await addShipment({
         tracking_number: trackingNumber,
         sender_id: user?.id || 'usr-001',
         recipient_name: recipient.trim(),
         recipient_phone: recipientPhone,
-        delivery_address: address.trim(),
+        delivery_address: finalAddress,
         address_references: finalReferences,
         scheduled_date: selectedDate,
-        description: selectedItem ? `${selectedItem.product_type}: ${description}` : description,
+        description: finalDescription,
         status: initialStatus,
         payment_status: 'pendiente',
         payment_method: 'contra_entrega',
         total_amount: baseCost,
         warehouse_item_id: selectedWarehouseId || undefined,
-        agent_name: 'Piloto Juan Carlos (Unidad #12)',
+        agent_name: assignedFleet.agent_name,
+        vehicle_model: assignedFleet.vehicle_model,
+        vehicle_plate: assignedFleet.vehicle_plate,
+        driver_phone: assignedFleet.driver_phone,
       });
 
       setCreatedShipment(newShipment);
@@ -367,12 +409,33 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           </View>
         </View>
 
-        {/* 3. Campo Dirección */}
+        {/* 3. Campo Departamento (Guatemala) */}
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Departamento:</Text>
+          <TouchableOpacity 
+            style={styles.departmentSelector}
+            onPress={() => setShowDepartmentModal(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.departmentSelectorContent}>
+              <Ionicons name="location-sharp" size={18} color={RerfColors.primaryYellowText} />
+              <View style={{ marginLeft: 8, flex: 1 }}>
+                <Text style={styles.departmentValue}>{selectedDepartment}</Text>
+                <Text style={styles.departmentRegion}>Región {getDepartmentRegion(selectedDepartment)} • Guatemala</Text>
+              </View>
+            </View>
+            <View style={styles.tagButton}>
+              <Text style={styles.tagButtonText}>Cambiar</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* 4. Campo Dirección */}
         <View style={styles.fieldRow}>
           <Text style={styles.fieldLabel}>Dirección:</Text>
           <TextInput
             style={styles.textInputFull}
-            placeholder="Zona, calle, número y departamento"
+            placeholder="Zona, calle, número, avenida o colonia"
             placeholderTextColor="#94A3B8"
             value={address}
             onChangeText={setAddress}
@@ -524,6 +587,95 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
               onPress={() => {
                 setShowRecipientModal(false);
                 setRecipientSearch('');
+              }}
+            >
+              <Text style={styles.closeModalText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Seleccionar Departamento de Guatemala */}
+      <Modal
+        visible={showDepartmentModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowDepartmentModal(false);
+          setDepartmentSearch('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.selectorCard}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Departamento de Entrega</Text>
+              <Text style={styles.modalSubtitle}>Cobertura nacional (22 departamentos de Guatemala)</Text>
+            </View>
+
+            {/* Buscador interno de departamentos */}
+            <View style={styles.modalSearchBox}>
+              <Ionicons name="search" size={16} color="#64748B" />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Buscar departamento..."
+                placeholderTextColor="#94A3B8"
+                value={departmentSearch}
+                onChangeText={setDepartmentSearch}
+              />
+              {departmentSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setDepartmentSearch('')}>
+                  <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView style={{ maxHeight: 280 }} keyboardShouldPersistTaps="handled">
+              {GUATEMALA_DEPARTMENTS
+                .filter(d => 
+                  !departmentSearch.trim() || 
+                  d.name.toLowerCase().includes(departmentSearch.toLowerCase().trim()) ||
+                  d.region.toLowerCase().includes(departmentSearch.toLowerCase().trim()) ||
+                  d.capital.toLowerCase().includes(departmentSearch.toLowerCase().trim())
+                )
+                .map(d => {
+                  const isSelected = selectedDepartment.toLowerCase() === d.name.toLowerCase();
+                  return (
+                    <TouchableOpacity
+                      key={d.name}
+                      style={[styles.userPickRow, isSelected && styles.activePickRow]}
+                      onPress={() => {
+                        setSelectedDepartment(d.name);
+                        setShowDepartmentModal(false);
+                        setDepartmentSearch('');
+                        setErrorBanner('');
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={[styles.userPickName, isSelected && { color: '#0F172A' }]}>
+                            {d.name}
+                          </Text>
+                          <View style={styles.regionBadge}>
+                            <Text style={styles.regionBadgeText}>Región {d.region}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.userPickEmail}>Cabecera: {d.capital}</Text>
+                      </View>
+                      {isSelected ? (
+                        <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
+                      ) : (
+                        <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+            </ScrollView>
+
+            <TouchableOpacity 
+              style={styles.closeModalBtn}
+              onPress={() => {
+                setShowDepartmentModal(false);
+                setDepartmentSearch('');
               }}
             >
               <Text style={styles.closeModalText}>Cerrar</Text>
@@ -896,6 +1048,47 @@ const styles = StyleSheet.create({
     height: 80,
     paddingTop: 10,
     textAlignVertical: 'top',
+  },
+  departmentSelector: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: RerfColors.surfaceCard,
+    ...RerfShadows.card,
+  },
+  departmentSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  departmentValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: RerfColors.textMain,
+  },
+  departmentRegion: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: RerfColors.textMuted,
+    marginTop: 1,
+  },
+  regionBadge: {
+    backgroundColor: RerfColors.surfaceSubtle,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+  },
+  regionBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: RerfColors.textMuted,
   },
   dateSelector: {
     height: 48,

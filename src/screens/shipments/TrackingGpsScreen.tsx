@@ -39,6 +39,7 @@ import {
   GpsCoordinates
 } from '../../services/gpsTrackingService';
 import { sortShipmentsDesc } from './OrdersScreen';
+import { getFleetUnitForShipment } from '../../constants/logisticsFleet';
 
 interface TrackingGpsScreenProps {
   route?: { params?: { shipmentId?: string } };
@@ -271,13 +272,15 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
     setCurrentStepIndex(0);
   };
 
+  const fleetInfo = useMemo(() => getFleetUnitForShipment(activeShipment || undefined), [activeShipment]);
+
   const handleCallDriver = (): void => {
     if (!activeShipment) return;
-    const pilotName = activeShipment.agent_name || 'Piloto Asignado';
+    const pilotName = activeShipment.agent_name || fleetInfo.agent_name;
     navigation?.navigate('ChatSoporte', { 
       contact: { 
         name: pilotName, 
-        role: `Piloto Asignado - Guía ${activeShipment.tracking_number}` 
+        role: `Piloto Asignado (${fleetInfo.vehicle_model}) - Guía ${activeShipment.tracking_number}` 
       } 
     });
   };
@@ -370,7 +373,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
           destination={destination}
           currentPosition={currentTruckPos}
           waypoints={waypoints}
-          pilotName={activeShipment?.agent_name || 'Piloto RerF'}
+          pilotName={activeShipment?.agent_name || fleetInfo.agent_name}
           destinationLabel={activeShipment?.delivery_address || 'Destino de entrega'}
           speedKmh={speedKmh}
           bearing={bearing}
@@ -473,13 +476,13 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
                 </Text>
 
                 {/* 4. Piloto asignado y vehículo */}
-                <Text style={styles.infoLine}>
+                <Text style={styles.infoLine} numberOfLines={1}>
                   <Text style={styles.infoBold}>Piloto: </Text>
-                  {activeShipment.agent_name || 'Carlos Piloto 04 (Asignado)'}
+                  {activeShipment.agent_name || fleetInfo.agent_name}
                 </Text>
 
-                <Text style={styles.subInfoLine}>
-                  Auto: {activeShipment.vehicle_model || 'Toyota Hilux 2024'} • Placas: {activeShipment.vehicle_plate || 'P-892KLR'}
+                <Text style={styles.subInfoLine} numberOfLines={1}>
+                  Vehículo: {activeShipment.vehicle_model || fleetInfo.vehicle_model} • Placas: {activeShipment.vehicle_plate || fleetInfo.vehicle_plate}
                 </Text>
               </View>
 
