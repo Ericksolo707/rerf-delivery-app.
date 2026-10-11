@@ -120,6 +120,9 @@ export interface ChatMessage {
   id: string;
   sender_id: string;
   sender_name: string;
+  receiver_id?: string;
+  client_id?: string;
+  client_name?: string;
   message: string;
   created_at: string;
   is_bot?: boolean;
