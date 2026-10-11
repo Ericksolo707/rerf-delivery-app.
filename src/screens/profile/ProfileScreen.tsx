@@ -72,12 +72,16 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
       setKeyboardHeight(e.endCoordinates.height);
       if (editingField === 'description') {
         setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 120);
-      } else if (editingField === 'references' || editingField === 'address') {
+          scrollViewRef.current?.scrollTo({ y: 260, animated: true });
+        }, 100);
+      } else if (editingField === 'references') {
         setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: 340, animated: true });
-        }, 120);
+          scrollViewRef.current?.scrollTo({ y: 180, animated: true });
+        }, 100);
+      } else if (editingField === 'address') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 120, animated: true });
+        }, 100);
       }
     });
 
@@ -110,12 +114,16 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
       const next = prev === field ? null : field;
       if (next === 'description') {
         setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 180);
-      } else if (next === 'references' || next === 'address') {
+          scrollViewRef.current?.scrollTo({ y: 260, animated: true });
+        }, 150);
+      } else if (next === 'references') {
         setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: 340, animated: true });
-        }, 180);
+          scrollViewRef.current?.scrollTo({ y: 180, animated: true });
+        }, 150);
+      } else if (next === 'address') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 120, animated: true });
+        }, 150);
       }
       return next;
     });
@@ -160,8 +168,8 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
   return (
     <KeyboardAvoidingView 
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
       <Header title="Perfil" />
 
@@ -170,7 +178,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 40,
+            paddingBottom: keyboardHeight > 0 ? 120 : 50,
           }
         ]}
         keyboardShouldPersistTaps="handled"
@@ -309,8 +317,8 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                   onFocus={() => {
                     setTimeout(() => {
-                      scrollViewRef.current?.scrollTo({ y: 300, animated: true });
-                    }, 150);
+                      scrollViewRef.current?.scrollTo({ y: 120, animated: true });
+                    }, 120);
                   }}
                 />
               ) : (
@@ -341,8 +349,8 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                   onFocus={() => {
                     setTimeout(() => {
-                      scrollViewRef.current?.scrollTo({ y: 360, animated: true });
-                    }, 150);
+                      scrollViewRef.current?.scrollTo({ y: 180, animated: true });
+                    }, 120);
                   }}
                 />
               ) : (
@@ -375,8 +383,8 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                   onFocus={() => {
                     setTimeout(() => {
-                      scrollViewRef.current?.scrollToEnd({ animated: true });
-                    }, 150);
+                      scrollViewRef.current?.scrollTo({ y: 260, animated: true });
+                    }, 120);
                   }}
                 />
               ) : (
