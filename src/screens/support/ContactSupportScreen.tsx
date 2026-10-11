@@ -150,14 +150,14 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
   };
 
   const handleCallPbx = () => {
-    Linking.openURL('tel:+50224508800').catch(() => {
-      Alert.alert('PBX RerF Logistics', 'Línea de atención central: +502 2450-8800 (Ext. 1)');
+    Linking.openURL('tel:+50255376462').catch(() => {
+      Alert.alert('Atención Telefónica RerF', 'Línea de llamadas: +502 5537-6462');
     });
   };
 
   const handleOpenWhatsApp = () => {
-    Linking.openURL('https://wa.me/50255987654').catch(() => {
-      Alert.alert('WhatsApp Corporativo', 'Escríbenos directamente al: +502 5598-7654');
+    Linking.openURL('https://wa.me/50232880706').catch(() => {
+      Alert.alert('WhatsApp Corporativo', 'Escríbenos directamente al: +502 3288-0706');
     });
   };
 
@@ -314,12 +314,12 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={styles.channelHeader}>
-                    <Text style={styles.channelTitle}>PBX Central</Text>
+                    <Text style={styles.channelTitle}>Línea de Llamadas</Text>
                     <View style={styles.channelBadge}>
-                      <Text style={styles.channelBadgeText}>8 Líneas</Text>
+                      <Text style={styles.channelBadgeText}>Directa</Text>
                     </View>
                   </View>
-                  <Text style={styles.channelSubtitle}>+502 2450-8800 • Atención Inmediata</Text>
+                  <Text style={styles.channelSubtitle}>+502 5537-6462 • Operaciones RerF</Text>
                 </View>
                 <TouchableOpacity style={styles.channelActionBtn} onPress={handleCallPbx} activeOpacity={0.8}>
                   <Text style={styles.channelActionBtnText}>Llamar</Text>
@@ -340,7 +340,7 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
                       <Text style={[styles.channelBadgeText, { color: '#15803D' }]}>En Vivo</Text>
                     </View>
                   </View>
-                  <Text style={styles.channelSubtitle}>+502 5598-7654 • Monitoreo de Rutas</Text>
+                  <Text style={styles.channelSubtitle}>+502 3288-0706 • Monitoreo de Rutas</Text>
                 </View>
                 <TouchableOpacity style={[styles.channelActionBtn, { backgroundColor: '#10B981' }]} onPress={handleOpenWhatsApp} activeOpacity={0.8}>
                   <Text style={styles.channelActionBtnText}>Mensaje</Text>
@@ -506,18 +506,34 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
           </View>
         )}
 
-        {/* Sección inferior con Botón circular "IA" - Asistente IA (Excalidraw Pantalla 21) */}
-        <View style={styles.aiButtonContainer}>
-          <TouchableOpacity 
-            style={styles.aiCircleButton}
-            onPress={() => navigation.navigate('ChatIA')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.aiCircleText}>IA</Text>
-          </TouchableOpacity>
-          <Text style={styles.aiButtonLabel}>Asistente IA</Text>
-        </View>
       </ScrollView>
+
+      {/* Botón Flotante (FAB) Asistente IA - Estilo Tecnológico de Inteligencia Artificial */}
+      <View style={styles.aiFloatingFabContainer} pointerEvents="box-none">
+        <TouchableOpacity 
+          style={styles.aiFloatingFab}
+          onPress={() => navigation.navigate('ChatIA')}
+          activeOpacity={0.85}
+        >
+          {/* Anillo de pulso con brillo de IA */}
+          <View style={styles.aiGlowRing} />
+          
+          {/* Badge superior de destellos */}
+          <View style={styles.aiSparkleBadge}>
+            <Ionicons name="sparkles" size={13} color="#F59E0B" />
+          </View>
+
+          {/* Icono central de IA */}
+          <View style={styles.aiInnerContent}>
+            <Ionicons name="hardware-chip-outline" size={14} color="#60A5FA" style={styles.chipIcon} />
+            <Text style={styles.aiFabText}>IA</Text>
+          </View>
+        </TouchableOpacity>
+        <View style={styles.aiPillLabelBox}>
+          <Ionicons name="sparkles" size={10} color="#F59E0B" style={{ marginRight: 3 }} />
+          <Text style={styles.aiPillLabelText}>Asistente IA</Text>
+        </View>
+      </View>
     </View>
   );
 };
@@ -529,7 +545,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 95,
     flexGrow: 1,
   },
   adminBanner: {
@@ -962,33 +978,88 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  /* Botón Circular Asistente IA */
-  aiButtonContainer: {
-    alignItems: 'flex-end',
-    marginTop: 24,
-    paddingRight: 10,
+  /* Botón Flotante Moderno Asistente IA */
+  aiFloatingFabContainer: {
+    position: 'absolute',
+    bottom: 22,
+    right: 20,
+    alignItems: 'center',
+    zIndex: 999,
+    elevation: 10,
   },
-  aiCircleButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: RerfColors.primaryYellowHover,
-    backgroundColor: RerfColors.primaryYellow,
+  aiFloatingFab: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0F172A',
+    borderWidth: 2,
+    borderColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
-    ...RerfShadows.cardHover,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 8,
+    position: 'relative',
   },
-  aiCircleText: {
-    fontSize: 22,
+  aiGlowRing: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: '#60A5FA',
+    opacity: 0.6,
+  },
+  aiSparkleBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#1E293B',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  aiInnerContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipIcon: {
+    marginBottom: -2,
+  },
+  aiFabText: {
+    fontSize: 16,
     fontWeight: '900',
-    color: RerfColors.primaryYellowText,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
-  aiButtonLabel: {
-    fontSize: 12,
+  aiPillLabelBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.94)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#334155',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  aiPillLabelText: {
+    fontSize: 10,
     fontWeight: '800',
-    color: RerfColors.textSecondary,
-    marginTop: 6,
-    marginRight: 2,
+    color: '#E2E8F0',
   },
 });
