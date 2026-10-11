@@ -145,7 +145,7 @@ export class RepositorioBodega extends RepositorioBase<WarehouseItem, Omit<Wareh
           description: datos.description || null,
           material: datos.material || 'fuerte',
           pickup_method: datos.pickup_method || 'entrega_personal',
-          status: datos.status || 'almacenado',
+          status: datos.status || 'solicitado',
           storage_code: storageCode,
         };
 

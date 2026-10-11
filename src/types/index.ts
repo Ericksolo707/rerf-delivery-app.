@@ -80,7 +80,7 @@ export interface WarehouseItem {
   description: string;
   material: MaterialType;
   pickup_method: PickupMethod;
-  status: 'almacenado' | 'solicitado' | 'en_transito' | 'retirado';
+  status: 'almacenado' | 'solicitado' | 'en_transito' | 'retirado' | 'rechazado';
   storage_code: string;
   created_at: string;
 }
