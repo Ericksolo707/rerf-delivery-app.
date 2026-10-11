@@ -43,7 +43,11 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
   );
 
   const renderInvoice = ({ item }: { item: Invoice }) => (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card}
+      onPress={() => setSelectedInvoice(item)}
+      activeOpacity={0.8}
+    >
       <View style={styles.cardContent}>
         {/* Fila superior: Fecha | Monto */}
         <View style={styles.cardTopRow}>
@@ -72,14 +76,10 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
       </View>
 
       {/* Botón derecho [ E ] (Excalidraw Pantalla 28 - Comprobante FEL) */}
-      <TouchableOpacity 
-        style={styles.squareActionButton}
-        onPress={() => setSelectedInvoice(item)}
-        activeOpacity={0.7}
-      >
+      <View style={styles.squareActionButton}>
         <Text style={styles.actionLetter}>E</Text>
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 
   const calculateBreakdown = (amount: number) => {

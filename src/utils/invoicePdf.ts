@@ -8,7 +8,9 @@
  * - Permitir compartir el comprobante en dispositivos móviles iOS y Android.
  */
 
-import { Platform, Share } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { mostrarAlerta } from './alerts';
 
 export interface InvoicePrintData {
@@ -22,13 +24,13 @@ export interface InvoicePrintData {
   tracking_number?: string;
 }
 
-export const downloadInvoicePdf = async (data: InvoicePrintData): Promise<void> => {
+export const buildInvoiceHtml = (data: InvoicePrintData): string => {
   const subtotal = (data.amount / 1.12).toFixed(2);
   const iva = (data.amount - parseFloat(subtotal)).toFixed(2);
   const total = data.amount.toFixed(2);
   const fecha = data.issued_date || new Date().toLocaleDateString('es-GT');
 
-  const htmlDoc = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -235,10 +237,96 @@ export const downloadInvoicePdf = async (data: InvoicePrintData): Promise<void> 
   </div>
 </body>
 </html>`;
+};
+
+/**
+ * Imprime directamente la factura abriendo el Administrador de Impresión del Sistema Operativo
+ * (AirPrint en iOS o Android Print Spooler, con opción nativa de "Guardar como PDF").
+ */
+export const printInvoiceDirectly = async (data: InvoicePrintData): Promise<void> => {
+  const htmlDoc = buildInvoiceHtml(data);
+
+  if (Platform.OS === 'web') {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlDoc);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 300);
+    }
+  } else {
+    try {
+      await Print.printAsync({ html: htmlDoc });
+    } catch (e) {
+      console.error('[invoicePdf] Error en printAsync:', e);
+      mostrarAlerta('Error de Impresión', 'No se pudo abrir el administrador de impresión en el dispositivo.');
+    }
+  }
+};
+
+/**
+ * Genera el archivo físico .pdf en el dispositivo y abre el diálogo nativo de compartir / guardar
+ * (Guardar en Archivos, Guardar en Google Drive, enviar por WhatsApp o Correo con el PDF adjunto).
+ */
+export const shareInvoicePdfDirectly = async (data: InvoicePrintData): Promise<void> => {
+  const htmlDoc = buildInvoiceHtml(data);
 
   if (Platform.OS === 'web') {
     try {
-      // 1. Crear descarga de archivo .html de la factura
+      const blob = new Blob([htmlDoc], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = `Factura_${data.invoice_number}.html`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+      mostrarAlerta('Descarga Lista', `Archivo "Factura_${data.invoice_number}.html" descargado.`);
+    } catch (e) {
+      console.error('[invoicePdf] Error en descarga web:', e);
+      mostrarAlerta('Error', 'No se pudo generar la descarga.');
+    }
+  } else {
+    try {
+      // 1. Generar archivo PDF nativo
+      const file = await Print.printToFileAsync({ html: htmlDoc });
+      
+      // 2. Abrir selector para guardar o compartir el archivo PDF generado
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, {
+          UTI: '.pdf',
+          mimeType: 'application/pdf',
+          dialogTitle: `Factura ${data.invoice_number}`,
+        });
+      } else {
+        mostrarAlerta(
+          'Factura PDF Generada',
+          `El documento PDF se generó exitosamente en el dispositivo: ${file.uri}`
+        );
+      }
+    } catch (e) {
+      console.error('[invoicePdf] Error generando PDF móvil:', e);
+      mostrarAlerta('Error', 'No se pudo generar el archivo PDF en este momento.');
+    }
+  }
+};
+
+/**
+ * Función principal para Descargar / Imprimir Factura FEL:
+ * - En Web: Descarga el archivo de factura y abre el diálogo de impresión / Guardar como PDF del navegador.
+ * - En Móvil (Android / iOS): Presenta un menú interactivo con las 2 opciones nativas:
+ *    1) Imprimir / Guardar como PDF (con vista previa oficial y spooler del sistema).
+ *    2) Guardar / Compartir archivo PDF (.pdf real para WhatsApp, Drive, Archivos).
+ */
+export const downloadInvoicePdf = async (data: InvoicePrintData): Promise<void> => {
+  const htmlDoc = buildInvoiceHtml(data);
+
+  if (Platform.OS === 'web') {
+    try {
+      // 1. Descarga HTML
       const blob = new Blob([htmlDoc], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const downloadLink = document.createElement('a');
@@ -249,7 +337,7 @@ export const downloadInvoicePdf = async (data: InvoicePrintData): Promise<void> 
       document.body.removeChild(downloadLink);
       URL.revokeObjectURL(url);
 
-      // 2. Abrir diálogo nativo del navegador para "Guardar como PDF" o Imprimir
+      // 2. Abrir diálogo de impresión
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         printWindow.document.write(htmlDoc);
@@ -262,24 +350,33 @@ export const downloadInvoicePdf = async (data: InvoicePrintData): Promise<void> 
 
       mostrarAlerta(
         'Factura Generada con Éxito',
-        `Se ha descargado el archivo "Factura_${data.invoice_number}.html" y se ha abierto el diálogo de tu navegador para Guardar como PDF o Imprimir.`
+        `Se ha descargado el comprobante "Factura_${data.invoice_number}.html" y se ha abierto el diálogo para Imprimir o Guardar como PDF.`
       );
     } catch (e) {
       console.error('[invoicePdf] Error descargando factura en web:', e);
       mostrarAlerta('Error', 'No se pudo generar la descarga de la factura.');
     }
   } else {
-    // En móvil: compartir texto oficial del comprobante
-    try {
-      await Share.share({
-        title: `Factura ${data.invoice_number}`,
-        message: `📄 FACTURA ELECTRÓNICA FEL (SAT)\nRerF Logistics, S.A. (NIT: 10492834-1)\nAutorización: ${data.invoice_number}\n\nConcepto: ${data.description}\nSubtotal: Q ${subtotal}\nIVA (12%): Q ${iva}\nTotal Pagado: Q ${total}\nFecha: ${fecha}\nEstado: PAGADO`,
-      });
-    } catch {
-      mostrarAlerta(
-        'Comprobante Listo',
-        `Factura ${data.invoice_number} generada por un total de Q ${total}.`
-      );
-    }
+    // En Móvil: Mostrar menú interactivo nativo
+    Alert.alert(
+      'Factura Electrónica FEL',
+      `Autorización SAT: ${data.invoice_number}\n¿Qué deseas hacer con tu factura?`,
+      [
+        {
+          text: '🖨️ Imprimir / Vista Previa',
+          onPress: () => printInvoiceDirectly(data),
+        },
+        {
+          text: '📄 Guardar Archivo PDF',
+          onPress: () => shareInvoicePdfDirectly(data),
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
   }
 };
+
