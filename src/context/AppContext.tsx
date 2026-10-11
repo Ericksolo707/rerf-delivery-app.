@@ -636,7 +636,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 1. Buscar en envíos locales cargados
     const local = allShipments.find(
-      s => s.id.toLowerCase() === cleanLower || s.tracking_number.toLowerCase() === cleanLower
+      s => (s.id || '').toLowerCase() === cleanLower || (s.tracking_number || '').toLowerCase() === cleanLower
     );
     if (local) return local;
 
