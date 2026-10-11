@@ -29,31 +29,15 @@ import { ModalDialog } from '../../components/ModalDialog';
 import { useApp } from '../../context/AppContext';
 import { Invoice } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
-import { mostrarAlerta } from '../../utils/alerts';
 import { RerfColors, RerfShadows } from '../../constants/theme';
-
-export const GABRIEL_MOCK_INVOICE: Invoice = {
-  id: 'inv-demo-9841',
-  invoice_number: 'FEL-2026-9841',
-  shipment_id: 'paquete-1',
-  description: 'Servicio de logística de entrega departamental y paquetería express',
-  amount: 45.00,
-  status: 'pagado',
-  payment_method: 'Contra entrega',
-  issued_date: '14/10/2026',
-};
+import { downloadInvoicePdf } from '../../utils/invoicePdf';
 
 export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ navigation }) => {
   const { invoices } = useApp();
   const [search, setSearch] = useState<string>('');
-  const [showDemoMock, setShowDemoMock] = useState<boolean>(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
-  // Cada usuario visualiza únicamente las facturas de sus propios envíos.
-  // En caso de que un nuevo usuario no tenga facturas aún, puede activar el modo demo para evaluación.
-  const sourceList = invoices.length > 0 ? invoices : (showDemoMock ? [GABRIEL_MOCK_INVOICE] : []);
-
-  const filtered = sourceList.filter(inv =>
+  const filtered = invoices.filter(inv =>
     inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
     inv.description.toLowerCase().includes(search.toLowerCase())
   );
@@ -115,19 +99,6 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
       <Header title="Facturas" showBack={true} />
 
       <View style={styles.content}>
-        {/* Banner de Modo Demostración si está activo */}
-        {showDemoMock && invoices.length === 0 && (
-          <View style={styles.demoNoticeBanner}>
-            <View style={styles.demoNoticeLeft}>
-              <Ionicons name="information-circle" size={18} color="#D97706" />
-              <Text style={styles.demoNoticeText}>Modo Demo: Factura FEL de muestra para evaluación</Text>
-            </View>
-            <TouchableOpacity onPress={() => setShowDemoMock(false)} style={styles.demoNoticeBtn}>
-              <Text style={styles.demoNoticeBtnText}>Ocultar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* Campo Buscar factura */}
         <View style={styles.searchBox}>
           <Input
@@ -150,28 +121,19 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
               <View style={styles.emptyIconCircle}>
                 <Ionicons name="receipt-outline" size={42} color="#94A3B8" />
               </View>
-              <Text style={styles.emptyTitle}>No tienes facturas registradas</Text>
+              <Text style={styles.emptyTitle}>No tienes facturas emitidas aún</Text>
               <Text style={styles.emptyText}>
-                Cada usuario mantiene su historial de facturación FEL completamente aislado. Al cotizar y realizar envíos se emitirán tus comprobantes aquí automáticamente.
+                Al crear envíos o recibir paquetes se emitirán tus comprobantes fiscales FEL automáticamente en esta sección.
               </Text>
               
               <View style={styles.emptyActionsRow}>
                 <TouchableOpacity
                   style={styles.quoteEmptyBtn}
-                  onPress={() => navigation.navigate('Cotizador')}
+                  onPress={() => navigation.navigate('RealizarEnvio')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="calculator-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.quoteEmptyBtnText}>Cotizar Envío</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.demoEmptyBtn}
-                  onPress={() => setShowDemoMock(true)}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="eye-outline" size={16} color={RerfColors.logisticsBlue} style={{ marginRight: 6 }} />
-                  <Text style={styles.demoEmptyBtnText}>Ver Factura Demo</Text>
+                  <Ionicons name="cube-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.quoteEmptyBtnText}>Realizar un Envío</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -184,12 +146,20 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
         <ModalDialog
           visible={Boolean(selectedInvoice)}
           title={`Documento Tributario FEL`}
-          message={`Emisor: RerF Logistics, S.A. (NIT: 10492834-1)\nAutorización SAT: ${selectedInvoice.invoice_number}\n\nConcepto: ${selectedInvoice.description}\n\n• Subtotal: Q ${breakdown.subtotal}\n• IVA (12%): Q ${breakdown.iva}\n• Total Pagado: Q ${breakdown.total}\n\nFecha emisión: ${selectedInvoice.issued_date || '14/10/2026'}\nEstado: ${selectedInvoice.status.toUpperCase()}`}
-          confirmText="Descargar PDF"
+          message={`Emisor: RerF Logistics, S.A. (NIT: 10492834-1)\nAutorización SAT: ${selectedInvoice.invoice_number}\n\nConcepto: ${selectedInvoice.description}\n\n• Subtotal (sin IVA): Q ${breakdown.subtotal}\n• IVA Débito (12%): Q ${breakdown.iva}\n• Total Pagado: Q ${breakdown.total}\n\nFecha emisión: ${selectedInvoice.issued_date || '11/10/2026'}\nEstado: ${selectedInvoice.status.toUpperCase()}`}
+          confirmText="Descargar / Imprimir PDF"
           cancelText="Cerrar"
-          onConfirm={() => {
+          onConfirm={async () => {
+            const current = selectedInvoice;
             setSelectedInvoice(null);
-            mostrarAlerta('Descarga realizada', 'Se ha guardado el comprobante tributario SAT FEL en formato PDF en su dispositivo.');
+            await downloadInvoicePdf({
+              invoice_number: current.invoice_number,
+              amount: current.amount,
+              description: current.description,
+              issued_date: current.issued_date,
+              status: current.status,
+              payment_method: current.payment_method,
+            });
           }}
           onCancel={() => setSelectedInvoice(null)}
         />

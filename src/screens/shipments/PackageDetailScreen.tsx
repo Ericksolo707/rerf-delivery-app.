@@ -32,6 +32,7 @@ import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
+import { downloadInvoicePdf } from '../../utils/invoicePdf';
 
 export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'>> = ({ route, navigation }) => {
   const { shipments, allShipments, user, users, updateShipment, invoices } = useApp();
@@ -87,6 +88,20 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
     } finally {
       setIsApproving(false);
     }
+  };
+
+  const handleDownloadInvoice = async () => {
+    setShowInvoiceModal(false);
+    await downloadInvoicePdf({
+      invoice_number: invoiceNumber,
+      amount: invoiceAmount,
+      description: `Servicio de Logística y Envío - Guía ${shipment?.tracking_number || ''} (${shipment?.description || 'General'})`,
+      issued_date: invoiceDate,
+      status: 'pagado',
+      payment_method: shipment?.payment_method?.replace('_', ' ') || 'Contra entrega',
+      recipient_name: recipientName,
+      tracking_number: shipment?.tracking_number,
+    });
   };
 
   return (
@@ -211,16 +226,6 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
           </View>
         </View>
 
-        {/* Botón directo para Ver Comprobante Fiscal FEL (SAT) */}
-        <TouchableOpacity
-          style={styles.invoiceActionButton}
-          onPress={() => setShowInvoiceModal(true)}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="receipt-outline" size={20} color="#0F172A" />
-          <Text style={styles.invoiceActionText}>Ver Comprobante Fiscal FEL (SAT)</Text>
-        </TouchableOpacity>
-
         {/* Si el pedido está pendiente, botón para Aprobar y Pasar a Ruta */}
         {shipment?.status === 'pendiente' && (
           <TouchableOpacity
@@ -320,15 +325,12 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
       <ModalDialog
         visible={showInvoiceModal}
         title="Factura Electrónica FEL (SAT)"
-        message={`Emisor: RerF Logistics, S.A. (NIT: 10492834-1)\nAutorización SAT: ${invoiceNumber}\nDocumento: Factura Electrónica en Línea\n\nConcepto: Servicio de Logística y Entrega\nGuía: ${shipment?.tracking_number || ''}\nDestinatario: ${recipientName}\n\n• Subtotal: Q ${subtotal}\n• IVA (12%): Q ${iva}\n• Total Pagado: Q ${total}\n\nFecha emisión: ${invoiceDate}\nEstado: PAGADO`}
+        message={`Emisor: RerF Logistics, S.A. (NIT: 10492834-1)\nAutorización SAT: ${invoiceNumber}\nDocumento: Factura Electrónica en Línea\n\nConcepto: Servicio de Logística y Entrega\nGuía: ${shipment?.tracking_number || ''}\nDestinatario: ${recipientName}\n\n• Subtotal (sin IVA): Q ${subtotal}\n• IVA Débito (12%): Q ${iva}\n• Total Pagado: Q ${total}\n\nFecha emisión: ${invoiceDate}\nEstado: PAGADO`}
         iconName="receipt-outline"
-        iconColor={RerfColors.primaryYellowText}
-        confirmText="Ir a Facturas"
+        iconColor="#16A34A"
+        confirmText="Descargar / Imprimir PDF"
         cancelText="Cerrar"
-        onConfirm={() => {
-          setShowInvoiceModal(false);
-          navigation.navigate('Facturas');
-        }}
+        onConfirm={handleDownloadInvoice}
         onCancel={() => setShowInvoiceModal(false)}
       />
     </View>
@@ -470,13 +472,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   clickableInvoiceRow: {
-    backgroundColor: '#FEF9C3',
-    marginHorizontal: -6,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    backgroundColor: '#F8FAFC',
+    marginHorizontal: -4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FDE047',
+    borderColor: '#E2E8F0',
   },
   invoiceBadgeRow: {
     flexDirection: 'row',
@@ -485,7 +487,7 @@ const styles = StyleSheet.create({
   },
   invoiceNumberHighlight: {
     fontWeight: '900',
-    color: '#854D0E',
+    color: '#0F172A',
   },
   verFelBadge: {
     flexDirection: 'row',
@@ -499,24 +501,6 @@ const styles = StyleSheet.create({
   verFelBadgeText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#0F172A',
-  },
-  invoiceActionButton: {
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-    ...RerfShadows.card,
-  },
-  invoiceActionText: {
-    fontSize: 14,
-    fontWeight: '800',
     color: '#0F172A',
   },
   approveActionButton: {

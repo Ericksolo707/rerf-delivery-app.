@@ -116,6 +116,18 @@ export class RepositorioFacturas {
    */
   public async crear(factura: Invoice): Promise<Invoice> {
     this.facturas.unshift(factura);
+
+    if (isSupabaseConfigured) {
+      try {
+        const res = await supabase.from(this.nombreEntidad).insert(factura);
+        if (res.error && res.error.message.includes('does not exist')) {
+          await supabase.from(this.tablaLegacy).insert(factura);
+        }
+      } catch (err) {
+        console.warn('[RepositorioFacturas] Error persistiendo factura en Supabase:', err);
+      }
+    }
+
     return { ...factura };
   }
 }
