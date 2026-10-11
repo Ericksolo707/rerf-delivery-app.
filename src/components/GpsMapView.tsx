@@ -153,27 +153,44 @@ export const GpsMapView: React.FC<GpsMapViewProps> = ({
             iconAnchor: [22, 22]
           });
 
-          // Marcadores
+          // Marcador Bodega Central (Siempre visible)
           L.marker(originCoords, { icon: warehouseIcon }).addTo(map).bindPopup('<b>Bodega Central RerF</b><br>Calzada Aguilar Batres, Z.12');
-          L.marker(destCoords, { icon: destIcon }).addTo(map).bindPopup('<b>Destino de Entrega</b><br>${destinationLabel.replace(/'/g, "\\'")}');
-          const truckMarker = L.marker(currentCoords, { icon: truckIcon, zIndexOffset: 1000 }).addTo(map).bindPopup('<b>Piloto: ${pilotName.replace(/'/g, "\\'")}</b><br>Velocidad: ${speedKmh} km/h');
 
-          // Trazar línea de ruta completa
-          if (allWaypoints.length > 0) {
+          let truckMarker = null;
+
+          // Trazar ruta y marcadores de entrega cuando haya una guía seleccionada
+          if (allWaypoints.length > 1) {
+            L.marker(destCoords, { icon: destIcon }).addTo(map).bindPopup('<b>Destino de Entrega</b><br>${destinationLabel.replace(/'/g, "\\'")}');
+            truckMarker = L.marker(currentCoords, { icon: truckIcon, zIndexOffset: 1000 }).addTo(map).bindPopup('<b>Piloto: ${pilotName.replace(/'/g, "\\'")}</b><br>Velocidad: ${speedKmh} km/h');
+
+            // Capa base / borde de carretera
             L.polyline(allWaypoints, {
-              color: '#3B82F6',
-              weight: 5,
-              opacity: 0.8,
-              dashArray: '6, 8'
+              color: '#1E3A8A',
+              weight: 6,
+              opacity: 0.85,
+              lineCap: 'round',
+              lineJoin: 'round'
             }).addTo(map);
 
-            // Ajustar encuadre para que se vean todos los puntos
+            // Capa vívida de navegación vial (continua y nítida)
+            L.polyline(allWaypoints, {
+              color: '#2563EB',
+              weight: 4,
+              opacity: 0.95,
+              lineCap: 'round',
+              lineJoin: 'round'
+            }).addTo(map);
+
+            // Ajustar encuadre para que se vean todos los puntos de la ruta
             const bounds = L.latLngBounds(allWaypoints);
-            map.fitBounds(bounds, { padding: [40, 40] });
+            map.fitBounds(bounds, { padding: [45, 45] });
+          } else {
+            map.setView(originCoords, 13);
           }
 
           // Función global para actualizar la posición desde React Native sin recargar
           window.updateTruckPosition = function(lat, lng, newBearing, speed) {
+            if (!truckMarker) return;
             const newPos = [lat, lng];
             truckMarker.setLatLng(newPos);
             const box = document.getElementById('truckBox');
