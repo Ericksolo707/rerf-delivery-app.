@@ -20,7 +20,8 @@ import {
   TextInput, 
   TouchableOpacity,
   ScrollView,
-  Keyboard 
+  Keyboard,
+  RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -32,7 +33,7 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 type AiChatScreenProps = Partial<RootStackScreenProps<'ChatIA'>> & Partial<MainTabCompositeScreenProps<'ChatTab'>>;
 
 export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
-  const { aiMessages, sendAiMessage } = useApp();
+  const { aiMessages, sendAiMessage, isRefreshing, refreshData } = useApp();
   const [input, setInput] = useState<string>('');
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   const flatListRef = useRef<FlatList>(null);
@@ -114,6 +115,14 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshData}
+            colors={[RerfColors.primaryYellowText]}
+            tintColor={RerfColors.primaryYellowText}
+          />
+        }
       />
 
       {/* Sugerencias Rápidas estilo Excalidraw */}

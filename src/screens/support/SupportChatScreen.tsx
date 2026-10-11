@@ -21,7 +21,8 @@ import {
   Platform, 
   TextInput, 
   TouchableOpacity,
-  Keyboard 
+  Keyboard,
+  RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -31,7 +32,7 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = ({ route, navigation }) => {
-  const { supportMessages, sendSupportMessage, user } = useApp();
+  const { supportMessages, sendSupportMessage, user, isRefreshing, refreshData } = useApp();
   const contactId: string = route.params?.contact?.id || 'usr-001';
   const contactName: string = route.params?.contact?.name || 'Soporte y Atención';
   const contactRole: string = route.params?.contact?.role || 'Línea de soporte y atención';
@@ -157,6 +158,14 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshData}
+            colors={[RerfColors.primaryYellowText]}
+            tintColor={RerfColors.primaryYellowText}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="chatbubbles-outline" size={44} color="#94A3B8" />
