@@ -3,12 +3,17 @@
  * Programación II - UMG / RerF Logistics
  *
  * Responsabilidad: Pantalla 22 del boceto Excalidraw con:
- * - Header: avatar circular + "Moderación 1" con botones [ ! ] y [ -> ]
- * - Burbujas de chat estilizadas (izquierda entrante, derecha saliente)
- * - Barra inferior: "Escribir mensaje" + botón circular de envío
+ * - Header: avatar circular + "Moderación 1 / 2 / 3 / Asistencia General"
+ * - Canales independientes de soporte con memoria y persistencia
+ * - Soporte bidireccional:
+ *   - El cliente envía consultas y recibe confirmación automática.
+ *   - El administrador (esolorzano) puede ingresar a cualquiera de los 4 canales y responder directamente al usuario.
+ *   - Las respuestas del administrador se identifican como moderación oficial y notifican al cliente.
+ * - Burbujas estilizadas según rol (Admin vs Cliente).
+ * - Barra inferior: "Escribir mensaje" + botón circular de envío con ajuste perfecto de teclado y auto-scroll.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -29,11 +34,19 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = ({ route, navigation }) => {
   const { supportMessages, sendSupportMessage, user } = useApp();
+  const contactId: string = route.params?.contact?.id || 'mod-1';
   const contactName: string = route.params?.contact?.name || 'Moderación 1';
+  const contactRole: string = route.params?.contact?.role || 'Línea de soporte y atención';
 
+  const isAdmin = user?.role === 'admin';
   const [inputText, setInputText] = useState<string>('');
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   const flatListRef = useRef<FlatList>(null);
+
+  // Filtrar mensajes específicos del canal actual
+  const channelMessages = useMemo(() => {
+    return supportMessages.filter(m => !m.channel_id || m.channel_id === contactId);
+  }, [supportMessages, contactId]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -60,22 +73,32 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 150);
-  }, [supportMessages.length]);
+  }, [channelMessages.length]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputText.trim()) return;
-    sendSupportMessage(inputText.trim());
+    const textToSend = inputText.trim();
     setInputText('');
+    await sendSupportMessage(textToSend, contactId, contactName);
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
   };
 
   const renderBubble = ({ item }: { item: ChatMessage }) => {
-    const isMe = item.sender_id === user?.id || item.sender_id === 'usr-001';
+    // Si el usuario actual es admin: sus respuestas (o mensajes marcados is_support) son suyos (derecha)
+    // Si el usuario actual es cliente: sus propios mensajes son suyos (derecha)
+    const isMe = isAdmin 
+      ? (item.sender_id === user?.id || item.is_support)
+      : (item.sender_id === user?.id && !item.is_support);
 
     return (
       <View style={[styles.bubbleWrapper, isMe ? styles.myBubbleWrapper : styles.otherBubbleWrapper]}>
+        {!isMe && (
+          <Text style={styles.senderNameLabel}>
+            {item.is_support ? `🛡️ ${item.sender_name || contactName}` : `👤 ${item.sender_name || 'Cliente'}`}
+          </Text>
+        )}
         <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}>
           <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.otherMessageText]}>
             {item.message}
@@ -97,9 +120,23 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
     >
       <Header title={contactName} showBack={true} />
 
+      {/* Banner identificador de canal y estado de moderación */}
+      <View style={[styles.channelBadgeRow, isAdmin && styles.channelBadgeRowAdmin]}>
+        <Ionicons 
+          name={isAdmin ? "shield-checkmark" : "chatbubble-ellipses"} 
+          size={14} 
+          color={isAdmin ? "#0284C7" : RerfColors.logisticsBlue} 
+        />
+        <Text style={[styles.channelBadgeText, isAdmin && styles.channelBadgeTextAdmin]} numberOfLines={1}>
+          {isAdmin 
+            ? `Modo Administrador • Respondiendo en ${contactName}` 
+            : contactRole}
+        </Text>
+      </View>
+
       <FlatList
         ref={flatListRef}
-        data={supportMessages}
+        data={channelMessages}
         keyExtractor={item => item.id}
         renderItem={renderBubble}
         contentContainerStyle={styles.messagesList}
@@ -112,7 +149,7 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
       <View style={styles.inputBar}>
         <TextInput
           style={styles.input}
-          placeholder="Escribir mensaje"
+          placeholder={isAdmin ? `Responder como ${contactName}...` : `Escribir a ${contactName}...`}
           placeholderTextColor="#94A3B8"
           value={inputText}
           onChangeText={setInputText}
@@ -137,6 +174,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: RerfColors.background,
   },
+  channelBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: RerfColors.surfaceSubtle,
+    borderBottomWidth: 1,
+    borderBottomColor: RerfColors.surfaceCardBorder,
+  },
+  channelBadgeRowAdmin: {
+    backgroundColor: '#F0F9FF',
+    borderBottomColor: '#BAE6FD',
+  },
+  channelBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: RerfColors.textMuted,
+    flex: 1,
+  },
+  channelBadgeTextAdmin: {
+    color: '#0369A1',
+    fontWeight: '800',
+  },
   messagesList: {
     padding: 16,
     gap: 12,
@@ -152,6 +213,13 @@ const styles = StyleSheet.create({
   otherBubbleWrapper: {
     alignSelf: 'flex-start',
     alignItems: 'flex-start',
+  },
+  senderNameLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: RerfColors.textMuted,
+    marginBottom: 3,
+    marginLeft: 4,
   },
   bubble: {
     borderRadius: 16,

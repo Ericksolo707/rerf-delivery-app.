@@ -124,4 +124,6 @@ export interface ChatMessage {
   created_at: string;
   is_bot?: boolean;
   is_support?: boolean;
+  channel_id?: string;
+  channel_name?: string;
 }

@@ -22,21 +22,25 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
+import { useApp } from '../../context/AppContext';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'ContactoTab'>> = ({ navigation }) => {
+  const { user, supportMessages } = useApp();
+  const isAdmin = user?.role === 'admin';
+
   const moderators = [
     {
       id: 'mod-1',
       name: 'Moderación 1',
-      preview: 'Hola, ¿en qué te puedo ayudar con tu envío?',
+      preview: 'Consultas generales y seguimiento de envíos.',
       status: 'Activo',
     },
     {
       id: 'mod-2',
       name: 'Moderación 2',
-      preview: 'Revisión de guías y aclaraciones de cobro.',
+      preview: 'Revisión de guías, pagos y cotizaciones.',
       status: 'En línea',
     },
     {
@@ -48,23 +52,43 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
     {
       id: 'mod-4',
       name: 'Asistencia General',
-      preview: 'Atención al cliente y horarios de bodega central.',
+      preview: 'Atención a clientes y horarios de bodega central.',
       status: 'Disponible',
     },
   ];
+
+  const getLastPreview = (channelId: string, defaultText: string): string => {
+    const channelMsgs = supportMessages.filter(m => !m.channel_id || m.channel_id === channelId);
+    if (channelMsgs.length > 0) {
+      const last = channelMsgs[channelMsgs.length - 1];
+      const prefix = last.is_support ? '🛡️ ' : '👤 ';
+      return `${prefix}${last.message}`;
+    }
+    return defaultText;
+  };
 
   return (
     <View style={styles.container}>
       <Header title="Contacto" />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Banner para perfil Administrador */}
+        {isAdmin && (
+          <View style={styles.adminBanner}>
+            <Ionicons name="shield-checkmark" size={18} color="#0284C7" />
+            <Text style={styles.adminBannerText}>
+              Modo Administrador: Puedes responder a las consultas de los usuarios en cualquiera de estos 4 canales.
+            </Text>
+          </View>
+        )}
+
         {/* Lista de moderadores */}
         <View style={styles.contactsList}>
           {moderators.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={styles.contactRow}
-              onPress={() => navigation.navigate('ChatSoporte', { contact: { name: item.name, role: item.preview } })}
+              onPress={() => navigation.navigate('ChatSoporte', { contact: { id: item.id, name: item.name, role: item.preview } })}
               activeOpacity={0.7}
             >
               <View style={styles.circleAvatar}>
@@ -72,8 +96,15 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
               </View>
 
               <View style={styles.contactInfoCol}>
-                <Text style={styles.contactName}>{item.name}</Text>
-                <Text style={styles.contactPreview} numberOfLines={1}>{item.preview}</Text>
+                <View style={styles.contactHeaderRow}>
+                  <Text style={styles.contactName}>{item.name}</Text>
+                  <View style={styles.statusPill}>
+                    <Text style={styles.statusPillText}>{item.status}</Text>
+                  </View>
+                </View>
+                <Text style={styles.contactPreview} numberOfLines={1}>
+                  {getLastPreview(item.id, item.preview)}
+                </Text>
               </View>
 
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
@@ -107,6 +138,41 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     flexGrow: 1,
     justifyContent: 'space-between',
+  },
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  adminBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0369A1',
+    lineHeight: 16,
+  },
+  contactHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  statusPill: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#15803D',
   },
   contactsList: {
     borderWidth: 1,
