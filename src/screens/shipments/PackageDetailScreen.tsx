@@ -32,13 +32,12 @@ import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
-import { GABRIEL_MOCK_PACKAGES } from './PackagesOverviewScreen';
 
 export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'>> = ({ route, navigation }) => {
-  const { shipments, user, users, updateShipment } = useApp();
+  const { shipments, allShipments, user, users, updateShipment } = useApp();
   const shipmentId: string | undefined = route.params?.shipmentId;
-  const demoFallback = GABRIEL_MOCK_PACKAGES.find(p => p.id === shipmentId || p.tracking_number === shipmentId) || GABRIEL_MOCK_PACKAGES[0];
-  const shipment: Shipment = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId) || demoFallback;
+  const shipment: Shipment | undefined = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId)
+    || allShipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId);
 
   const firstPackage = shipment?.packages?.[0];
   const isSender = shipment?.sender_id === user?.id;
