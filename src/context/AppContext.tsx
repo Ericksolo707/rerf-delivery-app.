@@ -170,12 +170,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [user]);
 
+  // Re-aplicar cancelaciones locales persistidas sobre la lista de envíos
+  const aplicarCancelacionesPersistidas = async (lista: Shipment[]): Promise<Shipment[]> => {
+    try {
+      const cancelsRaw = await AsyncStorage.getItem('@rerf_cancellations_map');
+      if (!cancelsRaw) return lista;
+      const cancelsMap: Record<string, { cancelled_at: string; cancellation_reason: string }> = JSON.parse(cancelsRaw);
+      return lista.map(s => {
+        const entry = cancelsMap[s.id] || cancelsMap[s.tracking_number];
+        if (entry) {
+          return {
+            ...s,
+            status: 'cancelado' as const,
+            cancellation_reason: s.cancellation_reason || entry.cancellation_reason,
+            cancelled_at: s.cancelled_at || entry.cancelled_at,
+            updated_at: s.updated_at || entry.cancelled_at,
+          };
+        }
+        return s;
+      });
+    } catch {
+      return lista;
+    }
+  };
+
   // Función pública de refresco para pull-to-refresh y botón manual
   const refreshData = async (): Promise<void> => {
     setIsRefreshing(true);
     try {
       const listaEnvios = await repositorioEnvios.listar();
-      setAllShipments(listaEnvios);
+      const conCancelaciones = await aplicarCancelacionesPersistidas(listaEnvios);
+      setAllShipments(conCancelaciones);
       const listaBodega = await repositorioBodega.listar();
       setWarehouseItems(listaBodega);
       const listaFacturas = await repositorioFacturas.listar();
@@ -299,7 +324,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(true);
     try {
       const listaEnvios = await repositorioEnvios.listar();
-      setAllShipments(listaEnvios);
+      const conCancelaciones = await aplicarCancelacionesPersistidas(listaEnvios);
+      setAllShipments(conCancelaciones);
       const listaBodega = await repositorioBodega.listar();
       setWarehouseItems(listaBodega);
       const listaFacturas = await repositorioFacturas.listar();
@@ -331,7 +357,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(true);
     try {
       const listaEnvios = await repositorioEnvios.listar();
-      setAllShipments(listaEnvios);
+      const conCancelaciones = await aplicarCancelacionesPersistidas(listaEnvios);
+      setAllShipments(conCancelaciones);
       const listaBodega = await repositorioBodega.listar();
       setWarehouseItems(listaBodega);
       const actualizados = await repositorioUsuarios.listarDirectorio();
@@ -464,22 +491,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const cancelShipment = async (shipmentId: string, reason: string): Promise<void> => {
+    const nowCancel = new Date();
+    const nowIso = nowCancel.toISOString();
+
     const res = await repositorioEnvios.cancelar(shipmentId, reason);
 
     // Identificar el envío cancelado
     const targetShipment = allShipments.find(s => s.id === shipmentId || s.tracking_number === shipmentId) || res;
     const trackingCode = targetShipment?.tracking_number || shipmentId;
 
-    setAllShipments(prev =>
-      prev.map(s =>
-        s.id === shipmentId || s.tracking_number === shipmentId
-          ? { ...s, status: 'cancelado', cancellation_reason: reason }
-          : s
-      )
-    );
+    // Guardar registro de cancelación para persistencia local
+    try {
+      const prevCancelsRaw = await AsyncStorage.getItem('@rerf_cancellations_map');
+      const cancelsMap: Record<string, { cancelled_at: string; cancellation_reason: string }> = prevCancelsRaw ? JSON.parse(prevCancelsRaw) : {};
+      cancelsMap[shipmentId] = { cancelled_at: nowIso, cancellation_reason: reason };
+      if (trackingCode) {
+        cancelsMap[trackingCode] = { cancelled_at: nowIso, cancellation_reason: reason };
+      }
+      if (targetShipment?.id) {
+        cancelsMap[targetShipment.id] = { cancelled_at: nowIso, cancellation_reason: reason };
+      }
+      await AsyncStorage.setItem('@rerf_cancellations_map', JSON.stringify(cancelsMap));
+    } catch (e) {
+      console.warn('Error guardando cancelación en storage:', e);
+    }
+
+    setAllShipments(prev => {
+      const target = prev.find(s => s.id === shipmentId || s.tracking_number === shipmentId);
+      const updatedItem: Shipment = target 
+        ? {
+            ...target,
+            status: 'cancelado' as const,
+            cancellation_reason: reason,
+            cancelled_at: nowIso,
+            updated_at: nowIso,
+          }
+        : {
+            ...(res || {} as Shipment),
+            id: targetShipment?.id || shipmentId,
+            tracking_number: trackingCode,
+            status: 'cancelado' as const,
+            cancellation_reason: reason,
+            cancelled_at: nowIso,
+            updated_at: nowIso,
+          };
+
+      const others = prev.filter(s => s.id !== shipmentId && s.tracking_number !== shipmentId && (!targetShipment?.id || s.id !== targetShipment.id));
+      return [updatedItem, ...others];
+    });
 
     // 1. Notificación para el usuario que realizó la cancelación
-    const nowCancel = new Date();
     const notifUser: NotificationItem = {
       id: `notif-cancel-${nowCancel.getTime()}`,
       title: 'Envío Cancelado',
@@ -487,7 +548,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'alerta',
       date: 'Hoy',
       is_read: false,
-      created_at: nowCancel.toISOString(),
+      created_at: nowIso,
       shipment_id: targetShipment?.id || shipmentId,
       tracking_number: trackingCode,
     };

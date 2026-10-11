@@ -50,6 +50,8 @@ export interface Shipment {
   status: ShipmentStatus;
   rejection_reason?: string;
   cancellation_reason?: string;
+  cancelled_at?: string;
+  updated_at?: string;
   payment_method?: PaymentMethod;
   payment_status: 'pendiente' | 'pagado';
   total_amount: number;

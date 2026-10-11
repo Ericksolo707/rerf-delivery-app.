@@ -25,6 +25,25 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 const getShipmentTimestamp = (item: Shipment): number => {
+  // 1. Si el envío está cancelado, priorizar la fecha de cancelación
+  if (item.status === 'cancelado') {
+    if (item.cancelled_at) {
+      const parsed = new Date(item.cancelled_at.replace(' ', 'T')).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+    if (item.updated_at) {
+      const parsed = new Date(item.updated_at.replace(' ', 'T')).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+  }
+
+  // 2. Si tiene fecha de última actualización
+  if (item.updated_at) {
+    const parsed = new Date(item.updated_at.replace(' ', 'T')).getTime();
+    if (!isNaN(parsed)) return parsed;
+  }
+
+  // 3. Fecha de creación
   if (item.created_at) {
     const parsed = new Date(item.created_at.replace(' ', 'T')).getTime();
     if (!isNaN(parsed)) return parsed;
@@ -86,10 +105,18 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
     () => sortShipmentsDesc(myOrders.filter(s => s.status === 'pendiente')),
     [myOrders]
   );
-  const cancelledOrders = React.useMemo(
-    () => sortShipmentsDesc(myOrders.filter(s => s.status === 'cancelado')),
-    [myOrders]
-  );
+  const cancelledOrders = React.useMemo(() => {
+    const cancelled = myOrders.filter(s => s.status === 'cancelado');
+    return [...cancelled].sort((a, b) => {
+      const timeA = a.cancelled_at 
+        ? new Date(a.cancelled_at.replace(' ', 'T')).getTime() 
+        : (a.updated_at ? new Date(a.updated_at.replace(' ', 'T')).getTime() : getShipmentTimestamp(a));
+      const timeB = b.cancelled_at 
+        ? new Date(b.cancelled_at.replace(' ', 'T')).getTime() 
+        : (b.updated_at ? new Date(b.updated_at.replace(' ', 'T')).getTime() : getShipmentTimestamp(b));
+      return timeB - timeA;
+    });
+  }, [myOrders]);
 
   // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
