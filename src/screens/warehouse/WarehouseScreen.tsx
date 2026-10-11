@@ -141,7 +141,11 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
     const isPending = item?.status === 'solicitado';
 
     return (
-      <View style={styles.card}>
+      <TouchableOpacity 
+        style={styles.card}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('DetalleAlmacenaje', { itemId: item?.id, storageCode: item?.storage_code })}
+      >
         {/* Cabecera de la tarjeta: Nombre / Almacenaje */}
         <View style={styles.cardHeaderRow}>
           <Text style={styles.productName}>{item?.product_type || 'Mercadería'}</Text>
@@ -177,6 +181,12 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
           {item?.description || 'Sin descripción adicional'}
         </Text>
 
+        {/* Pie de tarjeta: Ver detalle completo */}
+        <View style={styles.cardFooter}>
+          <Text style={styles.viewDetailText}>Ver detalle completo</Text>
+          <Ionicons name="arrow-forward" size={13} color={RerfColors.logisticsBlue} />
+        </View>
+
         {/* Botones de acción exclusiva para el Administrador */}
         {isAdmin && isPending && (
           <View style={styles.adminActionRow}>
@@ -199,7 +209,7 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -414,10 +424,25 @@ const styles = StyleSheet.create({
     color: RerfColors.textSecondary,
     lineHeight: 16,
   },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
+  },
+  viewDetailText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: RerfColors.logisticsBlue,
+  },
   adminActionRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 12,
+    marginTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
     paddingTop: 10,
