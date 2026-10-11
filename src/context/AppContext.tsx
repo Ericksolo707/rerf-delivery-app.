@@ -566,6 +566,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProfile = async (data: Partial<UserProfile>): Promise<void> => {
     const actualizado = await repositorioUsuarios.actualizarPerfil(data);
     setUser(actualizado);
+    const listaUsuarios = await repositorioUsuarios.listarDirectorio();
+    setUsers(listaUsuarios);
   };
 
   const addShipment = async (
