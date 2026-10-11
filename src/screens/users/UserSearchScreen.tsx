@@ -16,11 +16,11 @@ import {
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity 
+  TouchableOpacity,
+  TextInput 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
@@ -28,14 +28,30 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ navigation }) => {
   const { users } = useApp();
   const [search, setSearch] = useState<string>('');
+  const [submittedQuery, setSubmittedQuery] = useState<string>('');
+  const [hasSearched, setHasSearched] = useState<boolean>(false);
 
-  const filteredUsers = search.trim()
+  const handleSearch = () => {
+    const trimmed = search.trim();
+    setSubmittedQuery(trimmed);
+    setHasSearched(true);
+  };
+
+  const handleClear = () => {
+    setSearch('');
+    setSubmittedQuery('');
+    setHasSearched(false);
+  };
+
+  const activeQuery = hasSearched ? submittedQuery : search.trim();
+  const filteredUsers = activeQuery
     ? users.filter(u =>
-        `${u.first_name} ${u.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase())
+        `${u.first_name} ${u.last_name}`.toLowerCase().includes(activeQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(activeQuery.toLowerCase())
       )
     : users;
 
+  const isNotFound = hasSearched && submittedQuery !== '' && filteredUsers.length === 0;
   const recentUsers = users.slice(0, 4);
 
   return (
@@ -43,37 +59,78 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
       <Header title="Usuarios" showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Campo Buscar */}
-        <View style={styles.searchBox}>
-          <Input
-            placeholder="Buscar"
-            value={search}
-            onChangeText={setSearch}
-            leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
-            containerStyle={{ marginBottom: 0 }}
-          />
+        {/* Campo Buscar con Botón Buscar integrado */}
+        <View style={styles.searchBarRow}>
+          <View style={styles.inputWrapper}>
+            <Ionicons name="search-outline" size={18} color="#64748B" style={styles.searchIcon} />
+            <TextInput
+              style={styles.textInput}
+              placeholder="Buscar usuario..."
+              placeholderTextColor="#94A3B8"
+              value={search}
+              onChangeText={(text) => {
+                setSearch(text);
+                if (hasSearched && text.trim() === '') {
+                  setHasSearched(false);
+                }
+              }}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={handleClear} style={{ padding: 4 }}>
+                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity 
+            style={styles.searchButton}
+            onPress={handleSearch}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="search" size={16} color={RerfColors.primaryYellowText} />
+            <Text style={styles.searchButtonText}>Buscar</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Lista de Usuarios (avatar circular + nombre) */}
-        <View style={styles.usersList}>
-          {filteredUsers.slice(0, 5).map((user) => (
-            <TouchableOpacity
-              key={user.id}
-              style={styles.userRow}
-              onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
-              activeOpacity={0.7}
-            >
-              <View style={styles.circleAvatar}>
-                <Ionicons name="person-outline" size={20} color="#0F172A" />
-              </View>
-              <View style={styles.userRowInfo}>
-                <Text style={styles.userRowName}>{user.first_name} {user.last_name}</Text>
-                <Text style={styles.userRowEmail}>{user.email}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+        {/* Manejo de error: Usuario no encontrado */}
+        {isNotFound && (
+          <View style={styles.errorBanner}>
+            <Ionicons name="person-remove-outline" size={24} color="#DC2626" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.errorBannerTitle}>Usuario no encontrado</Text>
+              <Text style={styles.errorBannerSub}>
+                {`No se encontró ningún usuario con "${submittedQuery}". Verifica el nombre o correo ingresado.`}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleClear} style={styles.clearBtn}>
+              <Text style={styles.clearBtnText}>Limpiar</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
+        )}
+
+        {/* Lista de Usuarios (avatar circular + nombre) */}
+        {!isNotFound && filteredUsers.length > 0 && (
+          <View style={styles.usersList}>
+            {filteredUsers.slice(0, 5).map((user) => (
+              <TouchableOpacity
+                key={user.id}
+                style={styles.userRow}
+                onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
+                activeOpacity={0.7}
+              >
+                <View style={styles.circleAvatar}>
+                  <Ionicons name="person-outline" size={20} color="#0F172A" />
+                </View>
+                <View style={styles.userRowInfo}>
+                  <Text style={styles.userRowName}>{user.first_name} {user.last_name}</Text>
+                  <Text style={styles.userRowEmail}>{user.email}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Barra de Botones [ Favoritos ⭐ ]  [ Listado ] */}
         <View style={styles.buttonsBarRow}>
@@ -129,8 +186,82 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  searchBox: {
+  searchBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 16,
+  },
+  inputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    paddingHorizontal: 12,
+    height: 48,
+    ...RerfShadows.card,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 14,
+    color: RerfColors.textMain,
+    fontWeight: '600',
+  },
+  searchButton: {
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: RerfColors.primaryYellow,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    ...RerfShadows.card,
+  },
+  searchButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: RerfColors.primaryYellowText,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  errorBannerSub: {
+    fontSize: 11,
+    color: '#7F1D1D',
+    marginTop: 2,
+  },
+  clearBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  clearBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   usersList: {
     marginBottom: 20,
