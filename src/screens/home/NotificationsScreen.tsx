@@ -156,7 +156,11 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
 
     // D. Si es de almacenaje o bodega
     if (item.message.toLowerCase().includes('bodega') || item.title.toLowerCase().includes('almacenaje')) {
-      (navigation as any).navigate('Principal', { screen: 'BodegaTab' });
+      const bdgMatch = (item.title + ' ' + item.message).match(/BDG-\d+/i);
+      (navigation as any).navigate('Principal', {
+        screen: 'BodegaTab',
+        params: { searchCode: bdgMatch ? bdgMatch[0].toUpperCase() : '' },
+      });
       return;
     }
 

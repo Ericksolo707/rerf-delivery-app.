@@ -32,6 +32,11 @@ import {
 import { AiLogisticsService } from '../services/aiLogisticsService';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
+const isUuid = (str?: string): boolean => {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+};
+
 interface AppContextType {
   // Autenticación y Perfil
   user: UserProfile | null;
@@ -134,13 +139,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               is_read: Boolean(n.is_read),
               created_at: n.created_at,
             }));
-            const existingIds = new Set(mapped.map(m => m.id));
-            const combined = [...mapped];
+
+            // Mapa para preservar si la notificación ya fue leída localmente
+            const localReadMap = new Map<string, boolean>();
             for (const l of lista) {
-              if (!existingIds.has(l.id)) {
+              if (l.is_read) {
+                localReadMap.set(l.id, true);
+                localReadMap.set(`${(l.title || '').trim()}|${(l.message || '').trim()}`, true);
+              }
+            }
+
+            const seen = new Set<string>();
+            const combined: NotificationItem[] = [];
+
+            // 1. Agregar remotas de Supabase primero
+            for (const m of mapped) {
+              const sig = `${(m.title || '').trim()}|${(m.message || '').trim()}`;
+              if (!seen.has(sig) && !seen.has(m.id)) {
+                seen.add(sig);
+                seen.add(m.id);
+                const wasRead = Boolean(m.is_read || localReadMap.get(m.id) || localReadMap.get(sig));
+                combined.push({
+                  ...m,
+                  is_read: wasRead,
+                });
+              }
+            }
+
+            // 2. Agregar locales que no estén duplicadas
+            for (const l of lista) {
+              const sig = `${(l.title || '').trim()}|${(l.message || '').trim()}`;
+              if (!seen.has(sig) && !seen.has(l.id)) {
+                seen.add(sig);
+                seen.add(l.id);
                 combined.push(l);
               }
             }
+
             lista = combined;
           }
         } catch (sbNotifErr) {
@@ -148,7 +183,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      return ordenarNotificacionesRecientes(lista);
+      // Deduplicación final por firma y ID
+      const finalUnique: NotificationItem[] = [];
+      const finalSeen = new Set<string>();
+      for (const item of lista) {
+        const sig = `${(item.title || '').trim()}|${(item.message || '').trim()}`;
+        if (!finalSeen.has(sig) && !finalSeen.has(item.id)) {
+          finalSeen.add(sig);
+          finalSeen.add(item.id);
+          finalUnique.push(item);
+        }
+      }
+
+      return ordenarNotificacionesRecientes(finalUnique);
     } catch (err) {
       console.warn('Error cargando notificaciones del usuario:', err);
       return [];
@@ -788,8 +835,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const markNotificationRead = (id: string): void => {
+    const target = notifications.find(n => n.id === id);
     const actualizadas = notifications.map(n => (n.id === id ? { ...n, is_read: true } : n));
     persistirNotificaciones(actualizadas);
+
+    if (isSupabaseConfigured) {
+      if (id.includes('-') && isUuid(id)) {
+        void supabase
+          .from('notificaciones')
+          .update({ is_read: true })
+          .eq('id', id);
+      } else if (target && user?.id) {
+        void supabase
+          .from('notificaciones')
+          .update({ is_read: true })
+          .eq('user_id', user.id)
+          .eq('title', target.title)
+          .eq('message', target.message);
+      }
+    }
   };
 
   const toggleFavoriteUser = async (userId: string): Promise<void> => {
