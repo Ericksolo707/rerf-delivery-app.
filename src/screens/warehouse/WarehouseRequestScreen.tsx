@@ -86,7 +86,7 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
       description: description.trim(),
       material,
       pickup_method: pickupMethod,
-      status: 'almacenado',
+      status: 'solicitado',
     });
 
     setShowSuccessModal(true);
@@ -222,7 +222,7 @@ export const WarehouseRequestScreen: React.FC<RootStackScreenProps<'SolicitudAlm
       <ModalDialog
         visible={showSuccessModal}
         title="RERF APP"
-        message="Tu solicitud de almacenaje ha sido recibida y el código de ubicación fue asignado a tu inventario."
+        message="Tu solicitud de almacenaje ha sido enviada con éxito. El administrador la revisará para autorizar su ingreso a bodega."
         confirmText="Ver Mi Bodega"
         singleButton={true}
         onConfirm={() => {

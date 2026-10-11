@@ -156,7 +156,7 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
 
     // D. Si es de almacenaje o bodega
     if (item.message.toLowerCase().includes('bodega') || item.title.toLowerCase().includes('almacenaje')) {
-      navigation.navigate('SolicitudAlmacenaje');
+      (navigation as any).navigate('Principal', { screen: 'BodegaTab' });
       return;
     }
 

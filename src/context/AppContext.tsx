@@ -52,6 +52,7 @@ interface AppContextType {
   // Bodega Personal
   warehouseItems: WarehouseItem[];
   addWarehouseItem: (item: Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>) => Promise<WarehouseItem>;
+  authorizeWarehouseItem: (id: string, approved: boolean) => Promise<void>;
   
   // Notificaciones
   notifications: NotificationItem[];
@@ -658,10 +659,132 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const itemWithUser = {
       ...itemData,
       user_id: user?.id || 'usr-001',
+      status: itemData.status || 'solicitado',
     };
     const nuevoArticulo = await repositorioBodega.solicitarAlmacenaje(itemWithUser);
     setWarehouseItems(prev => [nuevoArticulo, ...prev]);
+
+    const now = new Date();
+    // 1. Notificación para el cliente solicitante
+    const notifUser: NotificationItem = {
+      id: `notif-wh-req-${now.getTime()}`,
+      title: 'Solicitud de Almacenaje Enviada',
+      message: `Tu solicitud para almacenar "${nuevoArticulo.product_type}" (${nuevoArticulo.storage_code}) fue enviada y está pendiente de autorización.`,
+      type: 'info',
+      date: 'Hoy',
+      is_read: false,
+      created_at: now.toISOString(),
+    };
+    await persistirNotificaciones([notifUser, ...notifications]);
+
+    if (isSupabaseConfigured && user?.id && user.id.includes('-')) {
+      try {
+        await supabase.from('notificaciones').insert({
+          user_id: user.id,
+          title: notifUser.title,
+          message: notifUser.message,
+          type: 'info',
+          is_read: false,
+        });
+      } catch (eSb) {
+        console.warn('[AppContext] Error guardando notificación en Supabase:', eSb);
+      }
+    }
+
+    // 2. Notificación para los administradores ("le llegue notificacion de solicitud de almacenamiento")
+    try {
+      const adminUsers = users.filter(u => u.role === 'admin' && u.id !== user?.id);
+      const requesterName = user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Un cliente';
+
+      for (const admin of adminUsers) {
+        const notifAdmin: NotificationItem = {
+          id: `notif-wh-admin-${now.getTime()}-${admin.id}`,
+          title: 'Nueva Solicitud de Almacenaje',
+          message: `${requesterName} ha solicitado almacenar "${nuevoArticulo.product_type}" (${nuevoArticulo.storage_code}). Pendiente de autorización.`,
+          type: 'alerta',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+        };
+
+        const adminKey = `@rerf_notifications_${admin.id}`;
+        const prevRaw = await AsyncStorage.getItem(adminKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(adminKey, JSON.stringify([notifAdmin, ...prevList]));
+
+        if (isSupabaseConfigured && admin.id && admin.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: admin.id,
+              title: notifAdmin.title,
+              message: notifAdmin.message,
+              type: 'alerta',
+              is_read: false,
+            });
+          } catch (eSb) {
+            console.warn('[AppContext] Error guardando notificación para admin en Supabase:', eSb);
+          }
+        }
+      }
+    } catch (errAdminNotif) {
+      console.warn('[AppContext] Error notificando a administradores:', errAdminNotif);
+    }
+
     return nuevoArticulo;
+  };
+
+  const authorizeWarehouseItem = async (itemId: string, approved: boolean): Promise<void> => {
+    const newStatus: 'almacenado' | 'rechazado' = approved ? 'almacenado' : 'rechazado';
+    const itemTarget = warehouseItems.find(w => w.id === itemId || w.storage_code === itemId);
+
+    await repositorioBodega.actualizar(itemId, { status: newStatus });
+
+    setWarehouseItems(prev =>
+      prev.map(w => (w.id === itemId || w.storage_code === itemId ? { ...w, status: newStatus } : w))
+    );
+
+    const now = new Date();
+    const productName = itemTarget?.product_type || 'Mercadería';
+    const storageCode = itemTarget?.storage_code || itemId;
+    const ownerId = itemTarget?.user_id;
+
+    // Notificación al usuario cliente: "cuando se lo autoricen"
+    if (ownerId) {
+      const notifClient: NotificationItem = {
+        id: `notif-wh-auth-${now.getTime()}`,
+        title: approved ? 'Almacenaje Autorizado' : 'Almacenaje Rechazado',
+        message: approved
+          ? `Tu solicitud de almacenaje para "${productName}" (${storageCode}) ha sido autorizada y se encuentra activa en bodega.`
+          : `Tu solicitud de almacenaje para "${productName}" (${storageCode}) fue rechazada por el administrador.`,
+        type: approved ? 'info' : 'alerta',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+      };
+
+      if (user?.id === ownerId) {
+        await persistirNotificaciones([notifClient, ...notifications]);
+      } else {
+        const clientKey = `@rerf_notifications_${ownerId}`;
+        const prevRaw = await AsyncStorage.getItem(clientKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(clientKey, JSON.stringify([notifClient, ...prevList]));
+      }
+
+      if (isSupabaseConfigured && ownerId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: ownerId,
+            title: notifClient.title,
+            message: notifClient.message,
+            type: approved ? 'info' : 'alerta',
+            is_read: false,
+          });
+        } catch (eSb) {
+          console.warn('[AppContext] Error guardando notificación en Supabase:', eSb);
+        }
+      }
+    }
   };
 
   const markNotificationRead = (id: string): void => {
@@ -752,6 +875,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getShipmentByTracking,
         warehouseItems: userWarehouseItems,
         addWarehouseItem,
+        authorizeWarehouseItem,
         notifications,
         markNotificationRead,
         invoices: userInvoices,
