@@ -24,12 +24,20 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const UsersListScreen: React.FC<RootStackScreenProps<'ListadoUsuarios'>> = ({ navigation }) => {
-  const { users } = useApp();
+  const { users, user: currentUser } = useApp();
   const [filterFavsOnly, setFilterFavsOnly] = useState<boolean>(false);
 
+  // Excluir al titular de la sesión para mostrar solo otros usuarios del sistema
+  const otherUsers = React.useMemo(() => {
+    return users.filter(u => 
+      u.id !== currentUser?.id && 
+      (!currentUser?.email || u.email?.toLowerCase() !== currentUser?.email?.toLowerCase())
+    );
+  }, [users, currentUser]);
+
   const displayedUsers = filterFavsOnly 
-    ? users.filter(u => u.is_favorite) 
-    : users;
+    ? otherUsers.filter(u => u.is_favorite) 
+    : otherUsers;
 
   const renderUserCard = ({ item }: { item: UserProfile }) => (
     <TouchableOpacity

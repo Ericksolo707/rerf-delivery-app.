@@ -26,10 +26,18 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ navigation }) => {
-  const { users } = useApp();
+  const { users, user: currentUser } = useApp();
   const [search, setSearch] = useState<string>('');
   const [submittedQuery, setSubmittedQuery] = useState<string>('');
   const [hasSearched, setHasSearched] = useState<boolean>(false);
+
+  // Excluir al titular de la sesión para mostrar solo otros contactos del directorio
+  const otherUsers = React.useMemo(() => {
+    return users.filter(u => 
+      u.id !== currentUser?.id && 
+      (!currentUser?.email || u.email?.toLowerCase() !== currentUser?.email?.toLowerCase())
+    );
+  }, [users, currentUser]);
 
   const handleSearch = () => {
     const trimmed = search.trim();
@@ -45,17 +53,17 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
 
   const activeQuery = hasSearched ? submittedQuery : search.trim();
   const filteredUsers = activeQuery
-    ? users.filter(u =>
+    ? otherUsers.filter(u =>
         `${u?.first_name || ''} ${u?.last_name || ''}`.toLowerCase().includes(activeQuery.toLowerCase()) ||
         (u?.username || '').toLowerCase().includes(activeQuery.toLowerCase()) ||
         (u?.alias || '').toLowerCase().includes(activeQuery.toLowerCase()) ||
         (u?.description || u?.bio || '').toLowerCase().includes(activeQuery.toLowerCase()) ||
         (u?.email || '').toLowerCase().includes(activeQuery.toLowerCase())
       )
-    : users;
+    : otherUsers;
 
   const isNotFound = hasSearched && submittedQuery !== '' && filteredUsers.length === 0;
-  const recentUsers = users.slice(0, 4);
+  const recentUsers = otherUsers.slice(0, 4);
 
   return (
     <View style={styles.container}>
