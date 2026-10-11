@@ -129,7 +129,7 @@ export const WarehouseDetailScreen: React.FC<RootStackScreenProps<'DetalleAlmace
           </Text>
           <TouchableOpacity 
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => (navigation as any).navigate('Principal', { screen: 'BodegaTab' })}
             activeOpacity={0.8}
           >
             <Text style={styles.backButtonText}>Volver a Mi Bodega</Text>
@@ -310,7 +310,7 @@ export const WarehouseDetailScreen: React.FC<RootStackScreenProps<'DetalleAlmace
         {/* Botón secundario para volver a bodega */}
         <TouchableOpacity
           style={styles.backToWarehouseBtn}
-          onPress={() => navigation.navigate('Principal')}
+          onPress={() => (navigation as any).navigate('Principal', { screen: 'BodegaTab' })}
           activeOpacity={0.8}
         >
           <Ionicons name="arrow-back-outline" size={18} color={RerfColors.textSecondary} />
