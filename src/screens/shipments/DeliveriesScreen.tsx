@@ -9,13 +9,13 @@
  *   - Derecha: Botones cuadrados estilizados [ L ] (Localizar GPS) y [ R ] (Rastrear / Detalle de Paquete).
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   FlatList, 
-  TouchableOpacity,
+  TouchableOpacity, 
   RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,12 +27,13 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ navigation }) => {
   const { shipments, user, users, refreshData, isRefreshing } = useApp();
+  const [adminScope, setAdminScope] = useState<'mis_entregas' | 'todas'>('mis_entregas');
 
-  // Para un usuario cliente, Entregas representa los paquetes dirigidos hacia él (donde es destinatario)
-  // Para el Administrador o Piloto, representa todas las entregas operativas del sistema
+  // Para un usuario cliente, Entregas representa los paquetes dirigidos hacia él (donde es destinatario).
+  // Para el Piloto representa todas las entregas operativas, y el Administrador puede alternar.
   const deliveries = React.useMemo(() => {
     if (!user) return [];
-    if (user.role === 'admin' || user.role === 'piloto') {
+    if (user.role === 'piloto' || (user.role === 'admin' && adminScope === 'todas')) {
       return shipments;
     }
 
@@ -57,7 +58,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
 
       return false;
     });
-  }, [shipments, user]);
+  }, [shipments, user, adminScope]);
 
   // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
@@ -146,6 +147,29 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
   return (
     <View style={styles.container}>
       <Header title="Entregas" showBack={true} />
+
+      {user?.role === 'admin' && (
+        <View style={styles.adminFilterRow}>
+          <TouchableOpacity
+            style={[styles.adminFilterBtn, adminScope === 'mis_entregas' && styles.adminFilterBtnActive]}
+            onPress={() => setAdminScope('mis_entregas')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.adminFilterText, adminScope === 'mis_entregas' && styles.adminFilterTextActive]}>
+              Mis Entregas
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.adminFilterBtn, adminScope === 'todas' && styles.adminFilterBtnActive]}
+            onPress={() => setAdminScope('todas')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.adminFilterText, adminScope === 'todas' && styles.adminFilterTextActive]}>
+              Todas las Entregas ({shipments.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FlatList
         data={deliveries}
@@ -298,6 +322,35 @@ const styles = StyleSheet.create({
   createBtnText: {
     fontSize: 14,
     fontWeight: '700',
+    color: RerfColors.primaryYellowText,
+  },
+  adminFilterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  adminFilterBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminFilterBtnActive: {
+    backgroundColor: RerfColors.primaryYellow,
+  },
+  adminFilterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  adminFilterTextActive: {
     color: RerfColors.primaryYellowText,
   },
 });

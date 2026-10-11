@@ -8,13 +8,13 @@
  * - Sección 2: "Pendientes [ + ] ->" con tarjetas y botones [ E ] (Editar) y [ X ] (Cancelar)
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity,
+  TouchableOpacity, 
   RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,14 +26,28 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ navigation }) => {
   const { shipments, user, users, refreshData, isRefreshing } = useApp();
+  const [adminScope, setAdminScope] = useState<'mis_pedidos' | 'todos'>('mis_pedidos');
 
-  // En Pedidos mostramos los envíos realizados/solicitados por el usuario o donde él es remitente.
-  // Si el usuario es Administrador, ve todos los pedidos del sistema.
+  // En Pedidos mostramos estrictamente los envíos realizados/solicitados por el usuario (remitente).
+  // Si el usuario es Administrador y elige "Todos los Pedidos", puede supervisar todo el sistema.
   const myOrders = React.useMemo(() => {
-    if (user?.role === 'admin') return shipments;
-    const sent = shipments.filter(s => s.sender_id === user?.id);
-    return sent.length > 0 ? sent : shipments;
-  }, [shipments, user]);
+    if (!user) return [];
+
+    if (user.role === 'admin' && adminScope === 'todos') {
+      return shipments;
+    }
+
+    return shipments.filter(s => {
+      // 1. Remitente por ID
+      if (s.sender_id && s.sender_id === user.id) return true;
+      // 2. Remitente por nombre en registros heredados
+      const userFullName = `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase();
+      const userFirstName = (user.first_name || '').trim().toLowerCase();
+      const agentName = (s.agent_name || '').trim().toLowerCase();
+      if (agentName && (agentName === userFullName || agentName === userFirstName)) return true;
+      return false;
+    });
+  }, [shipments, user, adminScope]);
 
   const activeOrders = myOrders.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado');
   const pendingOrders = myOrders.filter(s => s.status === 'pendiente');
@@ -246,6 +260,29 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
   return (
     <View style={styles.container}>
       <Header title="Pedidos" showBack={true} />
+
+      {user?.role === 'admin' && (
+        <View style={styles.adminFilterRow}>
+          <TouchableOpacity
+            style={[styles.adminFilterBtn, adminScope === 'mis_pedidos' && styles.adminFilterBtnActive]}
+            onPress={() => setAdminScope('mis_pedidos')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.adminFilterText, adminScope === 'mis_pedidos' && styles.adminFilterTextActive]}>
+              Mis Pedidos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.adminFilterBtn, adminScope === 'todos' && styles.adminFilterBtnActive]}
+            onPress={() => setAdminScope('todos')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.adminFilterText, adminScope === 'todos' && styles.adminFilterTextActive]}>
+              Todos los Pedidos ({shipments.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
@@ -498,5 +535,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: RerfColors.primaryYellowHover,
+  },
+  adminFilterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  adminFilterBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminFilterBtnActive: {
+    backgroundColor: RerfColors.primaryYellow,
+  },
+  adminFilterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  adminFilterTextActive: {
+    color: RerfColors.primaryYellowText,
   },
 });
