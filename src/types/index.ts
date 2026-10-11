@@ -54,6 +54,7 @@ export interface Shipment {
   rejection_reason?: string;
   cancellation_reason?: string;
   cancelled_at?: string;
+  delivered_at?: string;
   updated_at?: string;
   payment_method?: PaymentMethod;
   payment_status: 'pendiente' | 'pagado';

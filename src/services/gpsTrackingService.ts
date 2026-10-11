@@ -128,34 +128,85 @@ export const calculateBearing = (
 };
 
 /**
- * Genera una serie de puntos de ruta (Waypoints) que simulan el recorrido vial por calzadas reales
+ * Genera una serie de puntos de ruta (Waypoints) que simulan el recorrido vial por calzadas y carreteras reales de Guatemala
  */
 export const generateRoutePath = (
   origin: GpsCoordinates,
   destination: GpsCoordinates,
-  stepsCount: number = 24
+  stepsCount: number = 28
 ): GpsCoordinates[] => {
-  const path: GpsCoordinates[] = [];
-  path.push(origin);
+  // 1. Identificar el corredor vial según la región geográfica de destino
+  let corridorAnchors: GpsCoordinates[] = [origin];
 
-  // Crear una curvatura realista que simule el trazado vial de las calzadas urbanas
-  for (let i = 1; i < stepsCount; i++) {
-    const ratio = i / stepsCount;
-    // Interpolación con una ligera desviación senoidal para emular avenidas y retornos
-    const latOffset = Math.sin(ratio * Math.PI) * 0.0035;
-    const lngOffset = Math.cos(ratio * Math.PI * 1.5) * 0.0025;
-
-    const lat = origin.latitude + (destination.latitude - origin.latitude) * ratio + latOffset;
-    const lng = origin.longitude + (destination.longitude - origin.longitude) * ratio + lngOffset;
-
-    path.push({
-      latitude: Number(lat.toFixed(6)),
-      longitude: Number(lng.toFixed(6)),
-    });
+  // Corredor hacia el Oriente (Jalapa / El Progreso / Chiquimula)
+  if (destination.longitude > -90.2) {
+    corridorAnchors = [
+      origin, // Calzada Aguilar Batres, Z.12
+      { latitude: 14.6152, longitude: -90.5365 }, // Trébol / Periférico
+      { latitude: 14.6420, longitude: -90.5120 }, // Puente El Incienso
+      { latitude: 14.6540, longitude: -90.4920 }, // Calle Martí / Salida CA-9 Norte
+      { latitude: 14.6850, longitude: -90.4120 }, // Palencia / Llano Largo
+      { latitude: 14.7300, longitude: -90.3150 }, // San Antonio La Paz / Agua Caliente
+      { latitude: 14.7880, longitude: -90.2050 }, // Desvío El Rancho hacia Sanarate
+      { latitude: 14.7850, longitude: -90.1980 }, // Sanarate Centro (RN-19)
+      { latitude: 14.7470, longitude: -90.0980 }, // Sansare (RN-19)
+      { latitude: 14.6650, longitude: -90.0250 }, // Entrada Departamental a Jalapa
+      destination, // Destino en Jalapa
+    ];
+  } 
+  // Corredor hacia el Sur (Amatitlán / Palín / Escuintla)
+  else if (destination.latitude < 14.45) {
+    corridorAnchors = [
+      origin,
+      { latitude: 14.5420, longitude: -90.5720 }, // Villa Nueva / CA-9 Sur
+      { latitude: 14.4850, longitude: -90.6150 }, // Lago Amatitlán
+      { latitude: 14.4050, longitude: -90.6950 }, // Autopista Palín - Escuintla
+      destination,
+    ];
+  }
+  // Corredor hacia el Occidente (Antigua / Chimaltenango / Xela)
+  else if (destination.longitude < -90.65) {
+    corridorAnchors = [
+      origin,
+      { latitude: 14.6280, longitude: -90.5650 }, // Calzada Roosevelt
+      { latitude: 14.6360, longitude: -90.6200 }, // Mixco / Entrada CA-1 Occidente
+      { latitude: 14.6110, longitude: -90.6650 }, // San Lucas Sacatepéquez
+      destination,
+    ];
+  }
+  // Corredor Metropolitano Ciudad de Guatemala (Zonas 1, 4, 9, 10, 14, etc.)
+  else {
+    corridorAnchors = [
+      origin,
+      { latitude: 14.6050, longitude: -90.5400 }, // El Trébol
+      { latitude: 14.5950, longitude: -90.5280 }, // Bulevar Liberación
+      { latitude: 14.5940, longitude: -90.5180 }, // Obelisco / Próceres
+      destination,
+    ];
   }
 
-  path.push(destination);
-  return path;
+  // 2. Interpolar suavemente entre los puntos de anclaje de la carretera
+  const result: GpsCoordinates[] = [];
+  const segments = corridorAnchors.length - 1;
+  const stepsPerSegment = Math.max(2, Math.floor(stepsCount / segments));
+
+  for (let s = 0; s < segments; s++) {
+    const start = corridorAnchors[s];
+    const end = corridorAnchors[s + 1];
+
+    for (let step = 0; step < stepsPerSegment; step++) {
+      const t = step / stepsPerSegment;
+      // Ligera modulación de carretera para emular curvas suaves
+      const curve = Math.sin(t * Math.PI) * 0.0008;
+      result.push({
+        latitude: Number((start.latitude + (end.latitude - start.latitude) * t + curve).toFixed(6)),
+        longitude: Number((start.longitude + (end.longitude - start.longitude) * t + curve).toFixed(6)),
+      });
+    }
+  }
+
+  result.push(destination);
+  return result;
 };
 
 /**

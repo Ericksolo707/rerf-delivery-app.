@@ -872,6 +872,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateShipment = async (shipmentId: string, updates: Partial<Shipment>): Promise<void> => {
     await repositorioEnvios.actualizar(shipmentId, updates);
+    const targetShipment = allShipments.find(s => s.id === shipmentId || s.tracking_number === shipmentId);
+
     setAllShipments(prev =>
       prev.map(s =>
         s.id === shipmentId || s.tracking_number === shipmentId
@@ -879,6 +881,104 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : s
       )
     );
+
+    // Si la actualización es a 'entregado', notificar al remitente y al receptor
+    if (updates.status === 'entregado' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const recipientName = targetShipment.recipient_name || 'Destinatario';
+      const address = targetShipment.delivery_address || 'Dirección de entrega';
+      const pilotName = targetShipment.agent_name || 'Piloto RerF';
+
+      // 1. Notificación para el Remitente (quien envió el paquete)
+      const notifRemitente: NotificationItem = {
+        id: `notif-deliv-sender-${now.getTime()}`,
+        title: 'Envío Entregado Exitosamente',
+        message: `Tu envío ${trackingCode} fue entregado con éxito a ${recipientName} en ${address}.`,
+        type: 'envio',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === targetShipment.sender_id) {
+        await persistirNotificaciones([notifRemitente, ...notifications]);
+      } else {
+        const senderKey = `@rerf_notifications_${targetShipment.sender_id}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifRemitente, ...prevList]));
+        } catch (eSend) {
+          console.warn('[AppContext] Error guardando notificación local de entrega para remitente:', eSend);
+        }
+      }
+
+      if (isSupabaseConfigured && targetShipment.sender_id && targetShipment.sender_id.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: targetShipment.sender_id,
+            title: notifRemitente.title,
+            message: notifRemitente.message,
+            type: 'envio',
+            is_read: false,
+          });
+        } catch (eSb) {
+          console.warn('[AppContext] Error guardando notificación de entrega para remitente en Supabase:', eSb);
+        }
+      }
+
+      // 2. Notificación para el Receptor / Destinatario
+      const destinatarioUser = users.find(u => {
+        const uFull = `${u.first_name} ${u.last_name}`.trim().toLowerCase();
+        return uFull === recipientName.trim().toLowerCase() ||
+          (u.email && u.email.trim().toLowerCase() === recipientName.trim().toLowerCase()) ||
+          Boolean(targetShipment.address_references && targetShipment.address_references.includes(u.id));
+      });
+
+      if (destinatarioUser) {
+        const notifReceptor: NotificationItem = {
+          id: `notif-deliv-recv-${now.getTime()}`,
+          title: '¡Paquete Recibido!',
+          message: `Has recibido tu paquete con guía ${trackingCode} (${targetShipment.description || 'Entrega RerF'}). Entregado por ${pilotName} en ${address}.`,
+          type: 'envio',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+          shipment_id: targetShipment.id,
+          tracking_number: trackingCode,
+        };
+
+        if (user?.id === destinatarioUser.id) {
+          await persistirNotificaciones([notifReceptor, ...notifications]);
+        } else {
+          const recvKey = `@rerf_notifications_${destinatarioUser.id}`;
+          try {
+            const prevRaw = await AsyncStorage.getItem(recvKey);
+            const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+            await AsyncStorage.setItem(recvKey, JSON.stringify([notifReceptor, ...prevList]));
+          } catch (eRecv) {
+            console.warn('[AppContext] Error guardando notificación local de entrega para destinatario:', eRecv);
+          }
+        }
+
+        if (isSupabaseConfigured && destinatarioUser.id && destinatarioUser.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: destinatarioUser.id,
+              title: notifReceptor.title,
+              message: notifReceptor.message,
+              type: 'envio',
+              is_read: false,
+            });
+          } catch (eSb) {
+            console.warn('[AppContext] Error guardando notificación para receptor en Supabase:', eSb);
+          }
+        }
+      }
+    }
   };
 
   const getShipmentByTracking = async (trackingOrId: string): Promise<Shipment | undefined> => {
