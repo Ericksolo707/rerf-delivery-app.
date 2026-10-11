@@ -184,6 +184,12 @@ export const GpsMapView: React.FC<GpsMapViewProps> = ({
             // Ajustar encuadre para que se vean todos los puntos de la ruta
             const bounds = L.latLngBounds(allWaypoints);
             map.fitBounds(bounds, { padding: [45, 45] });
+
+            // Invalida tamaño y re-ajusta tras montaje para asegurar encuadre en WebView móvil
+            setTimeout(function() {
+              map.invalidateSize();
+              map.fitBounds(bounds, { padding: [45, 45] });
+            }, 350);
           } else {
             map.setView(originCoords, 13);
           }
@@ -219,12 +225,14 @@ export const GpsMapView: React.FC<GpsMapViewProps> = ({
   }, [currentPosition.latitude, currentPosition.longitude, bearing, speedKmh]);
 
   const mapHtml = generateMapHtml();
+  const mapKey = `gps-map-${destination.latitude.toFixed(4)}-${destination.longitude.toFixed(4)}-${waypoints.length}`;
 
   // En entorno Web, usamos un iframe estándar con srcDoc
   if (Platform.OS === 'web') {
     return (
       <View style={styles.container}>
         <iframe
+          key={mapKey}
           title="GPS Map"
           srcDoc={mapHtml}
           style={{ width: '100%', height: '100%', border: 'none' }}
@@ -237,6 +245,7 @@ export const GpsMapView: React.FC<GpsMapViewProps> = ({
   return (
     <View style={styles.container}>
       <WebView
+        key={mapKey}
         ref={webViewRef}
         originWhitelist={['*']}
         source={{ html: mapHtml }}
