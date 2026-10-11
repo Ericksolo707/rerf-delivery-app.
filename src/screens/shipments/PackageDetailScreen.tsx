@@ -34,7 +34,7 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'>> = ({ route, navigation }) => {
-  const { shipments, allShipments, user, users, updateShipment } = useApp();
+  const { shipments, allShipments, user, users, updateShipment, invoices } = useApp();
   const shipmentId: string | undefined = route.params?.shipmentId;
   const shipment: Shipment | undefined = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId)
     || allShipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId);
@@ -48,8 +48,27 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
   const recipientName = shipment?.recipient_name || 'Destinatario';
   const isDelivery = shipment?.status === 'entregado';
 
+  // Vincular la factura electrónica FEL asociada a este envío
+  const matchedInvoice = invoices.find(inv => 
+    (shipment?.id && inv.shipment_id === shipment.id) ||
+    (shipment?.tracking_number && (inv.shipment_id === shipment.tracking_number || inv.description.includes(shipment.tracking_number)))
+  );
+
+  const invoiceNumber = matchedInvoice?.invoice_number || (
+    shipment?.tracking_number 
+      ? `FEL-2026-${shipment.tracking_number.replace(/\D/g, '').slice(-4) || '7608'}`
+      : 'FEL-2026-7608'
+  );
+
+  const invoiceAmount = matchedInvoice?.amount || shipment?.total_amount || 35.00;
+  const invoiceDate = matchedInvoice?.issued_date || shipment?.scheduled_date || '11/10/2026';
+  const subtotal = (invoiceAmount / 1.12).toFixed(2);
+  const iva = (invoiceAmount - invoiceAmount / 1.12).toFixed(2);
+  const total = invoiceAmount.toFixed(2);
+
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState<boolean>(false);
   const [isApproving, setIsApproving] = useState<boolean>(false);
 
   const handlePromptApprove = () => {
@@ -152,10 +171,23 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
             </Text>
           </View>
 
-          <View style={styles.costItemRow}>
-            <Text style={styles.fieldLabel}>Factura#:</Text>
-            <Text style={styles.fieldVal}>FEL-2026-9841</Text>
-          </View>
+          <TouchableOpacity 
+            style={[styles.costItemRow, styles.clickableInvoiceRow]}
+            onPress={() => setShowInvoiceModal(true)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="receipt-outline" size={15} color={RerfColors.primaryYellowText} />
+              <Text style={styles.fieldLabel}>Factura FEL#:</Text>
+            </View>
+            <View style={styles.invoiceBadgeRow}>
+              <Text style={[styles.fieldVal, styles.invoiceNumberHighlight]}>{invoiceNumber}</Text>
+              <View style={styles.verFelBadge}>
+                <Text style={styles.verFelBadgeText}>Ver FEL</Text>
+                <Ionicons name="chevron-forward" size={12} color="#0F172A" />
+              </View>
+            </View>
+          </TouchableOpacity>
 
           {/* Fila inferior con botones / badges de remitente y receptor */}
           <View style={styles.usersBottomRow}>
@@ -178,6 +210,16 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Botón directo para Ver Comprobante Fiscal FEL (SAT) */}
+        <TouchableOpacity
+          style={styles.invoiceActionButton}
+          onPress={() => setShowInvoiceModal(true)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="receipt-outline" size={20} color="#0F172A" />
+          <Text style={styles.invoiceActionText}>Ver Comprobante Fiscal FEL (SAT)</Text>
+        </TouchableOpacity>
 
         {/* Si el pedido está pendiente, botón para Aprobar y Pasar a Ruta */}
         {shipment?.status === 'pendiente' && (
@@ -272,6 +314,22 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
           setShowSuccessModal(false);
           navigation.navigate('Pedidos');
         }}
+      />
+
+      {/* Modal 3: Comprobante Fiscal FEL (SAT) */}
+      <ModalDialog
+        visible={showInvoiceModal}
+        title="Factura Electrónica FEL (SAT)"
+        message={`Emisor: RerF Logistics, S.A. (NIT: 10492834-1)\nAutorización SAT: ${invoiceNumber}\nDocumento: Factura Electrónica en Línea\n\nConcepto: Servicio de Logística y Entrega\nGuía: ${shipment?.tracking_number || ''}\nDestinatario: ${recipientName}\n\n• Subtotal: Q ${subtotal}\n• IVA (12%): Q ${iva}\n• Total Pagado: Q ${total}\n\nFecha emisión: ${invoiceDate}\nEstado: PAGADO`}
+        iconName="receipt-outline"
+        iconColor={RerfColors.primaryYellowText}
+        confirmText="Ir a Facturas"
+        cancelText="Cerrar"
+        onConfirm={() => {
+          setShowInvoiceModal(false);
+          navigation.navigate('Facturas');
+        }}
+        onCancel={() => setShowInvoiceModal(false)}
       />
     </View>
   );
@@ -410,6 +468,56 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: RerfColors.textMuted,
     textTransform: 'uppercase',
+  },
+  clickableInvoiceRow: {
+    backgroundColor: '#FEF9C3',
+    marginHorizontal: -6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FDE047',
+  },
+  invoiceBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  invoiceNumberHighlight: {
+    fontWeight: '900',
+    color: '#854D0E',
+  },
+  verFelBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: RerfColors.primaryYellow,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 2,
+  },
+  verFelBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  invoiceActionButton: {
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    ...RerfShadows.card,
+  },
+  invoiceActionText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   approveActionButton: {
     height: 50,
