@@ -91,7 +91,13 @@ export const CancelShipmentScreen: React.FC<RootStackScreenProps<'CancelarEnvio'
 
   const handleFinishAndExit = (): void => {
     setShowSuccessModal(false);
-    navigation.navigate('Pedidos');
+    navigation.reset({
+      index: 1,
+      routes: [
+        { name: 'Principal' },
+        { name: 'Pedidos' },
+      ],
+    });
   };
 
   return (

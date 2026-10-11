@@ -78,7 +78,13 @@ export const Header: React.FC<HeaderProps> = ({
           {showBack ? (
             <TouchableOpacity 
               style={styles.iconButton} 
-              onPress={onBack || (() => navigation.goBack())}
+              onPress={onBack || (() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate('Principal');
+                }
+              })}
               activeOpacity={0.7}
             >
               <Ionicons name="arrow-back" size={24} color={iconColor} />
