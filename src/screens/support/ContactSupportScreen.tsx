@@ -15,7 +15,8 @@ import {
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity 
+  TouchableOpacity,
+  RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -24,7 +25,7 @@ import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'ContactoTab'>> = ({ navigation }) => {
-  const { user, users, supportMessages } = useApp();
+  const { user, users, supportMessages, isRefreshing, refreshData } = useApp();
   const isAdmin = user?.role === 'admin';
 
   // 1. BANDEJA DE CLIENTES PARA EL ADMINISTRADOR
@@ -110,7 +111,18 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
     <View style={styles.container}>
       <Header title="Contacto" />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshData}
+            colors={[RerfColors.primaryYellowText]}
+            tintColor={RerfColors.primaryYellowText}
+          />
+        }
+      >
         {isAdmin ? (
           /* ================= VISTA ADMINISTRADOR ================= */
           <View>
