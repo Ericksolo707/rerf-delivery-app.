@@ -43,6 +43,7 @@ interface AppContextType {
   
   // Envíos
   shipments: Shipment[];
+  allShipments: Shipment[];
   addShipment: (newShipment: Omit<Shipment, 'id' | 'created_at'>) => Promise<Shipment>;
   updateShipment: (shipmentId: string, updates: Partial<Shipment>) => Promise<void>;
   cancelShipment: (shipmentId: string, reason: string) => Promise<void>;
@@ -744,6 +745,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logout,
         updateProfile,
         shipments: userShipments,
+        allShipments,
         addShipment,
         updateShipment,
         cancelShipment,

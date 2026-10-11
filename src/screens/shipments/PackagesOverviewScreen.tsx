@@ -16,7 +16,7 @@
  * - Barra inferior funcional (5 pestañas).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -32,67 +32,11 @@ import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
-export const GABRIEL_MOCK_PACKAGES: Shipment[] = [
-  {
-    id: 'paquete-1',
-    tracking_number: 'ORD-9841',
-    sender_id: 'usr-demo',
-    recipient_name: 'usuario2',
-    recipient_phone: '5555-9841',
-    delivery_address: 'Jalapa, Guatemala',
-    scheduled_date: '14/10/2026',
-    description: 'Caja con materiales',
-    status: 'entregado',
-    payment_method: 'contra_entrega',
-    payment_status: 'pagado',
-    total_amount: 45.00,
-    created_at: '2026-10-04 15:00',
-    packages: [
-      {
-        id: 'pkg-demo-1',
-        category: 'Encomiendas',
-        name: 'Caja con materiales',
-        quantity: 1,
-        weight_kg: 5.0,
-        material: 'fuerte',
-        description: 'Caja con materiales de trabajo',
-      },
-    ],
-  },
-  {
-    id: 'paquete-2',
-    tracking_number: 'ORD-5522',
-    sender_id: 'usr-demo',
-    recipient_name: 'usuario3',
-    recipient_phone: '5555-5522',
-    delivery_address: 'Ciudad de Guatemala',
-    scheduled_date: '14/10/2026',
-    description: 'Documentos frágiles',
-    status: 'en_camino',
-    payment_method: 'contra_entrega',
-    payment_status: 'pendiente',
-    total_amount: 25.00,
-    created_at: '2026-10-04 15:00',
-    packages: [
-      {
-        id: 'pkg-demo-2',
-        category: 'Documentación',
-        name: 'Documentos frágiles',
-        quantity: 1,
-        weight_kg: 1.0,
-        material: 'fragil',
-        description: 'Documentos confidenciales para entrega urgente',
-      },
-    ],
-  },
-];
-
 export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaquetes'>> = ({ navigation }) => {
-  const { shipments, user } = useApp();
+  const { shipments, allShipments, user } = useApp();
   const [search, setSearch] = useState<string>('');
   const [submittedQuery, setSubmittedQuery] = useState<string>('');
   const [hasSearched, setHasSearched] = useState<boolean>(false);
-  const [showDemoMock, setShowDemoMock] = useState<boolean>(false);
 
   const handleSearch = () => {
     const trimmed = search.trim();
@@ -106,18 +50,28 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
     setHasSearched(false);
   };
 
-  // Cada usuario visualiza únicamente sus propios envíos reales.
-  // En caso de estar en una cuenta recién creada sin envíos, puede activar opcionalmente el modo demo para pruebas.
-  const sourceList = shipments.length > 0 ? shipments : (showDemoMock ? GABRIEL_MOCK_PACKAGES : []);
-
   const activeQuery = hasSearched ? submittedQuery : search.trim();
-  const filtered = activeQuery
-    ? sourceList.filter(s =>
-        s.tracking_number.toLowerCase().includes(activeQuery.toLowerCase()) ||
-        s.recipient_name.toLowerCase().includes(activeQuery.toLowerCase()) ||
-        s.description.toLowerCase().includes(activeQuery.toLowerCase())
-      )
-    : sourceList;
+
+  // Filtrado: Muestra los envíos del usuario o busca en el catálogo general si ingresa una guía específica
+  const filtered = useMemo(() => {
+    if (!activeQuery) {
+      return shipments;
+    }
+    const q = activeQuery.toLowerCase();
+    const userMatches = shipments.filter(s =>
+      s.tracking_number.toLowerCase().includes(q) ||
+      s.recipient_name.toLowerCase().includes(q) ||
+      s.description.toLowerCase().includes(q)
+    );
+    if (userMatches.length > 0) {
+      return userMatches;
+    }
+    return allShipments.filter(s =>
+      s.tracking_number.toLowerCase().includes(q) ||
+      s.recipient_name.toLowerCase().includes(q) ||
+      s.description.toLowerCase().includes(q)
+    );
+  }, [activeQuery, shipments, allShipments]);
 
   const isNotFound = hasSearched && submittedQuery !== '' && filtered.length === 0;
 
@@ -193,19 +147,6 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
       <Header title="Listar paquetes" showBack={true} />
 
       <View style={styles.content}>
-        {/* Banner de Modo Demostración si está activo */}
-        {showDemoMock && shipments.length === 0 && (
-          <View style={styles.demoNoticeBanner}>
-            <View style={styles.demoNoticeLeft}>
-              <Ionicons name="information-circle" size={18} color="#D97706" />
-              <Text style={styles.demoNoticeText}>Modo Demo: Paquetes de prueba para evaluación</Text>
-            </View>
-            <TouchableOpacity onPress={() => setShowDemoMock(false)} style={styles.demoNoticeBtn}>
-              <Text style={styles.demoNoticeBtnText}>Ocultar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* Campo Buscar con Botón Buscar integrado */}
         <View style={styles.searchBarRow}>
           <View style={styles.inputWrapper}>
@@ -274,37 +215,7 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
                   <Text style={styles.resetBtnText}>Ver todos los paquetes</Text>
                 </TouchableOpacity>
               </View>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <View style={styles.emptyIconCircle}>
-                  <Ionicons name="cube-outline" size={42} color="#94A3B8" />
-                </View>
-                <Text style={styles.emptyTitle}>No tienes paquetes registrados</Text>
-                <Text style={styles.emptyText}>
-                  Cada usuario cuenta con su propio historial aislado. Cotiza o realiza un envío para comenzar a rastrear tus paquetes.
-                </Text>
-                
-                <View style={styles.emptyActionsRow}>
-                  <TouchableOpacity
-                    style={styles.quoteEmptyBtn}
-                    onPress={() => navigation.navigate('Cotizador')}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="calculator-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.quoteEmptyBtnText}>Cotizar Envío</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.demoEmptyBtn}
-                    onPress={() => setShowDemoMock(true)}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="eye-outline" size={16} color={RerfColors.logisticsBlue} style={{ marginRight: 6 }} />
-                    <Text style={styles.demoEmptyBtnText}>Ver Muestra Demo</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )
+            ) : null
           }
         />
       </View>
@@ -348,41 +259,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
-  },
-  demoNoticeBanner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
-  },
-  demoNoticeLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 6,
-  },
-  demoNoticeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#92400E',
-    flex: 1,
-  },
-  demoNoticeBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#FDE68A',
-    borderRadius: 6,
-  },
-  demoNoticeBtnText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#78350F',
   },
   searchBarRow: {
     flexDirection: 'row',
@@ -560,15 +436,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 10,
   },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '800',
@@ -579,40 +446,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
-  },
-  emptyActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-  quoteEmptyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: RerfColors.logisticsBlue,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    ...RerfShadows.card,
-  },
-  quoteEmptyBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  demoEmptyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  demoEmptyBtnText: {
-    color: RerfColors.logisticsBlue,
-    fontWeight: '700',
-    fontSize: 12,
   },
   bottomTabBar: {
     flexDirection: 'row',
