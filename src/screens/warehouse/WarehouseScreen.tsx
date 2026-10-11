@@ -28,9 +28,19 @@ import { WarehouseItem } from '../../types';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
-export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>> = ({ navigation }) => {
+export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>> = ({ route, navigation }) => {
   const { warehouseItems, user, users, authorizeWarehouseItem } = useApp();
-  const [search, setSearch] = useState<string>('');
+  const routeSearch = route?.params?.searchCode || '';
+  const [searchInput, setSearchInput] = useState<string>('');
+
+  const search = searchInput !== '' ? searchInput : routeSearch;
+
+  const handleClearSearch = () => {
+    setSearchInput('');
+    if (route?.params?.searchCode) {
+      navigation.setParams({ searchCode: undefined });
+    }
+  };
 
   // Modales de confirmación de autorización para Admin
   const [targetItem, setTargetItem] = useState<WarehouseItem | null>(null);
@@ -203,11 +213,26 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
           <Input
             placeholder="Buscar por producto, código o descripción"
             value={search}
-            onChangeText={setSearch}
+            onChangeText={setSearchInput}
             leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
             containerStyle={{ marginBottom: 0 }}
           />
         </View>
+
+        {/* Aviso de filtro activo por búsqueda o notificación */}
+        {search.trim().length > 0 && (
+          <View style={styles.filterNoticeRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+              <Ionicons name="filter" size={14} color="#D97706" />
+              <Text style={styles.filterNoticeText} numberOfLines={1}>
+                Filtrando por: <Text style={{ fontWeight: '900', color: '#92400E' }}>{search.trim()}</Text>
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleClearSearch} style={styles.clearFilterBtn} activeOpacity={0.7}>
+              <Text style={styles.clearFilterBtnText}>Ver todos</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Total de productos */}
         <Text style={styles.totalProductsText}>
@@ -279,6 +304,34 @@ const styles = StyleSheet.create({
   },
   searchBox: {
     marginBottom: 12,
+  },
+  filterNoticeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  filterNoticeText: {
+    fontSize: 12,
+    color: '#92400E',
+    flex: 1,
+  },
+  clearFilterBtn: {
+    backgroundColor: '#FDE68A',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  clearFilterBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#78350F',
   },
   totalProductsText: {
     fontSize: 14,

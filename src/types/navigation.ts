@@ -62,7 +62,7 @@ export type RootStackParamList = {
  */
 export type MainTabParamList = {
   InicioTab: undefined;
-  BodegaTab: undefined;
+  BodegaTab: { searchCode?: string } | undefined;
   GpsTab: undefined;
   ContactoTab: undefined;
   PerfilTab: undefined;
