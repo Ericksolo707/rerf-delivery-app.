@@ -373,6 +373,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       date: 'Hoy',
       is_read: false,
       created_at: now.toISOString(),
+      shipment_id: nuevoEnvio.id,
+      tracking_number: nuevoEnvio.tracking_number,
     };
     await persistirNotificaciones([nuevaNotificacion, ...notifications]);
 
@@ -413,6 +415,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           date: 'Hoy',
           is_read: false,
           created_at: now.toISOString(),
+          shipment_id: nuevoEnvio.id,
+          tracking_number: nuevoEnvio.tracking_number,
         };
 
         const destKey = `@rerf_notifications_${destinatarioUsuario.id}`;
@@ -484,6 +488,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       date: 'Hoy',
       is_read: false,
       created_at: nowCancel.toISOString(),
+      shipment_id: targetShipment?.id || shipmentId,
+      tracking_number: trackingCode,
     };
     await persistirNotificaciones([notifUser, ...notifications]);
 
@@ -521,6 +527,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             date: 'Hoy',
             is_read: false,
             created_at: nowCancel.toISOString(),
+            shipment_id: targetShipment?.id || shipmentId,
+            tracking_number: trackingCode,
           };
 
           const destKey = `@rerf_notifications_${otherUserId}`;
