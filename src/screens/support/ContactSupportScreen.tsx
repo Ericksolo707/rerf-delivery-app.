@@ -6,14 +6,16 @@
  * - Soporte 1 a 1 Privado:
  *   - Clientes: Acceso directo a su chat privado con la Administración RerF.
  *   - Administrador: Bandeja de entrada con todas las consultas privadas de clientes con indicadores de estado.
- * - Información de Servicio:
+ * - Información de Servicio y Operación:
  *   - Canales de contacto directos (Llamadas, WhatsApp, Correo).
- *   - Ubicación y horarios de Bodega Central.
- *   - Despachos, cobertura y métodos de pago.
- * - Botón flotante "IA" - Asistente IA (Excalidraw Pantalla 21).
+ *   - Ubicación y horarios de Bodega Central y turnos de despacho.
+ *   - Cobertura nacional con tiempos de tránsito garantizados.
+ *   - Garantías del servicio (seguro, frágil, contra entrega, GPS).
+ *   - Preguntas frecuentes interactivas con acordeón desplegable.
+ * - Botón flotante permanente "IA" - Asistente IA (Excalidraw Pantalla 21).
  */
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -30,9 +32,39 @@ import { useApp } from '../../context/AppContext';
 import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
+interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+const FAQS_DATA: FaqItem[] = [
+  {
+    id: 'faq-1',
+    question: '¿Cómo rastreo la ubicación de mi entrega en tiempo real?',
+    answer: 'Ingresa a la pestaña "GPS" en el menú inferior e introduce tu número de guía (ej. RERF-98234-GT). Podrás ver la ruta en el mapa satelital interactivo, la velocidad de la unidad y el tiempo estimado de llegada.',
+  },
+  {
+    id: 'faq-2',
+    question: '¿Qué artículos están restringidos para transporte?',
+    answer: 'Por normativas de seguridad vial y protección de carga no se transportan líquidos inflamables sin certificar, sustancias corrosivas, armas de fuego, explosivos ni alimentos perecederos sin cadena de frío.',
+  },
+  {
+    id: 'faq-3',
+    question: '¿Cómo funciona el servicio de Mi Bodega?',
+    answer: 'Puedes solicitar espacio para almacenar inventario en nuestra Bodega Central. Cuando necesites enviar un producto a un comprador, lo seleccionas desde la app y nuestro equipo se encarga del empaque y despacho directo.',
+  },
+  {
+    id: 'faq-4',
+    question: '¿Cómo descargo mis facturas electrónicas FEL?',
+    answer: 'En la pestaña "App > Facturas FEL" encontrarás todos tus comprobantes tributarios certificados por la SAT generados automáticamente para tus envíos, con opción de descarga en PDF.',
+  },
+];
+
 export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'ContactoTab'>> = ({ navigation }) => {
   const { user, users, supportMessages, isRefreshing, refreshData } = useApp();
   const isAdmin = user?.role === 'admin';
+  const [expandedFaqId, setExpandedFaqId] = useState<string | null>(null);
 
   // 1. BANDEJA DE CLIENTES PARA EL ADMINISTRADOR
   const clientConversations = useMemo(() => {
@@ -112,6 +144,10 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
     );
     return myMsgs.length > 0 ? myMsgs[myMsgs.length - 1] : null;
   }, [isAdmin, user?.id, supportMessages]);
+
+  const handleToggleFaq = (faqId: string) => {
+    setExpandedFaqId(prev => (prev === faqId ? null : faqId));
+  };
 
   const handleCall = () => {
     Linking.openURL('tel:+50255376462').catch(() => {
@@ -356,21 +392,6 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
 
               <View style={styles.infoDivider} />
 
-              {/* Cobertura Nacional */}
-              <View style={styles.infoRow}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name="map-outline" size={20} color={RerfColors.textMain} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.infoTitle}>Cobertura y Tiempos de Entrega</Text>
-                  <Text style={styles.infoSubtitle}>
-                    Ciudad de Guatemala y área metropolitana en 24 horas hábiles. Departamental (22 departamentos) de 24 a 48 horas hábiles.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.infoDivider} />
-
               {/* Formas de Pago */}
               <View style={styles.infoRow}>
                 <View style={styles.iconCircle}>
@@ -383,6 +404,122 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
                   </Text>
                 </View>
               </View>
+            </View>
+
+            {/* Bloque 3: Cobertura Nacional y Tiempos de Entrega */}
+            <Text style={styles.sectionTitle}>COBERTURA NACIONAL Y TIEMPOS DE TRÁNSITO</Text>
+            <View style={styles.infoCard}>
+              <View style={styles.coverageRow}>
+                <View style={styles.coverageLeft}>
+                  <Ionicons name="location-outline" size={18} color={RerfColors.textMain} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.coverageName}>Área Metropolitana</Text>
+                    <Text style={styles.coverageDesc}>Capital, Mixco, Villa Nueva, Petapa, Fraijanes</Text>
+                  </View>
+                </View>
+                <View style={styles.transitBadgeBlue}>
+                  <Text style={styles.transitBadgeTextBlue}>24 hrs</Text>
+                </View>
+              </View>
+
+              <View style={styles.infoDivider} />
+
+              <View style={styles.coverageRow}>
+                <View style={styles.coverageLeft}>
+                  <Ionicons name="trail-sign-outline" size={18} color={RerfColors.textMain} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.coverageName}>Departamental Cabeceras</Text>
+                    <Text style={styles.coverageDesc}>Quetzaltenango, Escuintla, Sacatepéquez, Jalapa</Text>
+                  </View>
+                </View>
+                <View style={styles.transitBadgeGreen}>
+                  <Text style={styles.transitBadgeTextGreen}>24 - 48 hrs</Text>
+                </View>
+              </View>
+
+              <View style={styles.infoDivider} />
+
+              <View style={styles.coverageRow}>
+                <View style={styles.coverageLeft}>
+                  <Ionicons name="map-outline" size={18} color={RerfColors.textMain} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.coverageName}>Rutas Lejanas y Municipios</Text>
+                    <Text style={styles.coverageDesc}>Petén, Huehuetenango, San Marcos, Quiché, Izabal</Text>
+                  </View>
+                </View>
+                <View style={styles.transitBadgeAmber}>
+                  <Text style={styles.transitBadgeTextAmber}>48 - 72 hrs</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Bloque 4: Garantías y Políticas de Servicio */}
+            <Text style={styles.sectionTitle}>GARANTÍAS Y POLÍTICAS DEL SERVICIO</Text>
+            <View style={styles.policiesGrid}>
+              <View style={styles.policyCard}>
+                <View style={styles.policyIconCircle}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#15803D" />
+                </View>
+                <Text style={styles.policyTitle}>Seguro Incluido</Text>
+                <Text style={styles.policyDesc}>Cobertura estándar hasta Q 500.00 por paquete contra pérdida o avería.</Text>
+              </View>
+
+              <View style={styles.policyCard}>
+                <View style={styles.policyIconCircle}>
+                  <Ionicons name="alert-circle-outline" size={20} color="#B45309" />
+                </View>
+                <Text style={styles.policyTitle}>Manejo Frágil</Text>
+                <Text style={styles.policyDesc}>Precinto de seguridad sellado y embalaje especial para productos delicados.</Text>
+              </View>
+
+              <View style={styles.policyCard}>
+                <View style={styles.policyIconCircle}>
+                  <Ionicons name="cash-outline" size={20} color="#0369A1" />
+                </View>
+                <Text style={styles.policyTitle}>Cobro Contra Entrega</Text>
+                <Text style={styles.policyDesc}>Cobro seguro al destinatario (efectivo o transferencia) con liquidación rápida.</Text>
+              </View>
+
+              <View style={styles.policyCard}>
+                <View style={styles.policyIconCircle}>
+                  <Ionicons name="navigate-outline" size={20} color="#6D28D9" />
+                </View>
+                <Text style={styles.policyTitle}>Monitoreo GPS</Text>
+                <Text style={styles.policyDesc}>Seguimiento satelital en vivo con telemetría de ruta para todas las entregas.</Text>
+              </View>
+            </View>
+
+            {/* Bloque 5: Preguntas Frecuentes (FAQ) */}
+            <Text style={styles.sectionTitle}>PREGUNTAS FRECUENTES (FAQ)</Text>
+            <View style={styles.faqList}>
+              {FAQS_DATA.map((faq) => {
+                const isExpanded = expandedFaqId === faq.id;
+                return (
+                  <View key={faq.id} style={styles.faqItemCard}>
+                    <TouchableOpacity
+                      style={styles.faqHeaderBtn}
+                      onPress={() => handleToggleFaq(faq.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.faqHeaderRow}>
+                        <Ionicons name="help-circle-outline" size={18} color={RerfColors.textMain} />
+                        <Text style={styles.faqQuestionText}>{faq.question}</Text>
+                      </View>
+                      <Ionicons 
+                        name={isExpanded ? "chevron-up" : "chevron-down"} 
+                        size={18} 
+                        color="#64748B" 
+                      />
+                    </TouchableOpacity>
+
+                    {isExpanded && (
+                      <View style={styles.faqAnswerContainer}>
+                        <Text style={styles.faqAnswerText}>{faq.answer}</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           </View>
         )}
@@ -664,6 +801,149 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: RerfColors.surfaceSubtle,
     marginVertical: 10,
+  },
+
+  /* Cobertura Nacional */
+  coverageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 2,
+  },
+  coverageLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  coverageName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: RerfColors.textMain,
+  },
+  coverageDesc: {
+    fontSize: 11,
+    color: RerfColors.textMuted,
+    marginTop: 1,
+  },
+  transitBadgeBlue: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  transitBadgeTextBlue: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1D4ED8',
+  },
+  transitBadgeGreen: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  transitBadgeTextGreen: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  transitBadgeAmber: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  transitBadgeTextAmber: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+
+  /* Políticas y Garantías (Grid 2x2 limpio) */
+  policiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
+  },
+  policyCard: {
+    width: '48%',
+    backgroundColor: RerfColors.surfaceCard,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
+    padding: 12,
+    ...RerfShadows.card,
+  },
+  policyIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  policyTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: RerfColors.textMain,
+    marginBottom: 4,
+  },
+  policyDesc: {
+    fontSize: 10,
+    color: RerfColors.textMuted,
+    lineHeight: 14,
+    fontWeight: '500',
+  },
+
+  /* FAQ Acordeón Limpio */
+  faqList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  faqItemCard: {
+    backgroundColor: RerfColors.surfaceCard,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
+    overflow: 'hidden',
+    ...RerfShadows.card,
+  },
+  faqHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    gap: 10,
+  },
+  faqHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  faqQuestionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: RerfColors.textMain,
+    flex: 1,
+  },
+  faqAnswerContainer: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    paddingTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: RerfColors.surfaceSubtle,
+    backgroundColor: '#F8FAFC',
+  },
+  faqAnswerText: {
+    fontSize: 11,
+    color: '#475569',
+    lineHeight: 16,
+    fontWeight: '500',
   },
 
   /* Botón Flotante Permanente "IA" - Asistente IA (Excalidraw Pantalla 21) */
