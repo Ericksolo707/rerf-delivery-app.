@@ -16,14 +16,17 @@
  * - Botón inferior: [ Guardar ] (Actualiza el perfil y el directorio de usuarios de la app)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   TextInput, 
-  TouchableOpacity 
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -58,6 +61,36 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
   const [editingField, setEditingField] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      if (editingField === 'description') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 120);
+      } else if (editingField === 'references' || editingField === 'address') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 340, animated: true });
+        }, 120);
+      }
+    });
+
+    const hideListener = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, [editingField]);
+
   // Sincronizar estado cuando se inicia sesión con otra cuenta o cambia de usuario
   if (user && user.id !== loadedUserId) {
     setLoadedUserId(user.id);
@@ -73,7 +106,19 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
   // Al presionar editar/cerrar en un campo:
   const handleToggleEdit = (field: string) => {
     // Simplemente abre o cierra el campo. NUNCA reescribe ni descarta lo ingresado por el usuario
-    setEditingField(prev => (prev === field ? null : field));
+    setEditingField(prev => {
+      const next = prev === field ? null : field;
+      if (next === 'description') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 180);
+      } else if (next === 'references' || next === 'address') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 340, animated: true });
+        }, 180);
+      }
+      return next;
+    });
   };
 
   const handleSave = async (): Promise<void> => {
@@ -113,10 +158,24 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
   const avatarLastName = usernameInput.trim().split(/\s+/).slice(1).join(' ') || user?.last_name;
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       <Header title="Perfil" />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 40,
+          }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Sección de Foto con Iniciales, Nombre y Alias */}
         <View style={styles.avatarSection}>
           <Avatar 
@@ -248,6 +307,11 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   placeholder="Dirección de entrega o residencia"
                   placeholderTextColor="#94A3B8"
                   autoFocus
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollTo({ y: 300, animated: true });
+                    }, 150);
+                  }}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{address || 'Sin dirección'}</Text>
@@ -275,6 +339,11 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   placeholder="Puntos de referencia para entregas"
                   placeholderTextColor="#94A3B8"
                   autoFocus
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollTo({ y: 360, animated: true });
+                    }, 150);
+                  }}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{references || 'Sin referencias'}</Text>
@@ -304,6 +373,11 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   placeholder="Describe tu actividad, empresa o información de perfil..."
                   placeholderTextColor="#94A3B8"
                   autoFocus
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                    }, 150);
+                  }}
                 />
               ) : (
                 <Text style={styles.fieldValueDesc}>
@@ -331,7 +405,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           <Text style={styles.saveButtonText}>Guardar</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
