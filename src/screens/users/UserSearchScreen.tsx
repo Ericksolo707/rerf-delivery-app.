@@ -46,8 +46,8 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
   const activeQuery = hasSearched ? submittedQuery : search.trim();
   const filteredUsers = activeQuery
     ? users.filter(u =>
-        `${u.first_name} ${u.last_name}`.toLowerCase().includes(activeQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(activeQuery.toLowerCase())
+        `${u?.first_name || ''} ${u?.last_name || ''}`.toLowerCase().includes(activeQuery.toLowerCase()) ||
+        (u?.email || '').toLowerCase().includes(activeQuery.toLowerCase())
       )
     : users;
 

@@ -58,19 +58,19 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
       return shipments;
     }
     const q = activeQuery.toLowerCase();
-    const userMatches = shipments.filter(s =>
-      s.tracking_number.toLowerCase().includes(q) ||
-      s.recipient_name.toLowerCase().includes(q) ||
-      s.description.toLowerCase().includes(q)
-    );
+    const matchShipment = (s: Shipment) => {
+      const tracking = (s?.tracking_number || '').toLowerCase();
+      const recipient = (s?.recipient_name || '').toLowerCase();
+      const desc = (s?.description || '').toLowerCase();
+      const id = (s?.id || '').toLowerCase();
+      return tracking.includes(q) || recipient.includes(q) || desc.includes(q) || id.includes(q);
+    };
+
+    const userMatches = shipments.filter(matchShipment);
     if (userMatches.length > 0) {
       return userMatches;
     }
-    return allShipments.filter(s =>
-      s.tracking_number.toLowerCase().includes(q) ||
-      s.recipient_name.toLowerCase().includes(q) ||
-      s.description.toLowerCase().includes(q)
-    );
+    return allShipments.filter(matchShipment);
   }, [activeQuery, shipments, allShipments]);
 
   const isNotFound = hasSearched && submittedQuery !== '' && filtered.length === 0;
@@ -90,11 +90,12 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
   };
 
   const renderItem = ({ item }: { item: Shipment }) => {
-    const isDelivery = item.status === 'entregado';
+    const status = item?.status || 'pendiente';
+    const isDelivery = status === 'entregado';
     const sender = user?.first_name 
       ? `${user.first_name} ${user.last_name || ''}`.trim() 
       : 'Remitente RerF';
-    const badgeColors = getStatusBadgeStyle(item.status);
+    const badgeColors = getStatusBadgeStyle(status);
 
     return (
       <TouchableOpacity
@@ -108,14 +109,14 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
           </Text>
           <View style={[styles.statusPill, { backgroundColor: badgeColors.bg }]}>
             <Text style={[styles.statusPillText, { color: badgeColors.text }]}>
-              {item.status.replace('_', ' ').toUpperCase()}
+              {status.replace('_', ' ').toUpperCase()}
             </Text>
           </View>
         </View>
 
         <Text style={styles.fieldLine}>
           <Text style={styles.fieldLabel}>Destino: </Text>
-          <Text style={styles.fieldValue} numberOfLines={1}>{item.delivery_address}</Text>
+          <Text style={styles.fieldValue} numberOfLines={1}>{item?.delivery_address || 'Dirección no especificada'}</Text>
         </Text>
 
         <Text style={styles.fieldLine}>
@@ -125,13 +126,13 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
 
         <Text style={styles.fieldLine}>
           <Text style={styles.fieldLabel}>Personas: </Text>
-          <Text style={styles.fieldValue}>{sender}, {item.recipient_name}</Text>
+          <Text style={styles.fieldValue}>{sender}, {item?.recipient_name || 'Destinatario'}</Text>
         </Text>
 
         <View style={styles.cardFooter}>
           <View style={styles.trackingBadge}>
             <Ionicons name="barcode-outline" size={14} color="#475569" style={{ marginRight: 4 }} />
-            <Text style={styles.trackingText}>{item.tracking_number}</Text>
+            <Text style={styles.trackingText}>{item?.tracking_number || item?.id || 'S/N'}</Text>
           </View>
           <View style={styles.detailButton}>
             <Text style={styles.detailButtonText}>Ver detalle</Text>
