@@ -16,7 +16,7 @@
  * - Botón inferior: [ Guardar ] (Actualiza el perfil y el directorio de usuarios de la app)
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -35,81 +35,82 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> = ({ navigation }) => {
   const { user, updateProfile } = useApp();
 
-  const initialUsername = useMemo(() => {
-    if (!user) return 'Usuario RerF';
-    if (user.username) return user.username;
-    if (user.first_name && !user.first_name.includes('@')) {
-      return `${user.first_name}${user.last_name ? ` ${user.last_name}` : ''}`.trim();
+  const getComputedUsername = (u: typeof user): string => {
+    if (!u) return 'Usuario RerF';
+    if (u.username) return u.username;
+    if (u.first_name && !u.first_name.includes('@')) {
+      return `${u.first_name}${u.last_name ? ` ${u.last_name}` : ''}`.trim();
     }
-    const raw = user.first_name || user.email || 'usuario';
+    const raw = u.first_name || u.email || 'usuario';
     const base = raw.split('@')[0].replace(/[._-]/g, ' ');
     return base.charAt(0).toUpperCase() + base.slice(1);
-  }, [user]);
+  };
 
-  // Valores derivados en vivo desde el usuario en sesión
-  const displayedUsername = user?.username || (user?.first_name ? `${user.first_name}${user.last_name ? ` ${user.last_name}` : ''}`.trim() : initialUsername);
-  const displayedAlias = user?.alias || `@${(user?.first_name || 'usuario').toLowerCase()}`;
-  const displayedDesc = user?.description || user?.bio || 'Cliente frecuente de envíos nacionales y almacenaje en bodega.';
-  const displayedPhone = user?.phone || '+502 5598-1234';
-  const displayedAddress = user?.address || 'Zona 10, Ciudad de Guatemala';
-  const displayedRefs = user?.address_references || 'Frente a plaza comercial';
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(user?.id || null);
 
-  // Estados de borrador para los campos en edición
-  const [usernameInput, setUsernameInput] = useState<string>(displayedUsername);
-  const [alias, setAlias] = useState<string>(displayedAlias);
-  const [description, setDescription] = useState<string>(displayedDesc);
-  const [phone, setPhone] = useState<string>(displayedPhone);
-  const [address, setAddress] = useState<string>(displayedAddress);
-  const [references, setReferences] = useState<string>(displayedRefs);
+  // Estados directos del formulario (lo que el usuario ve y edita en pantalla)
+  const [usernameInput, setUsernameInput] = useState<string>(() => user?.username || getComputedUsername(user));
+  const [alias, setAlias] = useState<string>(() => user?.alias || (user?.first_name ? `@${user.first_name.toLowerCase()}` : '@usuario'));
+  const [description, setDescription] = useState<string>(() => user?.description || user?.bio || 'Cliente frecuente de envíos nacionales y almacenaje en bodega.');
+  const [phone, setPhone] = useState<string>(() => user?.phone || '+502 5598-1234');
+  const [address, setAddress] = useState<string>(() => user?.address || 'Zona 10, Ciudad de Guatemala');
+  const [references, setReferences] = useState<string>(() => user?.address_references || 'Frente a plaza comercial');
   const [editingField, setEditingField] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
+  // Sincronizar estado cuando se inicia sesión con otra cuenta o cambia de usuario
+  if (user && user.id !== loadedUserId) {
+    setLoadedUserId(user.id);
+    setUsernameInput(user.username || getComputedUsername(user));
+    setAlias(user.alias || (user.first_name ? `@${user.first_name.toLowerCase()}` : '@usuario'));
+    setDescription(user.description || user.bio || 'Cliente frecuente de envíos nacionales y almacenaje en bodega.');
+    setPhone(user.phone || '+502 5598-1234');
+    setAddress(user.address || 'Zona 10, Ciudad de Guatemala');
+    setReferences(user.address_references || 'Frente a plaza comercial');
+    setEditingField(null);
+  }
+
+  // Al presionar editar/cerrar en un campo:
   const handleToggleEdit = (field: string) => {
-    if (editingField === field) {
-      setEditingField(null);
-    } else {
-      if (field === 'username') setUsernameInput(displayedUsername);
-      if (field === 'alias') setAlias(displayedAlias);
-      if (field === 'phone') setPhone(displayedPhone);
-      if (field === 'address') setAddress(displayedAddress);
-      if (field === 'references') setReferences(displayedRefs);
-      if (field === 'description') setDescription(displayedDesc);
-      setEditingField(field);
-    }
+    // Simplemente abre o cierra el campo. NUNCA reescribe ni descarta lo ingresado por el usuario
+    setEditingField(prev => (prev === field ? null : field));
   };
 
   const handleSave = async (): Promise<void> => {
-    const activeUsername = editingField === 'username' ? usernameInput.trim() : displayedUsername;
-    const parts = activeUsername.split(' ');
+    const trimmedUsername = usernameInput.trim();
+    const parts = trimmedUsername.split(/\s+/);
     const firstName = parts[0] || user?.first_name || 'Usuario';
-    const lastName = parts.slice(1).join(' ') || user?.last_name || '';
+    const lastName = parts.slice(1).join(' ') || '';
 
-    const rawAlias = editingField === 'alias' ? alias.trim() : displayedAlias;
+    const rawAlias = alias.trim();
     const cleanAlias = rawAlias
       ? (rawAlias.startsWith('@') ? rawAlias : `@${rawAlias}`)
       : `@${firstName.toLowerCase()}`;
 
-    const activeDesc = editingField === 'description' ? description.trim() : displayedDesc;
-    const activePhone = editingField === 'phone' ? phone.trim() : displayedPhone;
-    const activeAddress = editingField === 'address' ? address.trim() : displayedAddress;
-    const activeRefs = editingField === 'references' ? references.trim() : displayedRefs;
+    const cleanDesc = description.trim();
+    const cleanPhone = phone.trim();
+    const cleanAddress = address.trim();
+    const cleanRefs = references.trim();
 
     await updateProfile({
       first_name: firstName,
       last_name: lastName,
-      username: activeUsername,
+      username: trimmedUsername,
       alias: cleanAlias,
-      description: activeDesc,
-      bio: activeDesc,
-      phone: activePhone,
-      address: activeAddress,
-      address_references: activeRefs,
+      description: cleanDesc,
+      bio: cleanDesc,
+      phone: cleanPhone,
+      address: cleanAddress,
+      address_references: cleanRefs,
     });
 
     setEditingField(null);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
+
+  const avatarFirstName = usernameInput.trim().split(/\s+/)[0] || user?.first_name;
+  const avatarLastName = usernameInput.trim().split(/\s+/).slice(1).join(' ') || user?.last_name;
 
   return (
     <View style={styles.container}>
@@ -119,14 +120,14 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
         {/* Sección de Foto con Iniciales, Nombre y Alias */}
         <View style={styles.avatarSection}>
           <Avatar 
-            firstName={user?.first_name} 
-            lastName={user?.last_name} 
+            firstName={avatarFirstName} 
+            lastName={avatarLastName} 
             role={user?.role} 
             size={100} 
             style={styles.avatarStyle} 
           />
-          <Text style={styles.usernameTitle}>{displayedUsername}</Text>
-          <Text style={styles.userAliasSubtitle}>{displayedAlias}</Text>
+          <Text style={styles.usernameTitle}>{usernameInput || 'Usuario RerF'}</Text>
+          <Text style={styles.userAliasSubtitle}>{alias}</Text>
         </View>
 
         {savedSuccess && (
@@ -152,7 +153,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{displayedUsername}</Text>
+                <Text style={styles.fieldValue}>{usernameInput || 'Sin nombre registrado'}</Text>
               )}
             </View>
             <TouchableOpacity 
@@ -180,7 +181,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{displayedAlias}</Text>
+                <Text style={styles.fieldValue}>{alias || 'Sin alias registrado'}</Text>
               )}
             </View>
             <TouchableOpacity 
@@ -222,7 +223,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{displayedPhone}</Text>
+                <Text style={styles.fieldValue}>{phone || 'Sin teléfono'}</Text>
               )}
             </View>
             <TouchableOpacity 
@@ -249,7 +250,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{displayedAddress}</Text>
+                <Text style={styles.fieldValue}>{address || 'Sin dirección'}</Text>
               )}
             </View>
             <TouchableOpacity 
@@ -276,7 +277,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValue}>{displayedRefs}</Text>
+                <Text style={styles.fieldValue}>{references || 'Sin referencias'}</Text>
               )}
             </View>
             <TouchableOpacity 
@@ -305,7 +306,9 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   autoFocus
                 />
               ) : (
-                <Text style={styles.fieldValueDesc}>{displayedDesc}</Text>
+                <Text style={styles.fieldValueDesc}>
+                  {description || 'Sin descripción registrada. Toca editar para agregar una.'}
+                </Text>
               )}
             </View>
             <TouchableOpacity 
