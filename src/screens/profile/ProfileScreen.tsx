@@ -16,7 +16,7 @@
  * - Botón inferior: [ Guardar ] (Actualiza el perfil y el directorio de usuarios de la app)
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -63,29 +63,6 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
 
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
-  const [fieldsContainerY, setFieldsContainerY] = useState<number>(190);
-  const [rowLayouts, setRowLayouts] = useState<Record<string, number>>({
-    username: 0,
-    alias: 64,
-    phone: 192,
-    address: 256,
-    references: 320,
-    description: 384,
-  });
-
-  const handleRowLayout = (field: string, y: number) => {
-    setRowLayouts(prev => ({ ...prev, [field]: y }));
-  };
-
-  const scrollToField = useCallback((field: string) => {
-    const rowY = rowLayouts[field] ?? 0;
-    // Coloca la fila que se está editando cerca del tope superior del viewport (a 25px del inicio),
-    // garantizando que quede completamente visible y despejada por encima del teclado.
-    const targetY = Math.max(0, fieldsContainerY + rowY - 25);
-    setTimeout(() => {
-      scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
-    }, 120);
-  }, [fieldsContainerY, rowLayouts]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -93,8 +70,18 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
 
     const showListener = Keyboard.addListener(showEvent, (e) => {
       setKeyboardHeight(e.endCoordinates.height);
-      if (editingField) {
-        scrollToField(editingField);
+      if (editingField === 'description') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 260, animated: true });
+        }, 100);
+      } else if (editingField === 'references') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 180, animated: true });
+        }, 100);
+      } else if (editingField === 'address') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 120, animated: true });
+        }, 100);
       }
     });
 
@@ -106,7 +93,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
       showListener.remove();
       hideListener.remove();
     };
-  }, [editingField, scrollToField]);
+  }, [editingField]);
 
   // Sincronizar estado cuando se inicia sesión con otra cuenta o cambia de usuario
   if (user && user.id !== loadedUserId) {
@@ -125,8 +112,18 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
     // Simplemente abre o cierra el campo. NUNCA reescribe ni descarta lo ingresado por el usuario
     setEditingField(prev => {
       const next = prev === field ? null : field;
-      if (next) {
-        scrollToField(next);
+      if (next === 'description') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 260, animated: true });
+        }, 150);
+      } else if (next === 'references') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 180, animated: true });
+        }, 150);
+      } else if (next === 'address') {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 120, animated: true });
+        }, 150);
       }
       return next;
     });
@@ -208,15 +205,9 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
         )}
 
         {/* Lista de campos con botón "editar" en cada fila (Excalidraw Pantalla 24) */}
-        <View 
-          style={styles.fieldsContainer}
-          onLayout={(e) => setFieldsContainerY(e.nativeEvent.layout.y)}
-        >
+        <View style={styles.fieldsContainer}>
           {/* Fila Nombre de Usuario */}
-          <View 
-            style={styles.profileFieldRow}
-            onLayout={(e) => handleRowLayout('username', e.nativeEvent.layout.y)}
-          >
+          <View style={styles.profileFieldRow}>
             <View style={styles.fieldInfoCol}>
               <Text style={styles.fieldLabel}>Nombre de usuario:</Text>
               {editingField === 'username' ? (
@@ -227,7 +218,6 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   placeholder="Tu nombre completo o de usuario"
                   placeholderTextColor="#94A3B8"
                   autoFocus
-                  onFocus={() => scrollToField('username')}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{usernameInput || 'Sin nombre registrado'}</Text>
@@ -244,10 +234,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           </View>
 
           {/* Fila Alias */}
-          <View 
-            style={styles.profileFieldRow}
-            onLayout={(e) => handleRowLayout('alias', e.nativeEvent.layout.y)}
-          >
+          <View style={styles.profileFieldRow}>
             <View style={styles.fieldInfoCol}>
               <Text style={styles.fieldLabel}>Alias:</Text>
               {editingField === 'alias' ? (
@@ -259,7 +246,6 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   placeholderTextColor="#94A3B8"
                   autoCapitalize="none"
                   autoFocus
-                  onFocus={() => scrollToField('alias')}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{alias || 'Sin alias registrado'}</Text>
@@ -290,10 +276,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           </View>
 
           {/* Fila Teléfono */}
-          <View 
-            style={styles.profileFieldRow}
-            onLayout={(e) => handleRowLayout('phone', e.nativeEvent.layout.y)}
-          >
+          <View style={styles.profileFieldRow}>
             <View style={styles.fieldInfoCol}>
               <Text style={styles.fieldLabel}>Teléfono:</Text>
               {editingField === 'phone' ? (
@@ -305,7 +288,6 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   placeholder="+502 0000-0000"
                   placeholderTextColor="#94A3B8"
                   autoFocus
-                  onFocus={() => scrollToField('phone')}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{phone || 'Sin teléfono'}</Text>
@@ -322,10 +304,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           </View>
 
           {/* Fila Dirección */}
-          <View 
-            style={styles.profileFieldRow}
-            onLayout={(e) => handleRowLayout('address', e.nativeEvent.layout.y)}
-          >
+          <View style={styles.profileFieldRow}>
             <View style={styles.fieldInfoCol}>
               <Text style={styles.fieldLabel}>Dirección:</Text>
               {editingField === 'address' ? (
@@ -336,7 +315,11 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   placeholder="Dirección de entrega o residencia"
                   placeholderTextColor="#94A3B8"
                   autoFocus
-                  onFocus={() => scrollToField('address')}
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollTo({ y: 120, animated: true });
+                    }, 120);
+                  }}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{address || 'Sin dirección'}</Text>
@@ -353,10 +336,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           </View>
 
           {/* Fila Referencias */}
-          <View 
-            style={styles.profileFieldRow}
-            onLayout={(e) => handleRowLayout('references', e.nativeEvent.layout.y)}
-          >
+          <View style={styles.profileFieldRow}>
             <View style={styles.fieldInfoCol}>
               <Text style={styles.fieldLabel}>Referencias:</Text>
               {editingField === 'references' ? (
@@ -367,7 +347,11 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   placeholder="Puntos de referencia para entregas"
                   placeholderTextColor="#94A3B8"
                   autoFocus
-                  onFocus={() => scrollToField('references')}
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollTo({ y: 180, animated: true });
+                    }, 120);
+                  }}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{references || 'Sin referencias'}</Text>
@@ -384,10 +368,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           </View>
 
           {/* Fila Descripción */}
-          <View 
-            style={styles.profileFieldRow}
-            onLayout={(e) => handleRowLayout('description', e.nativeEvent.layout.y)}
-          >
+          <View style={styles.profileFieldRow}>
             <View style={styles.fieldInfoCol}>
               <Text style={styles.fieldLabel}>Descripción:</Text>
               {editingField === 'description' ? (
@@ -400,7 +381,11 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
                   placeholder="Describe tu actividad, empresa o información de perfil..."
                   placeholderTextColor="#94A3B8"
                   autoFocus
-                  onFocus={() => scrollToField('description')}
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollTo({ y: 260, animated: true });
+                    }, 120);
+                  }}
                 />
               ) : (
                 <Text style={styles.fieldValueDesc}>
