@@ -182,7 +182,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
         <View style={styles.actionsCol}>
           <TouchableOpacity 
             style={styles.squareActionButton}
-            onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
+            onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.tracking_number || item.id })}
             activeOpacity={0.7}
           >
             <Text style={styles.actionLetter}>L</Text>

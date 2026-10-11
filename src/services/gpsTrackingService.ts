@@ -41,19 +41,93 @@ export const geocodeGuatemalaAddress = (address?: string): GpsCoordinates => {
 
   const clean = address.toLowerCase();
 
-  // Puntos geográficos reales en el departamento de Guatemala y zonas clave
-  if (clean.includes('jalapa')) {
-    return { latitude: 14.6333, longitude: -89.9889 };
+  // 1. Departamentos y Regiones de Guatemala
+  // Petén (Flores, Santa Elena, San Benito, Poptún, Sayaxché, Tikal)
+  if (clean.includes('peten') || clean.includes('petén') || clean.includes('flores') || clean.includes('santa elena') || clean.includes('tikal') || clean.includes('poptun') || clean.includes('poptún') || clean.includes('sayaxche')) {
+    return { latitude: 16.9248, longitude: -89.8947 };
   }
-  if (clean.includes('quetzaltenango') || clean.includes('xela')) {
+  // Izabal (Puerto Barrios, Morales, Livingston, Río Dulce, Santo Tomás)
+  if (clean.includes('izabal') || clean.includes('puerto barrios') || clean.includes('morales') || clean.includes('rio dulce') || clean.includes('livingston')) {
+    return { latitude: 15.7278, longitude: -88.5944 };
+  }
+  // Alta Verapaz (Cobán, San Pedro Carchá, Chamelco)
+  if (clean.includes('alta verapaz') || clean.includes('coban') || clean.includes('cobán') || clean.includes('carcha') || clean.includes('carchá')) {
+    return { latitude: 15.4719, longitude: -90.3708 };
+  }
+  // Baja Verapaz (Salamá, San Jerónimo, Rabinal)
+  if (clean.includes('baja verapaz') || clean.includes('salama') || clean.includes('salamá') || clean.includes('rabinal')) {
+    return { latitude: 15.1028, longitude: -90.3181 };
+  }
+  // Quetzaltenango (Xela, Salcajá, Coatepeque)
+  if (clean.includes('quetzaltenango') || clean.includes('xela') || clean.includes('coatepeque')) {
     return { latitude: 14.8347, longitude: -91.5181 };
   }
-  if (clean.includes('antigua')) {
+  // Huehuetenango (Chiantla, Barillas)
+  if (clean.includes('huehuetenango') || clean.includes('huehue') || clean.includes('chiantla')) {
+    return { latitude: 15.3197, longitude: -91.4708 };
+  }
+  // San Marcos (Malacatán, San Pedro Sacatepéquez)
+  if (clean.includes('san marcos') || clean.includes('malacatan') || clean.includes('malacatán')) {
+    return { latitude: 14.9639, longitude: -91.7944 };
+  }
+  // Quiché (Santa Cruz del Quiché, Chichicastenango, Nebaj)
+  if (clean.includes('quiche') || clean.includes('quiché') || clean.includes('chichicastenango') || clean.includes('nebaj')) {
+    return { latitude: 15.0306, longitude: -91.1489 };
+  }
+  // Totonicapán (Momostenango, San Cristóbal)
+  if (clean.includes('totonicapan') || clean.includes('totonicapán') || clean.includes('momostenango')) {
+    return { latitude: 14.9117, longitude: -91.3611 };
+  }
+  // Sololá (Panajachel, Atitlán, Santiago)
+  if (clean.includes('solola') || clean.includes('sololá') || clean.includes('panajachel') || clean.includes('atitlan') || clean.includes('atitlán')) {
+    return { latitude: 14.7725, longitude: -91.1833 };
+  }
+  // Chimaltenango (Tecpán, El Tejar, Patzicía)
+  if (clean.includes('chimaltenango') || clean.includes('tecpan') || clean.includes('tecpán')) {
+    return { latitude: 14.6611, longitude: -90.8208 };
+  }
+  // Sacatepéquez (Antigua Guatemala, Ciudad Vieja, San Lucas)
+  if (clean.includes('antigua') || clean.includes('sacatepequez') || clean.includes('sacatepéquez') || clean.includes('ciudad vieja')) {
     return { latitude: 14.5586, longitude: -90.7332 };
   }
-  if (clean.includes('escuintla')) {
+  // Escuintla (Puerto San José, Palín, Santa Lucía Cotzumalguapa, Iztapa)
+  if (clean.includes('escuintla') || clean.includes('puerto san jose') || clean.includes('san jose') || clean.includes('palin') || clean.includes('palín') || clean.includes('iztapa')) {
     return { latitude: 14.3009, longitude: -90.7850 };
   }
+  // Retalhuleu (Champerico, San Sebastián)
+  if (clean.includes('retalhuleu') || clean.includes('reu') || clean.includes('champerico')) {
+    return { latitude: 14.5361, longitude: -91.6778 };
+  }
+  // Suchitepéquez (Mazatenango, Cuyotenango)
+  if (clean.includes('suchitepequez') || clean.includes('suchitepéquez') || clean.includes('mazatenango') || clean.includes('mazate')) {
+    return { latitude: 14.5342, longitude: -91.5033 };
+  }
+  // Jalapa (Mataquescuintla, San Pedro Pinula, Monjas)
+  if (clean.includes('jalapa') || clean.includes('monjas') || clean.includes('mataquescuintla')) {
+    return { latitude: 14.6333, longitude: -89.9889 };
+  }
+  // Chiquimula (Esquipulas, Quezaltepeque)
+  if (clean.includes('chiquimula') || clean.includes('esquipulas')) {
+    return { latitude: 14.7983, longitude: -89.5439 };
+  }
+  // Zacapa (Estanzuela, Gualán, Teculután, Río Hondo)
+  if (clean.includes('zacapa') || clean.includes('gualan') || clean.includes('teculutan') || clean.includes('rio hondo')) {
+    return { latitude: 14.9722, longitude: -89.5306 };
+  }
+  // El Progreso (Guastatoya, Sanarate, Morazán)
+  if (clean.includes('el progreso') || clean.includes('progreso') || clean.includes('guastatoya') || clean.includes('sanarate')) {
+    return { latitude: 14.8536, longitude: -90.0750 };
+  }
+  // Jutiapa (Asunción Mita, Moyuta, Jalpatagua)
+  if (clean.includes('jutiapa') || clean.includes('asuncion mita')) {
+    return { latitude: 14.2817, longitude: -89.8956 };
+  }
+  // Santa Rosa (Cuilapa, Barberena, Chiquimulilla, Monterrico)
+  if (clean.includes('santa rosa') || clean.includes('cuilapa') || clean.includes('barberena') || clean.includes('monterrico')) {
+    return { latitude: 14.2781, longitude: -90.2989 };
+  }
+
+  // 2. Municipios y Zonas del Área Metropolitana de Guatemala
   if (clean.includes('mixco') || clean.includes('san cristobal')) {
     return { latitude: 14.6050, longitude: -90.5840 };
   }
@@ -138,8 +212,53 @@ export const generateRoutePath = (
   // 1. Identificar el corredor vial según la región geográfica de destino
   let corridorAnchors: GpsCoordinates[] = [origin];
 
+  // Corredor hacia el Norte (Petén / Izabal / Las Verapaces)
+  if (destination.latitude > 15.2) {
+    if (destination.latitude > 16.0) {
+      // Petén (Carretera al Atlántico CA-9 Norte + CA-13)
+      corridorAnchors = [
+        origin, // Aguilar Batres
+        { latitude: 14.6152, longitude: -90.5365 }, // Trébol / Periférico
+        { latitude: 14.6420, longitude: -90.5120 }, // Puente El Incienso
+        { latitude: 14.6540, longitude: -90.4920 }, // Calle Martí / Salida CA-9 Norte
+        { latitude: 14.7300, longitude: -90.3150 }, // San Antonio La Paz
+        { latitude: 14.9120, longitude: -90.0150 }, // El Rancho
+        { latitude: 15.0450, longitude: -89.5850 }, // Teculután / Río Hondo
+        { latitude: 15.4850, longitude: -88.8250 }, // Morales / Izabal
+        { latitude: 15.8850, longitude: -89.2450 }, // Modesto Méndez (Entrada Petén)
+        { latitude: 16.3250, longitude: -89.4180 }, // Poptún
+        { latitude: 16.6500, longitude: -89.5200 }, // Dolores
+        { latitude: 16.9248, longitude: -89.8947 }, // Santa Elena / Flores Petén
+        destination,
+      ];
+    } else if (destination.longitude > -89.3) {
+      // Izabal (Puerto Barrios)
+      corridorAnchors = [
+        origin,
+        { latitude: 14.6152, longitude: -90.5365 },
+        { latitude: 14.6540, longitude: -90.4920 },
+        { latitude: 14.9120, longitude: -90.0150 },
+        { latitude: 15.0450, longitude: -89.5850 },
+        { latitude: 15.4850, longitude: -88.8250 },
+        { latitude: 15.7278, longitude: -88.5944 },
+        destination,
+      ];
+    } else {
+      // Alta Verapaz (Cobán vía RN-17 / CA-14)
+      corridorAnchors = [
+        origin,
+        { latitude: 14.6152, longitude: -90.5365 },
+        { latitude: 14.6540, longitude: -90.4920 },
+        { latitude: 14.9120, longitude: -90.0150 },
+        { latitude: 15.1500, longitude: -90.2800 },
+        { latitude: 15.3300, longitude: -90.3500 },
+        { latitude: 15.4719, longitude: -90.3708 },
+        destination,
+      ];
+    }
+  }
   // Corredor hacia el Oriente (Jalapa / El Progreso / Chiquimula)
-  if (destination.longitude > -90.2) {
+  else if (destination.longitude > -90.2) {
     corridorAnchors = [
       origin, // Calzada Aguilar Batres, Z.12
       { latitude: 14.6152, longitude: -90.5365 }, // Trébol / Periférico

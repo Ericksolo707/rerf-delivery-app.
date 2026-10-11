@@ -68,7 +68,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
   }, [initialShipmentId, shipments]);
 
   const [searchInput, setSearchInput] = useState<string>(
-    initialShipmentId || ''
+    defaultShipment?.tracking_number || (initialShipmentId && !initialShipmentId.includes('-') ? initialShipmentId : '')
   );
   const [activeShipment, setActiveShipment] = useState<Shipment | null>(defaultShipment);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -116,7 +116,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
     ? (isDelivered ? 100 : (waypoints.length > 1 ? Math.min(100, Math.round((effectiveStepIndex / (waypoints.length - 1)) * 100)) : 0))
     : 0;
 
-  // Sincronizar si cambia el parámetro de ruta
+  // Sincronizar si cambia el parámetro de ruta y no estaba en la lista inicial
   useEffect(() => {
     let isMounted = true;
     if (initialShipmentId && !defaultShipment) {

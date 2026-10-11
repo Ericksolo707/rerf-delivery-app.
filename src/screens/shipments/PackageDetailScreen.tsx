@@ -195,7 +195,7 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
         {shipment?.status !== 'pendiente' && shipment?.status !== 'cancelado' && (
           <TouchableOpacity
             style={styles.gpsActionButton}
-            onPress={() => navigation.navigate('TrackingGPS', { shipmentId: shipment?.id })}
+            onPress={() => navigation.navigate('TrackingGPS', { shipmentId: shipment?.tracking_number || shipment?.id })}
             activeOpacity={0.85}
           >
             <Ionicons name="navigate-outline" size={20} color="#0F172A" />
@@ -266,7 +266,7 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
         cancelText="Ir a Pedidos"
         onConfirm={() => {
           setShowSuccessModal(false);
-          navigation.navigate('TrackingGPS', { shipmentId: shipment?.id });
+          navigation.navigate('TrackingGPS', { shipmentId: shipment?.tracking_number || shipment?.id });
         }}
         onCancel={() => {
           setShowSuccessModal(false);
