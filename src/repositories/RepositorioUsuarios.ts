@@ -273,11 +273,29 @@ export class RepositorioUsuarios {
     await this.inicializarPersistencia();
 
     const cleanEmail = nuevoPerfil.email.trim().toLowerCase();
+    // 0. Validación de duplicidad en directorio local y base de datos
+    const existeLocal = this.directorio.some(
+      (u) => u.email.toLowerCase() === cleanEmail
+    );
+    if (existeLocal) {
+      throw new Error('Ese correo ya está registrado');
+    }
+
     let createdId = `usr-${Date.now()}`;
 
     // 1. Registrar en Supabase Auth oficial mediante authRepo (Sesiones 6 y 7 UMG)
     if (isSupabaseConfigured) {
       try {
+        const { data: existenteRemoto } = await supabase
+          .from('usuarios')
+          .select('id')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (existenteRemoto) {
+          throw new Error('Ese correo ya está registrado');
+        }
+
         const nombreCompleto = `${nuevoPerfil.first_name} ${nuevoPerfil.last_name || ''}`.trim();
         const resultado = await authRepo.registrar(cleanEmail, password, nombreCompleto, {
           first_name: nuevoPerfil.first_name,
