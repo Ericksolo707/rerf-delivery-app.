@@ -154,11 +154,11 @@ export class RepositorioUsuarios {
               last_name: profileData?.last_name || localUser?.last_name || '',
               email: cleanEmail,
               phone: profileData?.phone || localUser?.phone || '',
-              address: profileData?.address || localUser?.address || 'Ciudad de Guatemala',
+              address: profileData?.address || localUser?.address || '',
               address_references: profileData?.address_references || localUser?.address_references || '',
               role: profileData?.role || localUser?.role || 'cliente',
               avatar_url: profileData?.avatar_url || localUser?.avatar_url,
-              bio: profileData?.bio || localUser?.bio || 'Usuario activo en RerF Logistics',
+              bio: profileData?.bio || localUser?.bio || '',
             };
 
             this.usuarioActual = { ...resolvedUser };
@@ -343,7 +343,7 @@ export class RepositorioUsuarios {
           address: nuevoUsuario.address || '',
           address_references: nuevoUsuario.address_references || '',
           role: nuevoUsuario.role || 'cliente',
-          bio: nuevoUsuario.bio || 'Usuario registrado en RerF Logistics',
+          bio: nuevoUsuario.bio || '',
         };
 
         let resU = await supabase.from('usuarios').upsert([payload]);

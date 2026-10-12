@@ -35,6 +35,8 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
 
   const [calculatedTotal, setCalculatedTotal] = useState<number | null>(null);
   const [hasCalculated, setHasCalculated] = useState<boolean>(false);
+  const [isRecalculating, setIsRecalculating] = useState<boolean>(false);
+  const [feedbackNotice, setFeedbackNotice] = useState<string>('');
 
   const updateQuantity = (val: string): void => {
     setQuantity(val);
@@ -58,6 +60,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
 
   const handleCotizar = (): void => {
     Keyboard.dismiss();
+    setIsRecalculating(true);
     const qty = parseInt(quantity, 10) || 1;
     const w = parseFloat(weight) || 1;
     const materialSurcharge = material === 'fragil' ? 15.00 : 5.00;
@@ -66,8 +69,25 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
     const weightRate = w > 1 ? (w - 1) * 3.50 : 0;
     const total = (baseRate + weightRate + materialSurcharge + zoneSurcharge) * qty;
 
-    setCalculatedTotal(total);
-    setHasCalculated(true);
+    setTimeout(() => {
+      setCalculatedTotal(total);
+      setHasCalculated(true);
+      setIsRecalculating(false);
+      setFeedbackNotice(`✓ Tarifa calculada: Q ${total.toFixed(2)}`);
+      setTimeout(() => setFeedbackNotice(''), 3000);
+    }, 200);
+  };
+
+  const handleReset = (): void => {
+    Keyboard.dismiss();
+    setQuantity('1');
+    setWeight('5');
+    setMaterial('fuerte');
+    setDestinationZone('capital');
+    setCalculatedTotal(null);
+    setHasCalculated(false);
+    setFeedbackNotice('Cotizador restablecido a valores iniciales');
+    setTimeout(() => setFeedbackNotice(''), 2500);
   };
 
   const handleProceedToShipment = (): void => {
@@ -222,22 +242,61 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
             </View>
           )}
 
-          {/* Botón [ Cotizar ] */}
-          <TouchableOpacity
-            style={[styles.cotizarBtn, hasCalculated && styles.cotizarBtnCalculated]}
-            onPress={handleCotizar}
-            activeOpacity={0.85}
-          >
-            <Ionicons 
-              name={hasCalculated ? "checkmark-circle" : "calculator"} 
-              size={18} 
-              color={RerfColors.primaryYellowText} 
-              style={{ marginRight: 8 }} 
-            />
-            <Text style={styles.cotizarBtnText}>
-              {hasCalculated ? 'Recalcular Cotización' : 'Cotizar'}
-            </Text>
-          </TouchableOpacity>
+          {/* Banner de confirmación de cálculo interactivo */}
+          {feedbackNotice ? (
+            <View style={styles.feedbackNoticeBox}>
+              <Ionicons name="checkmark-circle" size={16} color="#15803D" />
+              <Text style={styles.feedbackNoticeText}>{feedbackNotice}</Text>
+            </View>
+          ) : null}
+
+          {/* Botones de acción: Cotizar / Recalcular / Limpiar */}
+          {hasCalculated ? (
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={[styles.cotizarBtn, styles.recalcularBtn, isRecalculating && { opacity: 0.7 }]}
+                onPress={handleCotizar}
+                activeOpacity={0.85}
+                disabled={isRecalculating}
+              >
+                <Ionicons 
+                  name="refresh" 
+                  size={16} 
+                  color={RerfColors.primaryYellowText} 
+                  style={{ marginRight: 6 }} 
+                />
+                <Text style={styles.cotizarBtnText}>
+                  {isRecalculating ? 'Recalculando...' : 'Recalcular'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.resetBtn}
+                onPress={handleReset}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="trash-outline" size={16} color="#DC2626" style={{ marginRight: 4 }} />
+                <Text style={styles.resetBtnText}>Limpiar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.cotizarBtn}
+              onPress={handleCotizar}
+              activeOpacity={0.85}
+              disabled={isRecalculating}
+            >
+              <Ionicons 
+                name="calculator" 
+                size={18} 
+                color={RerfColors.primaryYellowText} 
+                style={{ marginRight: 8 }} 
+              />
+              <Text style={styles.cotizarBtnText}>
+                {isRecalculating ? 'Calculando tarifa...' : 'Calcular Cotización'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Botón [ Realizar Envío con esta Cotización ] */}
           {hasCalculated && calculatedTotal !== null && (
@@ -436,6 +495,52 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
     lineHeight: 16,
+  },
+  feedbackNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    marginTop: 10,
+  },
+  feedbackNoticeText: {
+    fontSize: 12,
+    color: '#15803D',
+    fontWeight: '700',
+    flex: 1,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+  },
+  recalcularBtn: {
+    flex: 1,
+    marginTop: 0,
+    backgroundColor: '#FDE68A',
+    borderColor: '#F59E0B',
+  },
+  resetBtn: {
+    height: 50,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FEF2F2',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...RerfShadows.card,
+  },
+  resetBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#DC2626',
   },
   cotizarBtn: {
     height: 50,

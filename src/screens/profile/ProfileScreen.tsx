@@ -54,10 +54,10 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
   // Estados directos del formulario (lo que el usuario ve y edita en pantalla)
   const [usernameInput, setUsernameInput] = useState<string>(() => user?.username || getComputedUsername(user));
   const [alias, setAlias] = useState<string>(() => user?.alias || (user?.first_name ? `@${user.first_name.toLowerCase()}` : '@usuario'));
-  const [description, setDescription] = useState<string>(() => user?.description || user?.bio || 'Cliente frecuente de envíos nacionales y almacenaje en bodega.');
-  const [phone, setPhone] = useState<string>(() => user?.phone || '+502 5598-1234');
-  const [address, setAddress] = useState<string>(() => user?.address || 'Zona 10, Ciudad de Guatemala');
-  const [references, setReferences] = useState<string>(() => user?.address_references || 'Frente a plaza comercial');
+  const [description, setDescription] = useState<string>(() => user?.description || user?.bio || '');
+  const [phone, setPhone] = useState<string>(() => user?.phone || '');
+  const [address, setAddress] = useState<string>(() => user?.address || '');
+  const [references, setReferences] = useState<string>(() => user?.address_references || '');
   const [editingField, setEditingField] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
@@ -100,10 +100,10 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
     setLoadedUserId(user.id);
     setUsernameInput(user.username || getComputedUsername(user));
     setAlias(user.alias || (user.first_name ? `@${user.first_name.toLowerCase()}` : '@usuario'));
-    setDescription(user.description || user.bio || 'Cliente frecuente de envíos nacionales y almacenaje en bodega.');
-    setPhone(user.phone || '+502 5598-1234');
-    setAddress(user.address || 'Zona 10, Ciudad de Guatemala');
-    setReferences(user.address_references || 'Frente a plaza comercial');
+    setDescription(user.description || user.bio || '');
+    setPhone(user.phone || '');
+    setAddress(user.address || '');
+    setReferences(user.address_references || '');
     setEditingField(null);
   }
 

@@ -83,6 +83,8 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const quotedDescription = route.params?.quotedDescription;
   const quotedWeight = route.params?.quotedWeight;
   const quotedDestination = route.params?.quotedDestination;
+  const prefilledWarehouseItemId = route.params?.prefilledWarehouseItemId;
+  const prefilledDescription = route.params?.prefilledDescription;
   const existingShipment = editShipmentId ? shipments.find(s => s.id === editShipmentId || s.tracking_number === editShipmentId) : undefined;
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -116,7 +118,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   // Campos Excalidraw Pantalla 13
   const [recipient, setRecipient] = useState<string>(existingShipment?.recipient_name || prefilled || '');
   const [selectedRecipientUser, setSelectedRecipientUser] = useState<UserProfile | null>(null);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || '');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || prefilledWarehouseItemId || '');
 
   // Inicializar Departamento dentro de los 22 departamentos de Guatemala
   const getInitialDepartment = (): string => {
@@ -146,7 +148,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const [pickedDate, setPickedDate] = useState<Date>(initialDateObj);
 
   const [description, setDescription] = useState<string>(
-    existingShipment?.description || quotedDescription || ''
+    existingShipment?.description || prefilledDescription || quotedDescription || ''
   );
 
   // Modales y filtros
@@ -746,20 +748,26 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
               >
                 <Text style={styles.userPickName}>Paquete Estándar Nuevo (Sin Bodega)</Text>
               </TouchableOpacity>
-              {warehouseItems.map(item => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[styles.userPickRow, selectedWarehouseId === item.id && styles.activePickRow]}
-                  onPress={() => {
-                    setSelectedWarehouseId(item.id);
-                    setDescription(item.description);
-                    setShowWarehouseModal(false);
-                  }}
-                >
-                  <Text style={styles.userPickName}>{item.product_type} ({item.storage_code})</Text>
-                  <Text style={styles.userPickEmail}>{item.description}</Text>
-                </TouchableOpacity>
-              ))}
+              {warehouseItems.filter(item => item.status === 'almacenado').length === 0 ? (
+                <Text style={{ textAlign: 'center', color: '#94A3B8', fontSize: 13, marginVertical: 14 }}>
+                  No tienes artículos almacenados disponibles para despacho.
+                </Text>
+              ) : (
+                warehouseItems.filter(item => item.status === 'almacenado').map(item => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.userPickRow, selectedWarehouseId === item.id && styles.activePickRow]}
+                    onPress={() => {
+                      setSelectedWarehouseId(item.id);
+                      setDescription(`Despacho de Bodega (${item.storage_code}): ${item.product_type} - ${item.description || ''}`.trim());
+                      setShowWarehouseModal(false);
+                    }}
+                  >
+                    <Text style={styles.userPickName}>{item.product_type} ({item.storage_code})</Text>
+                    <Text style={styles.userPickEmail}>{item.description}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
             </ScrollView>
             <TouchableOpacity 
               style={styles.closeModalBtn}
