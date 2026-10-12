@@ -25,7 +25,9 @@ import {
 } from '../repositories';
 import { 
   MOCK_NOTIFICATIONS, 
-  MOCK_AI_MESSAGES 
+  MOCK_AI_MESSAGES,
+  ADMIN_USER,
+  ERICK_USER
 } from '../services/mockData';
 
 import { AiLogisticsService } from '../services/aiLogisticsService';
@@ -376,6 +378,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...item,
             is_read: wasRead,
           });
+        }
+      }
+
+      // Si el usuario es administrador, verificar si hay envíos pendientes de autorización
+      // para asegurar que tenga la notificación visible en su bandeja
+      if (currentUser.role === 'admin') {
+        const enviosActuales = allShipments.length > 0 ? allShipments : await repositorioEnvios.listar();
+        const enviosPendientes = enviosActuales.filter(s => s.status === 'pendiente');
+        for (const pend of enviosPendientes) {
+          const yaExiste = finalUnique.some(n => 
+            n.shipment_id === pend.id || 
+            (n.tracking_number && n.tracking_number === pend.tracking_number) ||
+            (pend.tracking_number && n.message.includes(pend.tracking_number))
+          );
+          if (!yaExiste) {
+            const senderUser = users.find(u => u.id === pend.sender_id);
+            const clientName = senderUser 
+              ? `${senderUser.first_name} ${senderUser.last_name || ''}`.trim() 
+              : (pend.sender_id === 'usr-001' ? 'Pedro Alcántara' : 'Un cliente');
+            const notifPend: NotificationItem = {
+              id: `notif-order-admin-${pend.id}`,
+              title: 'Nuevo Pedido por Autorizar',
+              message: `${clientName} ha registrado el envío ${pend.tracking_number} para ${pend.recipient_name}. Requiere tu autorización.`,
+              type: 'alerta',
+              date: 'Hoy',
+              is_read: false,
+              created_at: pend.created_at || new Date().toISOString(),
+              shipment_id: pend.id,
+              tracking_number: pend.tracking_number,
+            };
+            finalUnique.unshift(notifPend);
+          }
         }
       }
 
@@ -781,6 +815,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Error enviando notificación al destinatario:', notifErr);
     }
 
+    // 3. Notificación para los administradores ("pedido por autorizar")
+    try {
+      const allAdmins = users.filter(u => u.role === 'admin' && u.id !== user?.id);
+      if (!allAdmins.some(a => a.id === 'usr-admin' || a.email === 'admin@rerf.gt') && user?.email !== 'admin@rerf.gt') {
+        allAdmins.push(ADMIN_USER);
+      }
+      if (!allAdmins.some(a => a.email === 'esolorzanoj@miumg.edu.gt') && user?.email !== 'esolorzanoj@miumg.edu.gt') {
+        allAdmins.push(ERICK_USER);
+      }
+
+      const clientSenderName = user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Un cliente';
+
+      for (const admin of allAdmins) {
+        const notifAdmin: NotificationItem = {
+          id: `notif-order-admin-${now.getTime()}-${admin.id}`,
+          title: 'Nuevo Pedido por Autorizar',
+          message: `${clientSenderName} ha registrado el envío ${nuevoEnvio.tracking_number} para ${nuevoEnvio.recipient_name}. Requiere tu autorización.`,
+          type: 'alerta',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+          shipment_id: nuevoEnvio.id,
+          tracking_number: nuevoEnvio.tracking_number,
+        };
+
+        const adminKey = `@rerf_notifications_${admin.id}`;
+        const prevRaw = await AsyncStorage.getItem(adminKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(adminKey, JSON.stringify([notifAdmin, ...prevList]));
+
+        if (admin.email) {
+          const adminEmailKey = `@rerf_notifications_${admin.email.toLowerCase().trim()}`;
+          const prevEmailRaw = await AsyncStorage.getItem(adminEmailKey);
+          const prevEmailList = prevEmailRaw ? JSON.parse(prevEmailRaw) : [];
+          await AsyncStorage.setItem(adminEmailKey, JSON.stringify([notifAdmin, ...prevEmailList]));
+        }
+
+        if (user && (user.id === admin.id || user.email?.toLowerCase() === admin.email?.toLowerCase())) {
+          setNotifications(prev => [notifAdmin, ...prev]);
+        }
+
+        if (isSupabaseConfigured && admin.id && admin.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: admin.id,
+              title: notifAdmin.title,
+              message: notifAdmin.message,
+              type: 'alerta',
+              is_read: false,
+            });
+          } catch (eSb) {
+            console.warn('[AppContext] Error guardando notificación para admin en Supabase:', eSb);
+          }
+        }
+      }
+    } catch (errAdminNotif) {
+      console.warn('[AppContext] Error notificando nuevo envío a administradores:', errAdminNotif);
+    }
+
     // Generar automáticamente la factura electrónica FEL asociada al envío
     try {
       const nuevaFactura: Invoice = {
@@ -1036,6 +1129,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
       }
+    }
+
+    // Si el envío fue aprobado o rechazado, marcar la alerta de autorización como leída para el administrador
+    if (updates.status === 'aprobado' || updates.status === 'rechazado') {
+      try {
+        const readSet = await obtenerIdsLeidos();
+        notifications.forEach(n => {
+          if (
+            (n.shipment_id === shipmentId || (targetShipment?.tracking_number && (n.tracking_number === targetShipment.tracking_number || n.message.includes(targetShipment.tracking_number)))) &&
+            n.title.toLowerCase().includes('autorizar')
+          ) {
+            readSet.add(n.id);
+          }
+        });
+        await AsyncStorage.setItem(STORAGE_KEY_READ_NOTIFS, JSON.stringify(Array.from(readSet)));
+        setNotifications(prev =>
+          prev.map(n =>
+            (n.shipment_id === shipmentId || (targetShipment?.tracking_number && (n.tracking_number === targetShipment.tracking_number || n.message.includes(targetShipment.tracking_number)))) &&
+            n.title.toLowerCase().includes('autorizar')
+              ? { ...n, is_read: true }
+              : n
+          )
+        );
+      } catch {}
     }
 
     // 2. Notificación cuando el envío pasa a ruta satelital 'en_camino'
