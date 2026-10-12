@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile } from '../types';
 import { ADMIN_USER } from '../services/mockData';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { authRepo, traducirErrorAuth } from '../database';
 
 const STORAGE_KEY_USERS = '@rerf_registered_users';
 const STORAGE_KEY_CREDS = '@rerf_user_credentials';
@@ -109,21 +110,20 @@ export class RepositorioUsuarios {
       }
     }
 
-    // 1. Autenticación con Supabase Auth
+    // 1. Autenticación con Supabase Auth a través de authRepo (Sesiones 6 y 7 UMG)
     if (isSupabaseConfigured) {
       try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password: cleanPass,
-        });
+        let sesionUsuario: any = null;
+        try {
+          sesionUsuario = await authRepo.iniciarSesion(cleanEmail, cleanPass);
+        } catch (authError: any) {
+          const mensajeError = authError?.message || '';
 
-        if (authError) {
-          if (authError.message.includes('Invalid login credentials')) {
-            throw new Error('Usuario, correo o contraseña incorrectos. Verifique sus datos o regístrese si es nuevo.');
-          }
-          if (authError.message.includes('Email not confirmed')) {
-            // La contraseña es correcta (Supabase valida la contraseña antes de chequear confirmación).
-            // Recuperamos el perfil y permitimos el acceso sin bloquear al usuario.
+          // Caso especial: correo no confirmado en Supabase pero contraseña correcta
+          if (
+            mensajeError.includes('Email not confirmed') ||
+            mensajeError.includes('confirmar tu correo')
+          ) {
             const localUser = this.directorio.find((u) => u.email.toLowerCase() === cleanEmail);
             let profileData: any = null;
             try {
@@ -155,11 +155,13 @@ export class RepositorioUsuarios {
             await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
             return { ...this.usuarioActual };
           }
-          throw new Error(authError.message);
+
+          // Error traducido con traducirErrorAuth (Sesión 7)
+          throw new Error(traducirErrorAuth(authError));
         }
 
-        if (authData?.user) {
-          const userId = authData.user.id;
+        if (sesionUsuario?.id) {
+          const userId = sesionUsuario.id;
 
           // Consultar perfil de negocio en public.usuarios (con fallback a profiles)
           let userProfile: UserProfile | null = null;
@@ -198,14 +200,14 @@ export class RepositorioUsuarios {
           }
 
           if (!userProfile) {
-            const rawName = authData.user.user_metadata?.first_name || cleanEmail.split('@')[0];
+            const rawName = sesionUsuario.nombre || cleanEmail.split('@')[0];
             const cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
             userProfile = {
               id: userId,
               first_name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
-              last_name: authData.user.user_metadata?.last_name || '',
-              email: authData.user.email || cleanEmail,
-              role: (authData.user.user_metadata?.role as any) || 'cliente',
+              last_name: '',
+              email: sesionUsuario.correo || cleanEmail,
+              role: 'cliente',
               bio: 'Usuario autenticado vía Supabase',
             };
             try {
@@ -273,32 +275,23 @@ export class RepositorioUsuarios {
     const cleanEmail = nuevoPerfil.email.trim().toLowerCase();
     let createdId = `usr-${Date.now()}`;
 
-    // 1. Registrar en Supabase Auth oficial (aparecerá en Authentication > Users)
+    // 1. Registrar en Supabase Auth oficial mediante authRepo (Sesiones 6 y 7 UMG)
     if (isSupabaseConfigured) {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: password,
-        options: {
-          data: {
-            first_name: nuevoPerfil.first_name,
-            last_name: nuevoPerfil.last_name,
-            role: nuevoPerfil.role || 'cliente',
-          },
-        },
-      });
+      try {
+        const nombreCompleto = `${nuevoPerfil.first_name} ${nuevoPerfil.last_name || ''}`.trim();
+        const resultado = await authRepo.registrar(cleanEmail, password, nombreCompleto, {
+          first_name: nuevoPerfil.first_name,
+          last_name: nuevoPerfil.last_name || '',
+          role: nuevoPerfil.role || 'cliente',
+        });
 
-      if (authError) {
-        if (
-          authError.message.includes('User already registered') ||
-          authError.message.includes('already exists')
-        ) {
-          throw new Error('El correo electrónico ya se encuentra registrado en el sistema.');
+        if (resultado.sesion?.id) {
+          createdId = resultado.sesion.id;
+        } else if (resultado.usuario?.id) {
+          createdId = resultado.usuario.id;
         }
-        throw new Error(authError.message);
-      }
-
-      if (authData?.user) {
-        createdId = authData.user.id;
+      } catch (authError: any) {
+        throw new Error(traducirErrorAuth(authError));
       }
     }
 
@@ -366,15 +359,44 @@ export class RepositorioUsuarios {
   }
 
   /**
-   * Cierra la sesión activa en el dispositivo
+   * Cierra la sesión activa en el dispositivo y en Supabase Auth (Sesiones 6 y 7)
    */
   public async cerrarSesion(): Promise<void> {
     this.usuarioActual = null;
     try {
+      if (isSupabaseConfigured) {
+        await authRepo.cerrarSesion().catch((err) => {
+          console.warn('[RepositorioUsuarios] Aviso cerrando sesión en Supabase:', err);
+        });
+      }
       await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
     } catch (err) {
       console.warn('[RepositorioUsuarios] Error borrando sesión activa:', err);
     }
+  }
+
+  /**
+   * Obtiene la sesión activa directamente desde Supabase Auth (Sesión 7)
+   */
+  public async obtenerSesionAuth(): Promise<import('../models/UsuarioSesion').UsuarioSesion | null> {
+    if (isSupabaseConfigured) {
+      try {
+        return await authRepo.obtenerSesion();
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Escucha cambios reactivos en la autenticación de Supabase (Sesión 7)
+   */
+  public escucharCambiosAuth(alCambiar: (usuario: import('../models/UsuarioSesion').UsuarioSesion | null) => void): () => void {
+    if (isSupabaseConfigured) {
+      return authRepo.escucharCambios(alCambiar);
+    }
+    return () => {};
   }
 
   /**
