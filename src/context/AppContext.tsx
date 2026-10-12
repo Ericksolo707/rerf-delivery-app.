@@ -912,7 +912,233 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     );
 
-    // Si la actualización es a 'entregado', notificar al remitente y al receptor
+    // 1. Notificación cuando el envío es 'aprobado' por administración
+    if (updates.status === 'aprobado' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const recipientName = targetShipment.recipient_name || 'Destinatario';
+      const senderId = targetShipment.sender_id;
+
+      // Alerta para el Remitente (ej. Pedro)
+      const notifAprobadoRemitente: NotificationItem = {
+        id: `notif-appr-sender-${now.getTime()}`,
+        title: '¡Envío Aprobado y en Proceso!',
+        message: `Tu envío ${trackingCode} para ${recipientName} fue aprobado por Administración RerF y está listo para pasar a ruta.`,
+        type: 'envio',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === senderId) {
+        await persistirNotificaciones([notifAprobadoRemitente, ...notifications]);
+      } else if (senderId) {
+        const senderKey = `@rerf_notifications_${senderId}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifAprobadoRemitente, ...prevList]));
+        } catch (eSend) {
+          console.warn('[AppContext] Error guardando notificación local de aprobación para remitente:', eSend);
+        }
+      }
+
+      if (isSupabaseConfigured && senderId && senderId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: senderId,
+            title: notifAprobadoRemitente.title,
+            message: notifAprobadoRemitente.message,
+            type: 'envio',
+            is_read: false,
+          });
+        } catch (eSb) {
+          console.warn('[AppContext] Error guardando notificación remota de aprobación:', eSb);
+        }
+      }
+
+      // Alerta para el Receptor / Destinatario (si está registrado en la app)
+      const destinatarioUser = users.find(u => {
+        const uFull = `${u.first_name} ${u.last_name}`.trim().toLowerCase();
+        return uFull === recipientName.trim().toLowerCase() ||
+          (u.email && u.email.trim().toLowerCase() === recipientName.trim().toLowerCase()) ||
+          Boolean(targetShipment.address_references && targetShipment.address_references.includes(u.id));
+      });
+
+      if (destinatarioUser && destinatarioUser.id !== senderId) {
+        const notifAprobadoReceptor: NotificationItem = {
+          id: `notif-appr-recv-${now.getTime()}`,
+          title: 'Envío Aprobado para Entrega',
+          message: `Un paquete para ti con guía ${trackingCode} (${targetShipment.description || 'General'}) ha sido aprobado y pasará a ruta pronto.`,
+          type: 'envio',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+          shipment_id: targetShipment.id,
+          tracking_number: trackingCode,
+        };
+
+        if (user?.id === destinatarioUser.id) {
+          await persistirNotificaciones([notifAprobadoReceptor, ...notifications]);
+        } else {
+          const recvKey = `@rerf_notifications_${destinatarioUser.id}`;
+          try {
+            const prevRaw = await AsyncStorage.getItem(recvKey);
+            const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+            await AsyncStorage.setItem(recvKey, JSON.stringify([notifAprobadoReceptor, ...prevList]));
+          } catch (eRecv) {
+            console.warn('[AppContext] Error guardando notificación local de aprobación para receptor:', eRecv);
+          }
+        }
+
+        if (isSupabaseConfigured && destinatarioUser.id && destinatarioUser.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: destinatarioUser.id,
+              title: notifAprobadoReceptor.title,
+              message: notifAprobadoReceptor.message,
+              type: 'envio',
+              is_read: false,
+            });
+          } catch (eSb) {
+            console.warn('[AppContext] Error guardando notificación de receptor en Supabase:', eSb);
+          }
+        }
+      }
+    }
+
+    // 2. Notificación cuando el envío pasa a ruta satelital 'en_camino'
+    if (updates.status === 'en_camino' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const pilotName = updates.agent_name || targetShipment.agent_name || 'Piloto RerF';
+      const senderId = targetShipment.sender_id;
+
+      const notifEnCamino: NotificationItem = {
+        id: `notif-route-sender-${now.getTime()}`,
+        title: '¡Envío en Ruta Satelital GPS!',
+        message: `El piloto ${pilotName} ha iniciado el traslado de tu paquete ${trackingCode}. Puedes seguir la ruta en tiempo real desde la sección GPS.`,
+        type: 'envio',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === senderId) {
+        await persistirNotificaciones([notifEnCamino, ...notifications]);
+      } else if (senderId) {
+        const senderKey = `@rerf_notifications_${senderId}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifEnCamino, ...prevList]));
+        } catch {}
+      }
+
+      if (isSupabaseConfigured && senderId && senderId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: senderId,
+            title: notifEnCamino.title,
+            message: notifEnCamino.message,
+            type: 'envio',
+            is_read: false,
+          });
+        } catch {}
+      }
+    }
+
+    // 3. Notificación cuando el envío es 'cancelado'
+    if (updates.status === 'cancelado' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const senderId = targetShipment.sender_id;
+      const reason = updates.cancellation_reason || 'Cancelado por solicitud.';
+
+      const notifCancelado: NotificationItem = {
+        id: `notif-cancel-${now.getTime()}`,
+        title: 'Envío Cancelado',
+        message: `El envío ${trackingCode} fue cancelado: ${reason}`,
+        type: 'alerta',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === senderId) {
+        await persistirNotificaciones([notifCancelado, ...notifications]);
+      } else if (senderId) {
+        const senderKey = `@rerf_notifications_${senderId}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifCancelado, ...prevList]));
+        } catch {}
+      }
+
+      if (isSupabaseConfigured && senderId && senderId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: senderId,
+            title: notifCancelado.title,
+            message: notifCancelado.message,
+            type: 'alerta',
+            is_read: false,
+          });
+        } catch {}
+      }
+    }
+
+    // 4. Notificación cuando el envío es 'rechazado'
+    if (updates.status === 'rechazado' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const senderId = targetShipment.sender_id;
+      const reason = updates.rejection_reason || 'Rechazado por administración.';
+
+      const notifRechazado: NotificationItem = {
+        id: `notif-reject-${now.getTime()}`,
+        title: 'Envío Rechazado',
+        message: `Tu envío ${trackingCode} fue rechazado por Administración: ${reason}`,
+        type: 'alerta',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === senderId) {
+        await persistirNotificaciones([notifRechazado, ...notifications]);
+      } else if (senderId) {
+        const senderKey = `@rerf_notifications_${senderId}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifRechazado, ...prevList]));
+        } catch {}
+      }
+
+      if (isSupabaseConfigured && senderId && senderId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: senderId,
+            title: notifRechazado.title,
+            message: notifRechazado.message,
+            type: 'alerta',
+            is_read: false,
+          });
+        } catch {}
+      }
+    }
+
+    // 5. Si la actualización es a 'entregado', notificar al remitente y al receptor
     if (updates.status === 'entregado' && targetShipment) {
       const now = new Date();
       const trackingCode = targetShipment.tracking_number;
