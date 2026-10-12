@@ -61,9 +61,8 @@ export type RootStackParamList = {
   ChatIA: undefined;
   Facturas: undefined;
 
-  // Menú y Notificaciones
+  // Notificaciones
   Notificaciones: undefined;
-  Menu: undefined;
 };
 
 /**
