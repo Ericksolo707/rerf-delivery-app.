@@ -18,6 +18,9 @@ export const repositorioBodega: RepositorioBodega = RepositorioBodega.getInstanc
 export const repositorioUsuarios: RepositorioUsuarios = RepositorioUsuarios.getInstance();
 export const repositorioFacturas: RepositorioFacturas = RepositorioFacturas.getInstance();
 
+export { authRepo, SupabaseAuthRepository, traducirErrorAuth } from '../database';
+export type { IAuthRepository, ResultadoRegistro, UsuarioSesion } from '../database';
+
 export {
   RepositorioBase,
   RepositorioEnvios,
