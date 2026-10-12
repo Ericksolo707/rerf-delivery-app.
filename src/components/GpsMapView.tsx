@@ -1,13 +1,3 @@
-/**
- * GpsMapView.tsx - Visor Cartográfico Interactivo con OpenStreetMap y Leaflet.js
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad:
- * - Renderizado multiplataforma (iOS, Android y Web) de mapas viales reales.
- * - Marcadores geográficos en vivo: Bodega Central (origen), Camión (piloto) y Destino (cliente).
- * - Trazado de ruta (Polyline) y rotación dinámica del vehículo según el rumbo (Bearing).
- * - Soporte nativo mediante react-native-webview y web mediante iframe interactivo.
- */
 
 import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';

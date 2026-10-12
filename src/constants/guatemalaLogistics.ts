@@ -1,10 +1,3 @@
-/**
- * guatemalaLogistics.ts - Catálogos Geográficos y Operativos de Guatemala
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Centralizar los datos oficiales de cobertura logística nacional,
- * tipos de contenido y formas de pago según la plataforma web de RerF Logistics.
- */
 
 export interface DepartamentoInfo {
   id: string;

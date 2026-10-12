@@ -1,14 +1,3 @@
-/**
- * gpsTrackingService.ts - Servicio de Geolocalización y Telemetría en Tiempo Real
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad:
- * - Proveer coordenadas reales de la República de Guatemala (Bodega Central, rutas y destinos).
- * - Algoritmo de geocodificación inteligente para direcciones de entrega guatemaltecas.
- * - Cálculo de distancias (Fórmula de Haversine), rumbo vehicular (Bearing) y ETA dinámico.
- * - Generador de rutas viales simuladas con puntos de control (Waypoints).
- * - Conexión reactiva a Supabase Realtime para recibir actualizaciones de la app de escritorio o piloto.
- */
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 

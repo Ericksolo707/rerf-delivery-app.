@@ -1,16 +1,3 @@
-/**
- * HomeScreen.tsx - Pantalla Principal RerF Logistics (Alineada a Boceto Excalidraw Pantalla 3)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 3 del boceto Excalidraw con:
- * - Header: "Bienvenido [usuario]" con botones [ ! ] y [ -> ]
- * - Título corporativo: "RERF APP"
- * - Contenedor: "Animación / Muestra de Servicios" (Banner de Servicios)
- * - Botón ancho: "Movimientos recientes"
- * - Cuadrícula 2x2 de accesos directos:
- *   [ Entregas ]     [ Pedidos ]
- *   [ Usuarios ]     [ Enviar Paquete ]
- */
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -88,7 +75,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
 
   return (
     <View style={styles.container}>
-      {/* Header Excalidraw: "Bienvenido [usuario]" con [ ! ] y [ -> ] */}
+      {/* Header : "Bienvenido [usuario]" con [ ! ] y [ -> ] */}
       <Header 
         title={`Bienvenido ${displayName}`} 
       />

@@ -1,11 +1,3 @@
-/**
- * RepositorioUsuarios.ts - Repositorio de Usuarios y Perfiles
- * Programación II - Sesiones 5, 6 y 7 UMG
- *
- * Responsabilidad: Gestión de usuarios, perfiles, búsqueda en el directorio,
- * registro de nuevos usuarios, persistencia en AsyncStorage y autenticación.
- * Aplica el patrón Singleton (Sesión 6).
- */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile } from '../types';
@@ -26,7 +18,7 @@ const isUuid = (str?: string): boolean => {
 export class RepositorioUsuarios {
   public readonly nombreEntidad: string = 'users';
 
-  // Referencia Singleton única en memoria (Sesión 6)
+  // Referencia Singleton única en memoria 
   private static instancia: RepositorioUsuarios | null = null;
 
   private usuarioActual: UserProfile | null = null;
@@ -41,7 +33,7 @@ export class RepositorioUsuarios {
   }
 
   /**
-   * Punto de acceso global a la instancia única de Usuarios (Sesión 6)
+   * Punto de acceso global a la instancia única de Usuarios 
    */
   public static getInstance(): RepositorioUsuarios {
     if (RepositorioUsuarios.instancia === null) {
@@ -121,7 +113,7 @@ export class RepositorioUsuarios {
       return { ...this.usuarioActual };
     }
 
-    // 1. Autenticación con Supabase Auth a través de authRepo (Sesiones 6 y 7 UMG)
+    // 1. Autenticación con Supabase Auth a través de authRepo 
     if (isSupabaseConfigured) {
       try {
         let sesionUsuario: any = null;
@@ -167,7 +159,7 @@ export class RepositorioUsuarios {
             return { ...this.usuarioActual };
           }
 
-          // Error traducido con traducirErrorAuth (Sesión 7)
+          // Error traducido con traducirErrorAuth 
           throw new Error(traducirErrorAuth(authError));
         }
 
@@ -294,7 +286,7 @@ export class RepositorioUsuarios {
 
     let createdId = `usr-${Date.now()}`;
 
-    // 1. Registrar en Supabase Auth oficial mediante authRepo (Sesiones 6 y 7 UMG)
+    // 1. Registrar en Supabase Auth oficial mediante authRepo 
     if (isSupabaseConfigured) {
       try {
         const { data: existenteRemoto } = await supabase
@@ -388,7 +380,7 @@ export class RepositorioUsuarios {
   }
 
   /**
-   * Cierra la sesión activa en el dispositivo y en Supabase Auth (Sesiones 6 y 7)
+   * Cierra la sesión activa en el dispositivo y en Supabase Auth 
    */
   public async cerrarSesion(): Promise<void> {
     this.usuarioActual = null;
@@ -405,7 +397,7 @@ export class RepositorioUsuarios {
   }
 
   /**
-   * Obtiene la sesión activa directamente desde Supabase Auth (Sesión 7)
+   * Obtiene la sesión activa directamente desde Supabase Auth 
    */
   public async obtenerSesionAuth(): Promise<import('../models/UsuarioSesion').UsuarioSesion | null> {
     if (isSupabaseConfigured) {
@@ -419,7 +411,7 @@ export class RepositorioUsuarios {
   }
 
   /**
-   * Escucha cambios reactivos en la autenticación de Supabase (Sesión 7)
+   * Escucha cambios reactivos en la autenticación de Supabase 
    */
   public escucharCambiosAuth(alCambiar: (usuario: import('../models/UsuarioSesion').UsuarioSesion | null) => void): () => void {
     if (isSupabaseConfigured) {

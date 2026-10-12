@@ -1,14 +1,3 @@
-/**
- * ShipmentRejectedScreen.tsx - Pantalla 16 Envío Rechazado (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 16 del boceto Excalidraw con:
- * - Header: "Realizar Envío" con botones [ ! ] y [ -> ]
- * - Título: "¡Envío Rechazado!"
- * - Recuadro: "Detalles: Información y razones"
- * - Opciones: [ Reenviar ]  [ Cancelar ]
- * - Botón inferior: [ Soporte técnico ]
- */
 
 import React from 'react';
 import { 

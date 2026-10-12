@@ -1,15 +1,3 @@
-/**
- * WarehouseRequestScreen.tsx - Pantalla 20 Solicitud de almacenaje de paquete (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 20 del boceto Excalidraw con:
- * - Header: "Almacenaje" con botones [ ! ] y [ -> ]
- * - Campo: "Tipo de producto:"
- * - Campo: "Descripción:"
- * - Selector: "Material:" [ Frágil ] [ Fuerte ]
- * - Selector: "Método de recogida:" [ Entrega personal ] [ Recogida por piloto ]
- * - Botones inferiores [ Cancelar solicitud ] y [ Enviar solicitud ]
- */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 

@@ -1,10 +1,3 @@
-/**
- * MainTabNavigator.tsx - Navegador Inferior de Pestañas
- * Programación II - UMG
- *
- * Responsabilidad: Controlar las 5 pestañas principales de la app,
- * con tipado formal de parámetros mediante MainTabParamList.
- */
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';

@@ -1,19 +1,3 @@
-/**
- * ContactSupportScreen.tsx - Pantalla 21 Apartado de Contacto (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 21 del boceto Excalidraw con:
- * - Soporte 1 a 1 Privado:
- *   - Clientes: Acceso directo a su chat privado con la Administración RerF.
- *   - Administrador: Bandeja de entrada con todas las consultas privadas de clientes con indicadores de estado.
- * - Información de Servicio y Operación:
- *   - Canales de contacto directos (Llamadas, WhatsApp, Correo).
- *   - Ubicación y horarios de Bodega Central y turnos de despacho.
- *   - Cobertura nacional con tiempos de tránsito garantizados.
- *   - Garantías del servicio (seguro, frágil, contra entrega, GPS).
- *   - Preguntas frecuentes interactivas con acordeón desplegable.
- * - Botón flotante permanente "IA" - Asistente IA (Excalidraw Pantalla 21).
- */
 
 import React, { useState, useMemo } from 'react';
 import { 
@@ -259,7 +243,7 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
         ) : (
           /* ================= VISTA CLIENTE ================= */
           <View>
-            {/* Tarjeta de Acceso al Chat Privado (Excalidraw 21) */}
+            {/* Tarjeta de Acceso al Chat Privado  */}
             <View style={styles.clientWelcomeCard}>
               <View style={styles.clientWelcomeHeader}>
                 <View style={styles.supportShieldCircle}>
@@ -525,7 +509,7 @@ export const ContactSupportScreen: React.FC<MainTabCompositeScreenProps<'Contact
         )}
       </ScrollView>
 
-      {/* Botón Flotante Permanente "IA" - Asistente IA (Excalidraw Pantalla 21) */}
+      {/* Botón Flotante Permanente "IA" - Asistente IA  */}
       <View style={styles.aiFloatingContainer} pointerEvents="box-none">
         <TouchableOpacity 
           style={styles.aiFloatingButton}
@@ -946,7 +930,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  /* Botón Flotante Permanente "IA" - Asistente IA (Excalidraw Pantalla 21) */
+  /* Botón Flotante Permanente "IA" - Asistente IA  */
   aiFloatingContainer: {
     position: 'absolute',
     bottom: 20,

@@ -29,7 +29,7 @@ export const ERICK_USER: UserProfile = {
   last_name: 'Solórzano',
   username: 'Erick Solórzano',
   alias: '@ericksolorzano',
-  email: 'esolorzanoj@miumg.edu.gt',
+  email: 'esolorzanoj@mi.edu.gt',
   phone: '26025370',
   address: 'Ciudad de Guatemala',
   address_references: 'Oficina Central',

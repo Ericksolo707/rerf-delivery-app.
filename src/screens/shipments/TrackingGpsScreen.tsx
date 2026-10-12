@@ -1,15 +1,3 @@
-/**
- * TrackingGpsScreen.tsx - Pantalla 27 Información de Llegada / GPS en Tiempo Real
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad:
- * - Renderizado de mapa satelital/vial real e interactivo (Leaflet.js + OpenStreetMap).
- * - Geocodificación y trazado de rutas de Guatemala (Bodega Central a destino de entrega).
- * - Simulación y telemetría vehicular en vivo: velocidad, ángulo de giro (bearing), distancia y ETA dinámico.
- * - Sincronización bidireccional con Supabase Realtime (para conectividad con app de escritorio o moderador).
- * - Tarjeta informativa con los 4 datos clave del moderador (Excalidraw 27) y botón de contacto.
- * - Barra inferior funcional (5 pestañas).
- */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
@@ -427,7 +415,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
         </View>
       </View>
 
-      {/* Tarjeta Inferior de Información de Llegada (Excalidraw Pantalla 27) */}
+      {/* Tarjeta Inferior de Información de Llegada  */}
       <View style={styles.bottomDrawerCard}>
         {activeShipment ? (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.drawerContentContainer}>
@@ -455,7 +443,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
             </View>
 
             <View style={styles.drawerColumns}>
-              {/* Datos clave Excalidraw Pantalla 27 */}
+              {/* Datos clave  Pantalla 27 */}
               <View style={styles.driverInfoCol}>
                 {/* 1. Número de Entrega */}
                 <Text style={styles.infoLine}>

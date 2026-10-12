@@ -1,12 +1,3 @@
-/**
- * invoicePdf.ts - Generador y Descargador de Factura Electrónica FEL (SAT Guatemala)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad:
- * - Generar el Documento Tributario Electrónico (DTE / Factura FEL) oficial.
- * - Permitir la descarga directa y guardado como PDF en navegadores Web (Chrome, Edge, etc.).
- * - Permitir compartir el comprobante en dispositivos móviles iOS y Android.
- */
 
 import { Platform } from 'react-native';
 import * as Print from 'expo-print';

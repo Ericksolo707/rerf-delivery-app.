@@ -1,12 +1,3 @@
-/**
- * RepositorioEnvios.ts - Repositorio de Envíos y Pedidos
- * Programación II - Sesiones 5, 6 y 7 UMG
- *
- * Responsabilidad: Gestión y persistencia de envíos y pedidos.
- * - Tabla principal: 'envios' (con compatibilidad y fallback a 'shipments')
- * - Soporte para campos de moderador: agent_name, vehicle_model, vehicle_plate, estimated_time
- * - Manejo seguro de UUIDs para PostgreSQL/Supabase
- */
 
 import { Shipment } from "../types";
 import { MOCK_SHIPMENTS } from "../services/mockData";
@@ -27,7 +18,7 @@ export class RepositorioEnvios extends RepositorioBase<
   public readonly nombreEntidad: string = "envios";
   public readonly tablaLegacy: string = "shipments";
 
-  // Referencia Singleton única en memoria (Sesión 6)
+  // Referencia Singleton única en memoria 
   private static instancia: RepositorioEnvios | null = null;
 
   // Almacén en memoria de envíos (datos semilla para pruebas y fallback)
@@ -42,7 +33,7 @@ export class RepositorioEnvios extends RepositorioBase<
   }
 
   /**
-   * Punto de acceso global a la instancia única del repositorio (Sesión 6)
+   * Punto de acceso global a la instancia única del repositorio 
    */
   public static getInstance(): RepositorioEnvios {
     if (RepositorioEnvios.instancia === null) {
@@ -52,7 +43,7 @@ export class RepositorioEnvios extends RepositorioBase<
   }
 
   /**
-   * Devuelve la lista completa de envíos (Sesión 7)
+   * Devuelve la lista completa de envíos 
    */
   public async listar(): Promise<Shipment[]> {
     if (isSupabaseConfigured) {

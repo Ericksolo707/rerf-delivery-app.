@@ -1,15 +1,3 @@
-/**
- * SupportChatScreen.tsx - Pantalla 22 Visualización de Chat (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 22 del boceto Excalidraw con:
- * - Soporte Privado 1 a 1:
- *   - Cliente: Canal oficial y directo con Administración RerF.
- *   - Administrador: Chat individual con cada cliente para resolver sus dudas específicas.
- * - Header: Botón de retorno [ < ] + Nombre del contacto/canal.
- * - Burbujas estilizadas según rol (Admin vs Cliente).
- * - Barra inferior: "Escribir mensaje" + botón circular de envío con ajuste perfecto de teclado y auto-scroll.
- */
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
@@ -179,7 +167,7 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
         }
       />
 
-      {/* Barra de entrada: "Escribir mensaje" + botón circular (Excalidraw Pantalla 22) */}
+      {/* Barra de entrada: "Escribir mensaje" + botón circular  */}
       <View style={styles.inputBar}>
         <TextInput
           style={styles.input}

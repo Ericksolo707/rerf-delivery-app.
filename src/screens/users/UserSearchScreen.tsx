@@ -1,14 +1,3 @@
-/**
- * UserSearchScreen.tsx - Pantalla 9 Búsqueda de Usuarios (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 9 del boceto Excalidraw con:
- * - Header: "Usuarios" con botones [ ! ] y [ -> ]
- * - Campo de búsqueda: "Buscar"
- * - Lista de usuarios con avatar circular y nombre
- * - Barra de botones: [ Favoritos ⭐ ]  [ Listado ]
- * - Sección "Recientes" con recuadros que contienen [ foto ] y nombre de usuario
- */
 
 import React, { useState } from 'react';
 import { 

@@ -1,12 +1,3 @@
-/**
- * -------------- Archivo para inicializar la conexion a Supabase --------------
- *
- * supabaseClient.ts - Configuración Oficial de Supabase
- * Programación II - Sesión 7 UMG
- *
- * Responsabilidad: Inicializar el cliente Supabase con autenticación persistente
- * y variables de entorno EXPO_PUBLIC_* tal como se enseña en clase.
- */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";

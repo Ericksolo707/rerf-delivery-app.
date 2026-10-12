@@ -1,13 +1,3 @@
-/**
- * navigation.ts - Definiciones de Tipos de Navegación
- * Programación II - UMG
- *
- * Responsabilidad: Definir de forma estricta los parámetros y props
- * para cada pantalla de la aplicación.
- *
- * REGLA: Prohibido el uso de 'any'. Todos los parámetros de rutas y
- * objetos navigation/route deben usar estos tipos.
- */
 
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';

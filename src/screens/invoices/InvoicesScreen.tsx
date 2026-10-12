@@ -1,21 +1,3 @@
-/**
- * InvoicesScreen.tsx - Pantalla 28 Facturas Recibidas / Auditoría FEL (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 28 del boceto Excalidraw con:
- * - Header: "Facturas" con botones [ ! ] y [ -> ]
- * - Banner contextual: si es Administrador, muestra el resumen de auditoría fiscal
- *   (total facturado, desglose de comprobantes emitidos por envíos de clientes).
- * - Campo: "Buscar factura" por No. de factura, tracking o nombre del cliente.
- * - Lista de tarjetas con:
- *   - Cabecera: Fecha | Monto
- *   - Metadatos: Factura No. FEL, Guía de Rastreo y Remitente / Cliente
- *   - Cuerpo: Descripción
- *   - Estado: PAGADO / PENDIENTE / ANULADO con píldora de método de pago
- *   - Botón de acción derecho: [ E ] (Emitir / Ver comprobante FEL SAT)
- * - Comprobante Modal FEL oficial con desglose de IVA (12%) y exportación a PDF.
- * - Barra inferior adaptada según rol (Admin vs Cliente).
- */
 
 import React, { useState, useMemo } from 'react';
 import { 
@@ -151,7 +133,7 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
         </View>
       </View>
 
-      {/* Botón derecho [ E ] (Excalidraw Pantalla 28 - Comprobante FEL) */}
+      {/* Botón derecho [ E ] ( Pantalla 28 - Comprobante FEL) */}
       <View style={styles.squareActionButton}>
         <Text style={styles.actionLetter}>E</Text>
       </View>
@@ -275,7 +257,7 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
         />
       )}
 
-      {/* --- Barra inferior funcional adaptada por rol --- */}
+      {/* Barra inferior funcional adaptada por rol */}
       <View style={styles.bottomTabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal')}>
           <Ionicons name="menu-outline" size={24} color="#3B82F6" />

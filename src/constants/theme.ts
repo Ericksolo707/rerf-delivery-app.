@@ -1,10 +1,3 @@
-/**
- * theme.ts - Tokens de Diseño Corporativo RerF Logistics
- * Programación II - UMG
- *
- * Responsabilidad: Definir la paleta cromática oficial, tipografías y espaciados
- * inspirados en la plataforma web original de RerF Logistics.
- */
 
 export const RerfColors = {
   // Primario: Amarillo RerF (Botones de acción, badges, acentos principales)
