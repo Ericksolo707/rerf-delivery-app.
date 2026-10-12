@@ -110,6 +110,17 @@ export class RepositorioUsuarios {
       }
     }
 
+    // Soporte para cuenta de demostración / evaluación (admin@rerf.gt / admin)
+    if (
+      (cleanEmail === 'admin@rerf.gt' || cleanEmail === 'admin' || cleanEmail === 'administrador') &&
+      cleanPass === 'admin'
+    ) {
+      this.usuarioActual = { ...ADMIN_USER };
+      this.credenciales['admin@rerf.gt'] = 'admin';
+      await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
+      return { ...this.usuarioActual };
+    }
+
     // 1. Autenticación con Supabase Auth a través de authRepo (Sesiones 6 y 7 UMG)
     if (isSupabaseConfigured) {
       try {
