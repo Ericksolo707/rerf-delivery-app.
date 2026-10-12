@@ -82,7 +82,6 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const quotedAmount = route.params?.quotedAmount;
   const quotedDescription = route.params?.quotedDescription;
   const quotedWeight = route.params?.quotedWeight;
-  const quotedDestination = route.params?.quotedDestination;
   const prefilledWarehouseItemId = route.params?.prefilledWarehouseItemId;
   const prefilledDescription = route.params?.prefilledDescription;
   const existingShipment = editShipmentId ? shipments.find(s => s.id === editShipmentId || s.tracking_number === editShipmentId) : undefined;
@@ -120,7 +119,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const [selectedRecipientUser, setSelectedRecipientUser] = useState<UserProfile | null>(null);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || prefilledWarehouseItemId || '');
 
-  // Inicializar Departamento dentro de los 22 departamentos de Guatemala
+  // Inicializar Departamento dentro de los 22 departamentos de Guatemala (vacío por defecto si es nuevo)
   const getInitialDepartment = (): string => {
     if (existingShipment?.delivery_address) {
       const match = GUATEMALA_DEPARTMENTS.find(d => 
@@ -128,8 +127,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
       );
       if (match) return match.name;
     }
-    if (quotedDestination === 'departamento') return 'Quetzaltenango';
-    return 'Guatemala';
+    return '';
   };
 
   const [selectedDepartment, setSelectedDepartment] = useState<string>(getInitialDepartment);
@@ -138,8 +136,8 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const [address, setAddress] = useState<string>(existingShipment?.delivery_address || '');
   const [reference, setReference] = useState<string>(existingShipment?.address_references || '');
 
-  // Estado de Fecha dinámica y selector de calendario
-  const initialDateStr = existingShipment?.scheduled_date || formatDateDDMMYYYY(new Date());
+  // Estado de Fecha dinámica y selector de calendario (vacío por defecto si es nuevo)
+  const initialDateStr = existingShipment?.scheduled_date || '';
   const initialDateObj = parseDateDDMMYYYY(initialDateStr) || new Date();
   const [selectedDate, setSelectedDate] = useState<string>(initialDateStr);
   const [showDatePickerModal, setShowDatePickerModal] = useState<boolean>(false);
@@ -235,8 +233,16 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
       }
     }
 
+    if (!selectedDepartment.trim()) {
+      setErrorBanner('Por favor seleccione el departamento de entrega.');
+      return;
+    }
     if (!address.trim()) {
       setErrorBanner('Por favor ingrese la dirección de entrega.');
+      return;
+    }
+    if (!selectedDate.trim()) {
+      setErrorBanner('Por favor seleccione la fecha de entrega.');
       return;
     }
     if (!description.trim() && !selectedItem) {
@@ -462,14 +468,24 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             activeOpacity={0.8}
           >
             <View style={styles.departmentSelectorContent}>
-              <Ionicons name="location-sharp" size={18} color={RerfColors.primaryYellowText} />
+              <Ionicons 
+                name="location-sharp" 
+                size={18} 
+                color={selectedDepartment ? RerfColors.primaryYellowText : "#94A3B8"} 
+              />
               <View style={{ marginLeft: 8, flex: 1 }}>
-                <Text style={styles.departmentValue}>{selectedDepartment}</Text>
-                <Text style={styles.departmentRegion}>Región {getDepartmentRegion(selectedDepartment)} • Guatemala</Text>
+                <Text style={[styles.departmentValue, !selectedDepartment && { color: '#94A3B8', fontWeight: '500' }]}>
+                  {selectedDepartment || 'Seleccionar departamento'}
+                </Text>
+                <Text style={styles.departmentRegion}>
+                  {selectedDepartment 
+                    ? `Región ${getDepartmentRegion(selectedDepartment)} • Guatemala`
+                    : '22 departamentos de Guatemala'}
+                </Text>
               </View>
             </View>
             <View style={styles.tagButton}>
-              <Text style={styles.tagButtonText}>Cambiar</Text>
+              <Text style={styles.tagButtonText}>{selectedDepartment ? 'Cambiar' : 'Elegir'}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -509,11 +525,17 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             activeOpacity={0.8}
           >
             <View style={styles.dateSelectorContent}>
-              <Ionicons name="calendar-outline" size={20} color={RerfColors.primaryYellowText} />
-              <Text style={styles.dateValue}>{selectedDate}</Text>
+              <Ionicons 
+                name="calendar-outline" 
+                size={20} 
+                color={selectedDate ? RerfColors.primaryYellowText : "#94A3B8"} 
+              />
+              <Text style={[styles.dateValue, !selectedDate && { color: '#94A3B8', fontWeight: '500' }]}>
+                {selectedDate || 'DD/MM/AAAA (Toca para elegir)'}
+              </Text>
             </View>
             <View style={styles.tagButton}>
-              <Text style={styles.tagButtonText}>Elegir fecha</Text>
+              <Text style={styles.tagButtonText}>{selectedDate ? 'Cambiar' : 'Elegir fecha'}</Text>
             </View>
           </TouchableOpacity>
         </View>
