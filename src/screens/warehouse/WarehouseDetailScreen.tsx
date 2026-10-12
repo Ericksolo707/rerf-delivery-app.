@@ -307,6 +307,30 @@ export const WarehouseDetailScreen: React.FC<RootStackScreenProps<'DetalleAlmace
           </View>
         )}
 
+        {/* Acción para Cliente: Realizar envío de este producto almacenado */}
+        {!isAdmin && item.status === 'almacenado' && (
+          <View style={styles.clientShipActionCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Ionicons name="cube-outline" size={18} color="#1E40AF" />
+              <Text style={styles.clientShipTitle}>¿Deseas despachar este producto?</Text>
+            </View>
+            <Text style={styles.clientShipSubtitle}>
+              Puedes solicitar la salida de este artículo de bodega y enviarlo a cualquier destinatario. Al completar el envío, el producto se retirará automáticamente de tu bodega.
+            </Text>
+            <TouchableOpacity
+              style={styles.clientShipBtn}
+              onPress={() => navigation.navigate('RealizarEnvio', {
+                prefilledWarehouseItemId: item.id,
+                prefilledDescription: `Despacho de Bodega (${item.storage_code}): ${item.product_type} - ${item.description || ''}`.trim(),
+              })}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="paper-plane" size={17} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.clientShipBtnText}>Realizar Envío con este Producto</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Botón secundario para volver a bodega */}
         <TouchableOpacity
           style={styles.backToWarehouseBtn}
@@ -626,6 +650,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: '#FFFFFF',
+  },
+  clientShipActionCard: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
+    ...RerfShadows.card,
+  },
+  clientShipTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1E40AF',
+  },
+  clientShipSubtitle: {
+    fontSize: 12,
+    color: '#3B82F6',
+    lineHeight: 17,
+    marginBottom: 14,
+  },
+  clientShipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RerfColors.logisticsBlue,
+    height: 46,
+    borderRadius: 12,
+    ...RerfShadows.card,
+  },
+  clientShipBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 13,
   },
   backToWarehouseBtn: {
     height: 46,

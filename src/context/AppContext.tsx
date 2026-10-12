@@ -689,8 +689,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         last_name: lastName,
         email,
         role: 'cliente',
-        address: 'Ciudad de Guatemala',
-        bio: 'Usuario registrado en RerF Logistics',
+        phone: '',
+        address: '',
+        address_references: '',
+        bio: '',
       },
       pass
     );
@@ -890,6 +892,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInvoices(prev => [nuevaFactura, ...prev]);
     } catch (e) {
       console.warn('Error generando factura electrónica:', e);
+    }
+
+    // Si el envío se despachó desde Mi Bodega, retirar el artículo de inventario activo
+    if (dataWithUser.warehouse_item_id) {
+      try {
+        await repositorioBodega.actualizar(dataWithUser.warehouse_item_id, { status: 'retirado' });
+        setWarehouseItems(prev =>
+          prev.map(w =>
+            w.id === dataWithUser.warehouse_item_id || w.storage_code === dataWithUser.warehouse_item_id
+              ? { ...w, status: 'retirado' }
+              : w
+          )
+        );
+        if (isSupabaseConfigured && dataWithUser.warehouse_item_id.includes('-')) {
+          await supabase
+            .from('bodega')
+            .update({ status: 'retirado' })
+            .eq('id', dataWithUser.warehouse_item_id);
+        }
+      } catch (errRetiro) {
+        console.warn('[AppContext] Error retirando producto de bodega al despachar envío:', errRetiro);
+      }
     }
 
     return nuevoEnvio;

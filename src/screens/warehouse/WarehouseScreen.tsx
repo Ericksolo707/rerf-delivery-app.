@@ -59,6 +59,9 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
     return type.includes(q) || code.includes(q) || desc.includes(q);
   });
 
+  const activeItemsCount = warehouseItems.filter(i => i.status === 'almacenado' || i.status === 'solicitado').length;
+  const retiredItemsCount = warehouseItems.filter(i => i.status === 'retirado').length;
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'solicitado':
@@ -257,10 +260,17 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
           </View>
         )}
 
-        {/* Total de productos */}
-        <Text style={styles.totalProductsText}>
-          Total de productos: {filtered.length}
-        </Text>
+        {/* Indicador de productos en bodega y retirados */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Text style={styles.totalProductsText}>
+            En resguardo: {activeItemsCount}
+          </Text>
+          {retiredItemsCount > 0 && (
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B' }}>
+              ({retiredItemsCount} retirados por envío)
+            </Text>
+          )}
+        </View>
 
         {/* Lista de productos en bodega */}
         <FlatList

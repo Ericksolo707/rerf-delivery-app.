@@ -38,6 +38,8 @@ export type RootStackParamList = {
     quotedWeight?: string;
     quotedMaterial?: 'fragil' | 'fuerte';
     quotedDestination?: 'capital' | 'departamento';
+    prefilledWarehouseItemId?: string;
+    prefilledDescription?: string;
   } | undefined;
   AprobacionEnvio: { shipment?: Partial<Shipment> } | undefined;
   EnvioRechazado: { shipment?: Partial<Shipment> } | undefined;

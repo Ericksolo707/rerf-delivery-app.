@@ -163,23 +163,9 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
             {loading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.loginButtonText}>Registrate</Text>
+              <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
             )}
           </TouchableOpacity>
-
-          <Text style={styles.orText}>O inicia sesión con</Text>
-
-          {/* Botones de Redes Sociales */}
-          <View style={styles.socialRow}>
-            <TouchableOpacity style={styles.socialButton}>
-              <Ionicons name="logo-google" size={18} color="#EA4335" />
-              <Text style={styles.socialButtonText}>Google</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton}>
-              <Ionicons name="logo-apple" size={18} color="#000000" />
-              <Text style={styles.socialButtonText}>Apple</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Enlace al Registro */}
           <View style={styles.registerContainer}>
@@ -309,34 +295,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
-  },
-  orText: {
-    textAlign: "center",
-    fontSize: 13,
-    color: "#94A3B8",
-    marginBottom: 16,
-  },
-  socialRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 28,
-  },
-  socialButton: {
-    flex: 1,
-    flexDirection: "row",
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: "#F8FAFC",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  socialButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#334155",
   },
   registerContainer: {
     flexDirection: "row",
