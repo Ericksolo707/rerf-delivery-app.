@@ -47,9 +47,8 @@ import { SupportChatScreen } from "../screens/support/SupportChatScreen";
 import { AiChatScreen } from "../screens/support/AiChatScreen";
 import { InvoicesScreen } from "../screens/invoices/InvoicesScreen";
 
-// Pantallas de Notificaciones y Menú
+// Pantalla de Notificaciones
 import { NotificationsScreen } from "../screens/home/NotificationsScreen";
-import { MenuScreen } from "../screens/home/MenuScreen";
 
 // Instanciación tipada del Stack Navigator
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -134,12 +133,11 @@ export const RootNavigator: React.FC = () => {
             <Stack.Screen name="ChatIA" component={AiChatScreen} />
             <Stack.Screen name="Facturas" component={InvoicesScreen} />
 
-            {/* Menús y Notificaciones */}
+            {/* Notificaciones */}
             <Stack.Screen
               name="Notificaciones"
               component={NotificationsScreen}
             />
-            <Stack.Screen name="Menu" component={MenuScreen} />
           </>
         )}
       </Stack.Navigator>
