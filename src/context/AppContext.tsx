@@ -527,35 +527,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return warehouseItems.filter(w => w.user_id === user.id);
   }, [user, warehouseItems]);
 
-  // Filtrado de facturas: el Administrador ve todas, el usuario ve las de sus propios envíos (creados o recibidos)
+  // Filtrado de facturas: el Administrador ve las facturas de todos los movimientos de los clientes del sistema.
+  // El usuario cliente ve las de sus propios envíos (creados o recibidos).
   const userInvoices = React.useMemo(() => {
     if (!user) return [];
-    if (user.role === 'admin') return invoices;
 
-    const userShipmentIds = new Set(userShipments.map(s => s.id));
-    const userTrackingNumbers = new Set(userShipments.map(s => s.tracking_number).filter(Boolean));
+    const isAdmin = user.role === 'admin';
+    const targetShipments = isAdmin ? allShipments : userShipments;
 
-    // 1. Facturas directas existentes
-    const directInvoices = invoices.filter(inv => {
+    const targetShipmentIds = new Set(targetShipments.map(s => s.id));
+    const targetTrackingNumbers = new Set(targetShipments.map(s => s.tracking_number).filter(Boolean));
+
+    // 1. Facturas directas existentes en la base de datos o memoria
+    const directInvoices = (isAdmin ? invoices : invoices.filter(inv => {
       if (!inv.shipment_id) return false;
-      return userShipmentIds.has(inv.shipment_id) || 
-             userTrackingNumbers.has(inv.shipment_id) ||
-             userShipments.some(s => s.tracking_number && inv.description.includes(s.tracking_number));
+      return targetShipmentIds.has(inv.shipment_id) || 
+             targetTrackingNumbers.has(inv.shipment_id) ||
+             targetShipments.some(s => s.tracking_number && inv.description.includes(s.tracking_number));
+    })).map(inv => {
+      const match = allShipments.find(s => 
+        s.id === inv.shipment_id || 
+        s.tracking_number === inv.shipment_id || 
+        (s.tracking_number && inv.description.includes(s.tracking_number))
+      );
+      const sender = match ? users.find(u => u.id === match.sender_id) : undefined;
+      const clientName = inv.client_name || (sender ? `${sender.first_name} ${sender.last_name || ''}`.trim() : (match?.sender_id === 'usr-001' ? 'Pedro Alcántara' : 'Cliente RerF'));
+      return {
+        ...inv,
+        shipment_id: inv.shipment_id || match?.id,
+        tracking_number: inv.tracking_number || match?.tracking_number,
+        client_id: inv.client_id || match?.sender_id,
+        client_name: clientName,
+        recipient_name: inv.recipient_name || match?.recipient_name,
+      };
     });
 
-    // 2. Para envíos del usuario que no tengan registro explícito en la tabla de facturas (sincronización multi-dispositivo)
-    const coveredShipmentIds = new Set(directInvoices.map(i => i.shipment_id));
+    // 2. Para envíos que no tengan registro explícito en facturas (movimientos y envíos de clientes)
+    const coveredShipmentIds = new Set(directInvoices.map(i => i.shipment_id).filter(Boolean));
+    const coveredTrackings = new Set(directInvoices.map(i => i.tracking_number).filter(Boolean));
     const generatedInvoices: Invoice[] = [];
 
-    userShipments.forEach(s => {
-      if (!coveredShipmentIds.has(s.id) && !coveredShipmentIds.has(s.tracking_number) && s.status !== 'cancelado') {
+    targetShipments.forEach(s => {
+      if (!coveredShipmentIds.has(s.id) && !coveredTrackings.has(s.tracking_number) && s.status !== 'cancelado') {
+        const sender = users.find(u => u.id === s.sender_id);
+        const clientName = sender 
+          ? `${sender.first_name} ${sender.last_name || ''}`.trim() 
+          : (s.sender_id === 'usr-001' ? 'Pedro Alcántara' : 'Cliente RerF');
+
         generatedInvoices.push({
           id: `inv-${s.id}`,
           shipment_id: s.id,
+          tracking_number: s.tracking_number,
+          client_id: s.sender_id,
+          client_name: clientName,
+          recipient_name: s.recipient_name,
           invoice_number: `FEL-2026-${(s.tracking_number || '').replace(/\D/g, '').slice(-4) || '7608'}`,
           amount: s.total_amount || 35.00,
           issued_date: s.scheduled_date || '11/10/2026',
-          status: 'pagado',
+          status: s.payment_status === 'pagado' || s.status === 'entregado' ? 'pagado' : 'pendiente',
           description: `Servicio de Logística y Envío - Guía ${s.tracking_number} (${s.description || 'General'})`,
           payment_method: s.payment_method === 'contra_entrega' ? 'Contra entrega' : 'Efectivo',
         });
@@ -563,7 +592,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     return [...directInvoices, ...generatedInvoices];
-  }, [user, invoices, userShipments]);
+  }, [user, invoices, userShipments, allShipments, users]);
 
   // Inicialización de datos desde los repositorios al arrancar
   useEffect(() => {
