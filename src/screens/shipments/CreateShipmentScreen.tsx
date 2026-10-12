@@ -161,8 +161,11 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
   const selectedItem = warehouseItems.find(w => w.id === selectedWarehouseId);
 
-  // Excluir al usuario dueño de la cuenta de los destinatarios disponibles
+  // Excluir al usuario dueño de la cuenta Y a los administradores de los destinatarios disponibles
   const availableUsers = users.filter(u => {
+    // Los administradores no pueden recibir paquetes de clientes
+    if (u.role === 'admin') return false;
+
     if (!user) return true;
     if (u.id === user.id) return false;
     if (u.email && user.email && u.email.trim().toLowerCase() === user.email.trim().toLowerCase()) return false;
@@ -182,14 +185,41 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   });
 
   const handleValidateAndPromptConfirm = (): void => {
+    // Restricción para Administradores: Las cuentas de administración solo supervisan y autorizan
+    if (user?.role === 'admin') {
+      setErrorBanner('Las cuentas de administración están excluidas de crear envíos personales. Utiliza el panel de supervisión para autorizar pedidos.');
+      return;
+    }
+
     if (!recipient.trim()) {
       setErrorBanner('Por favor ingrese el destinatario (Para).');
       return;
     }
 
+    // Regla de Negocio: No permitir envíos a cuentas de administración
+    const cleanRecipient = recipient.trim().toLowerCase();
+    const matchedAdmin = users.find(u => {
+      if (u.role !== 'admin') return false;
+      const uFullName = `${u.first_name} ${u.last_name}`.trim().toLowerCase();
+      const uEmail = (u.email || '').trim().toLowerCase();
+      const uUsername = (u.username || '').trim().toLowerCase();
+      const uAlias = (u.alias || '').trim().toLowerCase().replace('@', '');
+      const cleanWithoutAt = cleanRecipient.replace('@', '');
+      return (
+        cleanRecipient === uFullName || 
+        cleanRecipient === uEmail || 
+        cleanRecipient === uUsername || 
+        cleanWithoutAt === uAlias
+      );
+    });
+
+    if (matchedAdmin || selectedRecipientUser?.role === 'admin') {
+      setErrorBanner('Las cuentas de administración están excluidas de recibir envíos personales. Selecciona a un cliente como destinatario.');
+      return;
+    }
+
     // Regla de Negocio: No permitir auto-envío a la misma cuenta del usuario en sesión
     if (user) {
-      const cleanRecipient = recipient.trim().toLowerCase();
       const currentUserName = `${user.first_name} ${user.last_name}`.trim().toLowerCase();
       const currentUserEmail = (user.email || '').trim().toLowerCase();
 
@@ -345,6 +375,18 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {user?.role === 'admin' && (
+          <View style={styles.adminModeNotice}>
+            <Ionicons name="shield-checkmark" size={22} color="#1D4ED8" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.adminModeTitle}>Modo Administrativo</Text>
+              <Text style={styles.adminModeSub}>
+                Las cuentas de administración no realizan envíos personales. Tu rol institucional es supervisar y autorizar solicitudes de clientes desde la sección Pedidos.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {errorBanner ? (
           <View style={styles.errorAlert}>
             <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
@@ -973,6 +1015,29 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
+  },
+  adminModeNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  adminModeTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    marginBottom: 2,
+  },
+  adminModeSub: {
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 16,
+    fontWeight: '500',
   },
   errorAlert: {
     flexDirection: 'row',
