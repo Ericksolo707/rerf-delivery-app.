@@ -48,6 +48,11 @@ export class SupabaseAuthRepository implements IAuthRepository {
     if (error) throw new Error(traducirErrorAuth(error));
     if (!data.user) throw new Error('No se pudo completar el registro');
 
+    // Supabase devuelve identities vacío cuando el correo ya existe (protección contra enumeración)
+    if (data.user.identities && data.user.identities.length === 0) {
+      throw new Error('Ese correo ya está registrado');
+    }
+
     return {
       sesion: data.session ? mapearUsuario(data.session.user) : null,
       requiereConfirmacion: data.session === null,
