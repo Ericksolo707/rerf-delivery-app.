@@ -20,6 +20,7 @@ export interface InvoicePrintData {
   issued_date: string;
   status: string;
   payment_method?: string;
+  client_name?: string;
   recipient_name?: string;
   tracking_number?: string;
 }
@@ -189,9 +190,10 @@ export const buildInvoiceHtml = (data: InvoicePrintData): string => {
       </div>
     </div>
 
-    <div class="section-title">Datos del Receptor / Destinatario</div>
+    <div class="section-title">Datos del Cliente y Receptor</div>
     <div class="client-card">
-      <strong>Cliente:</strong> ${data.recipient_name || 'Consumidor Final (CF)'}<br>
+      ${data.client_name ? `<strong>Remitente / Cliente:</strong> ${data.client_name}<br>` : ''}
+      <strong>Destinatario:</strong> ${data.recipient_name || 'Consumidor Final (CF)'}<br>
       <strong>NIT:</strong> C/F<br>
       <strong>Método de Pago:</strong> ${data.payment_method || 'Contra entrega'}<br>
       ${data.tracking_number ? `<strong>Número de Guía:</strong> ${data.tracking_number}` : ''}

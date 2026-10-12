@@ -100,6 +100,10 @@ export interface Invoice {
   id: string;
   invoice_number: string;
   shipment_id?: string;
+  tracking_number?: string;
+  client_id?: string;
+  client_name?: string;
+  recipient_name?: string;
   description: string;
   amount: number;
   status: 'pagado' | 'pendiente' | 'anulado';
