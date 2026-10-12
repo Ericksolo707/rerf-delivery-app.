@@ -9,7 +9,7 @@
  *   - Derecha: Botones cuadrados estilizados [ L ] (Localizar GPS) y [ R ] (Rastrear / Detalle de Paquete).
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -28,13 +28,13 @@ import { sortShipmentsDesc } from './OrdersScreen';
 
 export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ navigation }) => {
   const { shipments, user, users, refreshData, isRefreshing } = useApp();
-  const [adminScope, setAdminScope] = useState<'mis_entregas' | 'todas'>('mis_entregas');
+  const isAdmin = user?.role === 'admin';
 
-  // Para un usuario cliente, Entregas representa los paquetes dirigidos hacia él (donde es destinatario).
-  // Para el Piloto representa todas las entregas operativas, y el Administrador puede alternar.
+  // Para el Administrador y Piloto: Todas las entregas operativas del sistema.
+  // Para el Cliente: Únicamente los paquetes dirigidos hacia él (donde es destinatario).
   const deliveries = React.useMemo(() => {
     if (!user) return [];
-    if (user.role === 'piloto' || (user.role === 'admin' && adminScope === 'todas')) {
+    if (isAdmin || user.role === 'piloto') {
       return shipments;
     }
 
@@ -59,7 +59,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
 
       return false;
     });
-  }, [shipments, user, adminScope]);
+  }, [shipments, user, isAdmin]);
 
   const sortedDeliveries = React.useMemo(() => {
     return sortShipmentsDesc(deliveries);
@@ -93,7 +93,9 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
       ? `${senderUser.first_name} ${senderUser.last_name}`.trim() 
       : (item.sender_id ? 'Remitente' : 'RerF Logistics');
 
-    const isRecipientView = user?.role !== 'admin' && user?.role !== 'piloto';
+    const metaLabel = isAdmin
+      ? `De: ${senderName} • Para: ${item.recipient_name || 'Destinatario'}`
+      : `De: ${senderName}`;
     const isCancelled = item.status === 'cancelado';
 
     return (
@@ -106,7 +108,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
         >
           <View style={styles.headerMetaRow}>
             <Text style={styles.recipientMetaText} numberOfLines={1}>
-              {isRecipientView ? `De: ${senderName}` : `Para: ${item.recipient_name || 'Destinatario'}`}
+              {metaLabel}
             </Text>
             <Text style={styles.idMetaText}>
               Id entrega: {item.tracking_number}
@@ -180,28 +182,17 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
 
   return (
     <View style={styles.container}>
-      <Header title="Entregas" showBack={true} />
+      <Header title={isAdmin ? "Supervisión de Entregas" : "Entregas"} showBack={true} />
 
-      {user?.role === 'admin' && (
-        <View style={styles.adminFilterRow}>
-          <TouchableOpacity
-            style={[styles.adminFilterBtn, adminScope === 'mis_entregas' && styles.adminFilterBtnActive]}
-            onPress={() => setAdminScope('mis_entregas')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.adminFilterText, adminScope === 'mis_entregas' && styles.adminFilterTextActive]}>
-              Mis Entregas
+      {isAdmin && (
+        <View style={styles.adminBanner}>
+          <Ionicons name="shield-checkmark" size={22} color="#1D4ED8" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.adminBannerTitle}>Monitoreo General de Entregas y Flota</Text>
+            <Text style={styles.adminBannerSub}>
+              Supervisión de todas las entregas asignadas y en tránsito hacia clientes a nivel nacional.
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.adminFilterBtn, adminScope === 'todas' && styles.adminFilterBtnActive]}
-            onPress={() => setAdminScope('todas')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.adminFilterText, adminScope === 'todas' && styles.adminFilterTextActive]}>
-              Todas las Entregas ({shipments.length})
-            </Text>
-          </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -222,9 +213,13 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={54} color="#94A3B8" />
-            <Text style={styles.emptyTitle}>No tienes entregas en camino</Text>
+            <Text style={styles.emptyTitle}>
+              {isAdmin ? "No hay entregas registradas en el sistema" : "No tienes entregas en camino"}
+            </Text>
             <Text style={styles.emptySub}>
-              Cuando otro usuario te envíe un paquete a tu nombre o dirección, aparecerá aquí automáticamente para que puedas seguir al repartidor en el mapa GPS en tiempo real.
+              {isAdmin 
+                ? "Cuando se autoricen nuevos envíos y se asignen a los pilotos, aparecerán aquí para supervisar la flota y su localización GPS."
+                : "Cuando otro usuario te envíe un paquete a tu nombre o dirección, aparecerá aquí automáticamente para que puedas seguir al repartidor en el mapa GPS en tiempo real."}
             </Text>
           </View>
         }
@@ -358,34 +353,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: RerfColors.primaryYellowText,
   },
-  adminFilterRow: {
+  adminBanner: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 6,
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  adminFilterBtn: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
   },
-  adminFilterBtnActive: {
-    backgroundColor: RerfColors.primaryYellow,
+  adminBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    marginBottom: 2,
   },
-  adminFilterText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  adminFilterTextActive: {
-    color: RerfColors.primaryYellowText,
+  adminBannerSub: {
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 15,
   },
   cancelledCard: {
     borderColor: '#FECACA',

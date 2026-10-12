@@ -195,6 +195,12 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           />
           <Text style={styles.usernameTitle}>{usernameInput || 'Usuario RerF'}</Text>
           <Text style={styles.userAliasSubtitle}>{alias}</Text>
+          {user?.role === 'admin' && (
+            <View style={styles.adminProfileBadge}>
+              <Ionicons name="shield-checkmark" size={13} color="#1D4ED8" />
+              <Text style={styles.adminProfileBadgeText}>Administrador Oficial RerF</Text>
+            </View>
+          )}
         </View>
 
         {savedSuccess && (
@@ -446,6 +452,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: RerfColors.textMuted,
     marginTop: 2,
+  },
+  adminProfileBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    marginTop: 8,
+  },
+  adminProfileBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
   successBanner: {
     flexDirection: 'row',

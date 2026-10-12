@@ -30,6 +30,7 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>> = ({ route, navigation }) => {
   const { warehouseItems, user, users, authorizeWarehouseItem } = useApp();
+  const isAdmin = user?.role === 'admin';
   const routeSearch = route?.params?.searchCode || '';
   const [searchInput, setSearchInput] = useState<string>('');
 
@@ -215,7 +216,19 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
 
   return (
     <View style={styles.container}>
-      <Header title="Mi Bodega" />
+      <Header title={isAdmin ? "Bodega Central" : "Mi Bodega"} />
+
+      {isAdmin && (
+        <View style={styles.adminBanner}>
+          <Ionicons name="shield-checkmark" size={20} color="#1D4ED8" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.adminBannerTitle}>Control General de Bodega Central</Text>
+            <Text style={styles.adminBannerSub}>
+              Supervisión de mercadería en custodia y autorización de ingresos solicitados por clientes.
+            </Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.content}>
         {/* Campo Buscar */}
@@ -259,19 +272,23 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="cube-outline" size={44} color="#94A3B8" />
-              <Text style={styles.emptyText}>No tienes artículos registrados en bodega</Text>
+              <Text style={styles.emptyText}>
+                {isAdmin ? "No hay artículos registrados en bodega central" : "No tienes artículos registrados en bodega"}
+              </Text>
             </View>
           }
         />
 
-        {/* Botón inferior: [ Solicitar almacenaje ] */}
-        <TouchableOpacity 
-          style={styles.requestButton}
-          onPress={() => navigation.navigate('SolicitudAlmacenaje')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.requestButtonText}>Solicitar almacenaje</Text>
-        </TouchableOpacity>
+        {/* Botón inferior: [ Solicitar almacenaje ] (Solo disponible para clientes) */}
+        {!isAdmin && (
+          <TouchableOpacity 
+            style={styles.requestButton}
+            onPress={() => navigation.navigate('SolicitudAlmacenaje')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.requestButtonText}>Solicitar almacenaje</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Modal de Confirmación para Admin */}
@@ -311,6 +328,30 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     paddingBottom: 24,
+  },
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  adminBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    marginBottom: 2,
+  },
+  adminBannerSub: {
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 15,
   },
   searchBox: {
     marginBottom: 12,
