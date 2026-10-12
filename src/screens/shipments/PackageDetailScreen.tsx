@@ -48,6 +48,7 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
     : (isSender ? `${user?.first_name || ''} ${user?.last_name || ''}`.trim() : 'Remitente RerF');
   const recipientName = shipment?.recipient_name || 'Destinatario';
   const isDelivery = shipment?.status === 'entregado';
+  const isAdmin = user?.role === 'admin';
 
   // Vincular la factura electrónica FEL asociada a este envío
   const matchedInvoice = invoices.find(inv => 
@@ -226,8 +227,8 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
           </View>
         </View>
 
-        {/* Si el pedido está pendiente, botón para Aprobar y Pasar a Ruta */}
-        {shipment?.status === 'pendiente' && (
+        {/* Si el pedido está pendiente y el usuario es Administrador, botón para Aprobar y Pasar a Ruta */}
+        {isAdmin && shipment?.status === 'pendiente' && (
           <TouchableOpacity
             style={styles.approveActionButton}
             onPress={handlePromptApprove}
@@ -236,6 +237,16 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
             <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
             <Text style={styles.approveActionText}>Aprobar Pedido y Pasar a Ruta</Text>
           </TouchableOpacity>
+        )}
+
+        {/* Si el pedido está pendiente y el usuario es Cliente, aviso informativo */}
+        {!isAdmin && shipment?.status === 'pendiente' && (
+          <View style={styles.pendingInfoCard}>
+            <Ionicons name="time-outline" size={20} color="#D97706" />
+            <Text style={styles.pendingInfoText}>
+              Tu pedido ha sido recibido y está pendiente de ser aprobado y asignado a un piloto por Administración RerF.
+            </Text>
+          </View>
         )}
 
         {/* Acciones directas de Seguimiento y Cancelación */}
@@ -283,7 +294,7 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
           <Text style={styles.tabText}>Contacto</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Menu')}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal', { screen: 'PerfilTab' } as any)}>
           <Ionicons name="person-outline" size={24} color="#94A3B8" />
           <Text style={styles.tabText}>Perfil</Text>
         </TouchableOpacity>
@@ -502,6 +513,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     color: '#0F172A',
+  },
+  pendingInfoCard: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  pendingInfoText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400E',
+    lineHeight: 18,
   },
   approveActionButton: {
     height: 50,

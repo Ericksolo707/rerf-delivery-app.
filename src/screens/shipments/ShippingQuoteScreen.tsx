@@ -277,7 +277,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
           <Text style={styles.tabText}>Contacto</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Menu')}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal', { screen: 'PerfilTab' } as any)}>
           <Ionicons name="person-outline" size={24} color="#94A3B8" />
           <Text style={styles.tabText}>Perfil</Text>
         </TouchableOpacity>
