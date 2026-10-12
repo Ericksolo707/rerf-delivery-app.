@@ -1,13 +1,3 @@
-/**
- * AiChatScreen.tsx - Pantalla 23 Visualización de Chat IA (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 23 del boceto Excalidraw con:
- * - Header: "Chat IA" con botones [ ! ] y [ -> ]
- * - Burbujas de interacción inteligente sobre guías, estados y logística RerF
- * - Sugerencias rápidas ("Quiero ver mi último envío", etc.)
- * - Barra inferior: "Escribir mensaje" + botón circular de envío
- */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
@@ -125,7 +115,7 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
         }
       />
 
-      {/* Sugerencias Rápidas estilo Excalidraw */}
+      {/* Sugerencias Rápidas  */}
       <View style={styles.quickPromptsBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}>
           {quickPrompts.map((prompt, i) => (

@@ -1,10 +1,3 @@
-/**
- * traducirErrorAuth.ts - Traducción de Errores de Supabase Auth a Español
- * Programación II - Sesión 6 y 7 UMG
- *
- * Responsabilidad: Función pura que convierte los mensajes de error
- * técnicos de GoTrue/Supabase en mensajes amigables para el usuario.
- */
 
 export function traducirErrorAuth(
   error: { message?: string; msg?: string; code?: string; error_code?: string } | string | unknown

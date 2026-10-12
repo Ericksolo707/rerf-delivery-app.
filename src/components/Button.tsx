@@ -1,13 +1,3 @@
-/**
- * Button.tsx - Botón Corporativo RerF Logistics
- * Programación II - UMG
- *
- * Responsabilidad: Botón interactivo con las variantes cromáticas de RerF:
- * - yellow (o primary): Amarillo RerF con tipografía oscura en negrita.
- * - blue: Azul logístico con tipografía blanca.
- * - dark-outline: Contorno blanco/gris sobre fondos oscuros (Hero).
- * - outline, danger, success.
- */
 
 import React from 'react';
 import { 

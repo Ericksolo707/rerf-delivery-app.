@@ -1,10 +1,3 @@
-/**
- * SupabaseRepository.ts - Implementación Oficial de IAuthRepository con Supabase
- * Programación II - Sesión 6 y 7 UMG
- *
- * Responsabilidad: Implementar el contrato IAuthRepository delegando
- * directamente en el SDK oficial de Supabase Auth (GoTrue).
- */
 
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import type { UsuarioSesion } from '../models/UsuarioSesion';

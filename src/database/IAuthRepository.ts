@@ -1,10 +1,3 @@
-/**
- * IAuthRepository.ts - Contrato de Autenticación
- * Programación II - Sesión 6 y 7 UMG
- *
- * Responsabilidad: Definir la interfaz abstracta para operaciones
- * de autenticación (registro, inicio de sesión, cierre de sesión y observación reactiva).
- */
 
 import type { UsuarioSesion } from '../models/UsuarioSesion';
 

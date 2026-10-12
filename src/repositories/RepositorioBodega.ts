@@ -1,11 +1,3 @@
-/**
- * RepositorioBodega.ts - Repositorio de Bodega Personal
- * Programación II - Sesiones 5, 6 y 7 UMG
- *
- * Responsabilidad: Gestión y persistencia del inventario de paquetes en bodega personal.
- * - Tabla principal: 'bodega' (con compatibilidad a 'warehouse_items')
- * - Manejo seguro de UUIDs e inserciones directas
- */
 
 import { WarehouseItem } from '../types';
 import { MOCK_WAREHOUSE_ITEMS } from '../services/mockData';
@@ -21,7 +13,7 @@ export class RepositorioBodega extends RepositorioBase<WarehouseItem, Omit<Wareh
   public readonly nombreEntidad: string = 'bodega';
   public readonly tablaLegacy: string = 'warehouse_items';
 
-  // Referencia Singleton única en memoria (Sesión 6)
+  // Referencia Singleton única en memoria 
   private static instancia: RepositorioBodega | null = null;
 
   // Almacén en memoria de artículos en bodega
@@ -36,7 +28,7 @@ export class RepositorioBodega extends RepositorioBase<WarehouseItem, Omit<Wareh
   }
 
   /**
-   * Punto de acceso global a la instancia única del repositorio (Sesión 6)
+   * Punto de acceso global a la instancia única del repositorio 
    */
   public static getInstance(): RepositorioBodega {
     if (RepositorioBodega.instancia === null) {

@@ -1,11 +1,3 @@
-/**
- * ModuleBannerHeader.tsx - Encabezado Modular con Franja de Acento
- * Programación II - UMG
- *
- * Responsabilidad: Desplegar el encabezado característico de la plataforma web RerF:
- * Tarjeta blanca con franja vertical de color en el borde izquierdo, icono destacado,
- * título en negrita y subtítulo explicativo del módulo.
- */
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';

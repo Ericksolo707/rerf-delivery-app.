@@ -1,14 +1,3 @@
-/**
- * UserProfileViewScreen.tsx - Pantalla 10 Visualización de perfiles, guardado y reporte (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 10 del boceto Excalidraw con:
- * - Header: "Usuarios" con botones [ ! ] y [ -> ]
- * - Círculo grande de "foto"
- * - Campos de texto: Nombre, Alias, Correo
- * - Recuadro de "Descripción:"
- * - Botones inferiores [ Guardar usuario ] y [ Reportar Usuario ]
- */
 
 import React, { useState } from 'react';
 import { 

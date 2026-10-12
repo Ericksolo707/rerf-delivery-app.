@@ -1,14 +1,3 @@
-/**
- * NotificationsScreen.tsx - Pantalla 5 Notificaciones (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 5 del boceto Excalidraw con:
- * - Header: "Notificaciones" con acciones [ ! ] y [ -> ]
- * - Campo de búsqueda: "Buscar"
- * - Lista de tarjetas con:
- *   - Fila superior: Fecha | Hora | Estado (Activo / En ruta / Leído)
- *   - Cuerpo del mensaje: Texto informativo
- */
 
 import React, { useState, useMemo } from 'react';
 import { 

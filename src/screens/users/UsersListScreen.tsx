@@ -1,12 +1,3 @@
-/**
- * UsersListScreen.tsx - Pantalla 11 Listado de Usuarios (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 11 del boceto Excalidraw con:
- * - Header: "Usuarios" con botones [ ! ] y [ -> ]
- * - Fila de título: "Listado de usuarios" y botón de estrella [ ⭐ ]
- * - Cuadrícula de 2 columnas con tarjetas de usuario que contienen [ foto ] y nombre de usuario.
- */
 
 import React, { useState } from 'react';
 import { 
@@ -88,7 +79,7 @@ export const UsersListScreen: React.FC<RootStackScreenProps<'ListadoUsuarios'>> 
           </TouchableOpacity>
         </View>
 
-        {/* Cuadrícula de 2 Columnas de Usuarios (Excalidraw Pantalla 11) */}
+        {/* Cuadrícula de 2 Columnas de Usuarios  */}
         <FlatList
           data={displayedUsers}
           keyExtractor={item => item.id}

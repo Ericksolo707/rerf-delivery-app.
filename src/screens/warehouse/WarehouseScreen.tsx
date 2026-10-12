@@ -1,15 +1,3 @@
-/**
- * WarehouseScreen.tsx - Pantalla 19 Apartado de Bodega Personal (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 19 del boceto Excalidraw con:
- * - Header: "Mi Bodega" con botones [ ! ] y [ -> ]
- * - Campo: "Buscar"
- * - Indicador: "Total de productos: [X]"
- * - Lista de tarjetas con Nombre, Almacenaje, Destino, Estado visual y Descripción.
- * - Panel de Autorización exclusiva para Administradores con notificaciones en tiempo real.
- * - Botón inferior: [ Solicitar almacenaje ]
- */
 
 import React, { useState } from 'react';
 import { 

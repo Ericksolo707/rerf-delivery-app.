@@ -1,19 +1,3 @@
-/**
- * CreateShipmentScreen.tsx - Pantalla 13 Apartado de realización de envío (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 13 del boceto Excalidraw con:
- * - Header: "Realizar Envío" con botones [ ! ] y [ -> ]
- * - Campos directos:
- *   - Para: [Usuario]
- *   - Paquete: [Bodega]
- *   - Dirección: [_____]
- *   - Referencia: [_____]
- *   - Seleccionar Fecha: [ 📅 ]
- *   - Descripción: [_____]
- * - Botones inferiores [ Cancelar ] y [ Enviar ]
- * - Pantalla 14 integrada: Modal "¿Desea confirmar la solicitud?" y confirmación de recepción.
- */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
@@ -114,7 +98,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
     }, 120);
   };
 
-  // Campos Excalidraw Pantalla 13
+  // Campos  Pantalla 13
   const [recipient, setRecipient] = useState<string>(existingShipment?.recipient_name || prefilled || '');
   const [selectedRecipientUser, setSelectedRecipientUser] = useState<UserProfile | null>(null);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || prefilledWarehouseItemId || '');
@@ -555,7 +539,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           />
         </View>
 
-        {/* Botones inferiores Excalidraw: [ Cancelar ] [ Enviar ] */}
+        {/* Botones inferiores : [ Cancelar ] [ Enviar ] */}
         <View style={styles.bottomButtonsRow}>
           <TouchableOpacity 
             style={styles.cancelBtn}

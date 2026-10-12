@@ -1,12 +1,3 @@
-/**
- * logisticsFleet.ts - Catálogo de Flota Logística y Departamentos de Guatemala
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad:
- * 1. Lista oficial de los 22 departamentos de Guatemala con sus regiones geográficas.
- * 2. Catálogo de vehículos reales de logística y distribución (Motos mensajería, Paneles de carga y Camiones ligeros).
- * 3. Asignación inteligente y coherente de pilotos, placas guatemaltecas y modelos de transporte según peso, destino y tipo de carga.
- */
 
 export interface GuatemalaDepartment {
   name: string;

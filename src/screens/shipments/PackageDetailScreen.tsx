@@ -1,21 +1,3 @@
-/**
- * PackageDetailScreen.tsx - Pantalla 30 Visualizador de Detalles / Detalles Paquete (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 30 del boceto Excalidraw con:
- * - Header: "Detalles paquete" con botones [ ! ] y [ -> ]
- * - Gran tarjeta contenedora con:
- *   - Categoría: Entrega/Envío | Fecha
- *   - Nombre del paquete
- *   - Material
- *   - Partida
- *   - No. Orden
- *   - Descripción (recuadro de texto)
- *   - Costo Total
- *   - Método de pago
- *   - Factura#
- *   - Fila inferior: [ nombreusuario1 remitente ]  [ nombreusuario2 receptor ]
- */
 
 import React, { useState } from 'react';
 import { 
@@ -110,7 +92,7 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
       <Header title="Detalles paquete" showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Gran tarjeta contenedora estilo Excalidraw Pantalla 30 */}
+        {/* Gran tarjeta contenedora  Pantalla 30 */}
         <View style={styles.mainDetailCard}>
           {/* Fila superior: Categoría Entrega/Envío y Fecha */}
           <View style={styles.topMetaRow}>
@@ -272,7 +254,7 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
         )}
       </ScrollView>
 
-      {/* --- Barra inferior funcional de 5 pestañas --- */}
+      {/* Barra inferior funcional de 5 pestañas */}
       <View style={styles.bottomTabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal')}>
           <Ionicons name="menu-outline" size={24} color="#3B82F6" />

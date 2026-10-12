@@ -1,16 +1,3 @@
-/**
- * ShippingQuoteScreen.tsx - Pantalla 26 Cotizador de Envío (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 26 del boceto Excalidraw con:
- * - Header: "Cotizador" con botones [ ! ] y [ -> ]
- * - Rombito central "LOGO" + "Cotizador RERF APP"
- * - Campo: "Cantidad:"
- * - Campo: "Peso estimado (kg/lb):"
- * - Selector: "Material:" [ Frágil ] [ Fuerte ]
- * - Campo de salida: "Total estimado:"
- * - Botón inferior: [ Cotizar ]
- */
 
 import React, { useState } from 'react';
 import { 
@@ -263,7 +250,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
         </View>
       </ScrollView>
 
-      {/* --- Barra inferior funcional de navegación --- */}
+      {/* Barra inferior funcional de navegación */}
       <View style={styles.bottomTabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal')}>
           <Ionicons name="menu-outline" size={24} color="#3B82F6" />

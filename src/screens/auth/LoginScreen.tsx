@@ -1,7 +1,3 @@
-/**
- * LoginScreen.tsx - Diseño Premium Réplica Adaptado a RerF Logistics con Animación Lottie
- * Programación II - UMG / RerF Logistics
- */
 
 import React, { useState } from "react";
 import {

@@ -1,11 +1,3 @@
-/**
- * AppContext.tsx - Proveedor de Estado Global y Orquestador de Repositorios
- * Programación II - UMG
- *
- * Responsabilidad: Exponer el estado reactivo de la aplicación a los componentes
- * de React Native, consumiendo los Repositorios de datos para mantener
- * una estricta separación de capas (Arquitectura Limpia).
- */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -823,7 +815,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!allAdmins.some(a => a.id === 'usr-admin' || a.email === 'admin@rerf.gt') && user?.email !== 'admin@rerf.gt') {
         allAdmins.push(ADMIN_USER);
       }
-      if (!allAdmins.some(a => a.email === 'esolorzanoj@miumg.edu.gt') && user?.email !== 'esolorzanoj@miumg.edu.gt') {
+      if (!allAdmins.some(a => a.email === 'esolorzanoj@mi.edu.gt') && user?.email !== 'esolorzanoj@mi.edu.gt') {
         allAdmins.push(ERICK_USER);
       }
 

@@ -1,13 +1,3 @@
-/**
- * ShipmentManagementScreen.tsx - Pantalla 12 Envío y Gestión de Paquete (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 12 del boceto Excalidraw con:
- * - Header: "Enviar paquete" con botones [ ! ] y [ -> ]
- * - Cuadrícula 2x2 de botones de gestión logística:
- *   [ Realizar envío ]        [ Cancelar envío ]
- *   [ Revisar Pendientes ]    [ Consultar ]
- */
 
 import React from 'react';
 import { 

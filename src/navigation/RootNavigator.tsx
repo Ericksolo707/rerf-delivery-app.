@@ -1,10 +1,3 @@
-/**
- * RootNavigator.tsx - Navegador Principal de la Aplicación
- * Programación II - UMG
- *
- * Responsabilidad: Definir la pila de navegación de todas las pantallas,
- * aplicando tipado estricto con RootStackParamList.
- */
 
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";

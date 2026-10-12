@@ -1,13 +1,3 @@
-/**
- * DeliveriesScreen.tsx - Pantalla 7 Apartado de Entregas (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 7 del boceto Excalidraw:
- * - Header: "Entregas" con botones [ ! ] y [ -> ]
- * - Lista corrida de tarjetas de entregas con división izquierda/derecha:
- *   - Izquierda: "Para: [usuario]", "Id entrega: [código]", "Nombre producto", "Estado: Recoger/Bodega/Ruta/Entregado".
- *   - Derecha: Botones cuadrados estilizados [ L ] (Localizar GPS) y [ R ] (Rastrear / Detalle de Paquete).
- */
 
 import React from 'react';
 import { 
@@ -65,7 +55,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
     return sortShipmentsDesc(deliveries);
   }, [deliveries]);
 
-  // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
+  // Mapeo amigable de estado  (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'aprobado':
@@ -143,7 +133,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
           </View>
         </TouchableOpacity>
 
-        {/* Lado derecho con botones de acción Excalidraw */}
+        {/* Lado derecho con botones de acción  */}
         <View style={styles.actionsCol}>
           {isCancelled ? (
             <TouchableOpacity 

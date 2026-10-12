@@ -1,12 +1,3 @@
-/**
- * OrdersScreen.tsx - Pantalla 8 Apartado de Pedidos Activos y Pendientes (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 8 del boceto Excalidraw:
- * - Header: "Pedidos" con botones [ ! ] y [ -> ]
- * - Sección 1: "Activos ->" con tarjetas y botones [ L ] y [ R ]
- * - Sección 2: "Pendientes [ + ] ->" con tarjetas y botones [ E ] (Editar) y [ X ] (Cancelar)
- */
 
 import React from 'react';
 import { 
@@ -117,7 +108,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
     });
   }, [displayedOrders]);
 
-  // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
+  // Mapeo amigable de estado  (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'aprobado':

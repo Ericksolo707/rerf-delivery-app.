@@ -1,20 +1,3 @@
-/**
- * PackagesOverviewScreen.tsx - Pantalla 29 Desglose de Paquetes / Listar Paquetes (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 29 del boceto Excalidraw con:
- * - Header: "Listar paquetes" con botones [ ! ] y [ -> ]
- * - Campo: "Buscar"
- * - Lista de tarjetas con:
- *   - Categoría: Entrega / Envío
- *   - Destino
- *   - Estado
- *   - Partida
- *   - Personas: remitente, receptor
- * - Aislamiento estricto de datos por usuario (AppContext).
- * - Opcional: Modo Demostración para visualización de prueba en evaluación.
- * - Barra inferior funcional (5 pestañas).
- */
 
 import React, { useState, useMemo } from 'react';
 import { 
@@ -221,7 +204,7 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
         />
       </View>
 
-      {/* --- Barra inferior funcional de 5 pestañas --- */}
+      {/* Barra inferior funcional de 5 pestañas */}
       <View style={styles.bottomTabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal')}>
           <Ionicons name="menu-outline" size={24} color="#3B82F6" />

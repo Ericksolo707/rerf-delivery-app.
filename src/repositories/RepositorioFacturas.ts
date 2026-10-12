@@ -1,11 +1,3 @@
-/**
- * RepositorioFacturas.ts - Repositorio de Facturación y Comprobantes
- * Programación II - Sesiones 5, 6 y 7 UMG
- *
- * Responsabilidad: Gestión y consulta de facturas y recibos de pago.
- * - Tabla principal: 'facturas' (con compatibilidad a 'invoices')
- * - Aplica el patrón Singleton (Sesión 6).
- */
 
 import { Invoice } from '../types';
 import { MOCK_INVOICES } from '../services/mockData';
@@ -15,7 +7,7 @@ export class RepositorioFacturas {
   public readonly nombreEntidad: string = 'facturas';
   public readonly tablaLegacy: string = 'invoices';
 
-  // Referencia Singleton única en memoria (Sesión 6)
+  // Referencia Singleton única en memoria 
   private static instancia: RepositorioFacturas | null = null;
 
   private facturas: Invoice[];
@@ -28,7 +20,7 @@ export class RepositorioFacturas {
   }
 
   /**
-   * Punto de acceso global a la instancia única de Facturas (Sesión 6)
+   * Punto de acceso global a la instancia única de Facturas 
    */
   public static getInstance(): RepositorioFacturas {
     if (RepositorioFacturas.instancia === null) {

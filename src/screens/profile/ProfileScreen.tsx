@@ -1,20 +1,3 @@
-/**
- * ProfileScreen.tsx - Pantalla 24 Visualización y Edición de Perfil (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 24 del boceto Excalidraw con:
- * - Header: "Perfil" con botones [ ! ] y [ -> ]
- * - Círculo grande de "foto" con nombre de usuario y alias
- * - Filas de campos con botón "editar" en cada una:
- *   - Nombre de usuario (Editable)
- *   - Alias (Editable, ej. @carlosg)
- *   - Correo (Solo lectura, no modificable directamente)
- *   - Teléfono (Editable)
- *   - Dirección (Editable)
- *   - Referencias (Editable)
- *   - Descripción (Editable)
- * - Botón inferior: [ Guardar ] (Actualiza el perfil y el directorio de usuarios de la app)
- */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
@@ -210,7 +193,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           </View>
         )}
 
-        {/* Lista de campos con botón "editar" en cada fila (Excalidraw Pantalla 24) */}
+        {/* Lista de campos con botón "editar" en cada fila  */}
         <View style={styles.fieldsContainer}>
           {/* Fila Nombre de Usuario */}
           <View style={styles.profileFieldRow}>

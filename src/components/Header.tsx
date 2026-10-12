@@ -1,12 +1,3 @@
-/**
- * Header.tsx - Barra Superior Institucional RerF (Alineada al boceto Excalidraw)
- * Programación II - UMG
- *
- * Responsabilidad: Desplegar la barra de navegación superior según el boceto Excalidraw:
- * - Izquierda: Botón de retroceso (si showBack) o Título de la pantalla.
- * - Derecha: Botón de alerta / notificaciones (!) y botón de salida ([->) con
- *   modal de confirmación "¿Cerrar sesión?" (Pantalla 4).
- */
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, StatusBar } from 'react-native';
@@ -27,7 +18,7 @@ interface HeaderProps {
   onRightPress?: () => void;
   showNotification?: boolean;
   isDark?: boolean;
-  hideExcalidrawActions?: boolean;
+  hideActions?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -38,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRightPress,
   showNotification = false,
   isDark = false,
-  hideExcalidrawActions = false,
+  hideActions = false,
 }) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -97,9 +88,9 @@ export const Header: React.FC<HeaderProps> = ({
           </Text>
         </View>
 
-        {/* Lado Derecho: Acciones fijas de Excalidraw [ ! ] y [ -> ] */}
+        {/* Lado Derecho: Acciones fijas de  [ ! ] y [ -> ] */}
         <View style={styles.rightContainer}>
-          {hideExcalidrawActions ? (
+          {hideActions ? (
             <>
               {showNotification && (
                 <TouchableOpacity 

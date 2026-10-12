@@ -1,14 +1,3 @@
-/**
- * WarehouseDetailScreen.tsx - Pantalla de Detalle de Almacenaje en Bodega
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad:
- * - Visualizar la ficha completa de un ítem de almacenaje en bodega personal.
- * - Mostrar código de bodega, categoría, fecha, estado visual y descripción detallada.
- * - Información del solicitante / cliente propietario.
- * - Panel de acciones administrativas para Autorizar o Rechazar el ingreso si está pendiente.
- * - Navegación fluida y barra de pestañas coherente con el estilo de la aplicación.
- */
 
 import React, { useState } from 'react';
 import { 
@@ -181,7 +170,7 @@ export const WarehouseDetailScreen: React.FC<RootStackScreenProps<'DetalleAlmace
       <Header title="Detalle de Almacenaje" showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Gran tarjeta contenedora estilo RerF Excalidraw */}
+        {/* Gran tarjeta contenedora  */}
         <View style={styles.mainDetailCard}>
           {/* Fila superior: Categoría y Fecha */}
           <View style={styles.topMetaRow}>
@@ -342,7 +331,7 @@ export const WarehouseDetailScreen: React.FC<RootStackScreenProps<'DetalleAlmace
         </TouchableOpacity>
       </ScrollView>
 
-      {/* --- Barra inferior funcional de 5 pestañas --- */}
+      {/* Barra inferior funcional de 5 pestañas */}
       <View style={styles.bottomTabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal')}>
           <Ionicons name="menu-outline" size={24} color="#94A3B8" />

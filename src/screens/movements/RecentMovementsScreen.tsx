@@ -1,18 +1,3 @@
-/**
- * RecentMovementsScreen.tsx - Pantalla 6 Movimientos Recientes (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 6 del boceto Excalidraw con:
- * - Header: "Movimientos" con [ ! ] y [ -> ]
- * - Lista unificada de movimientos:
- *   - Envíos, Entregas y Pedidos
- *   - Solicitudes y Almacenamientos en Mi Bodega
- *   - Cabecera: Fecha | Tipo: Pedido / Entrega / Bodega
- *   - Recuadro interior:
- *     - Usuario | Estado (Entrega / Pedido / Almacenado / Pendiente)
- *     - Descripción del movimiento
- *     - Acceso directo al detalle correspondiente (DetallePaquete o DetalleAlmacenaje)
- */
 
 import React, { useMemo } from 'react';
 import { 

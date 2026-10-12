@@ -1,16 +1,3 @@
-/**
- * ShipmentApprovalScreen.tsx - Pantalla 15 Confirmación Aprobado del Envío (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 15 del boceto Excalidraw con:
- * - Header: "Realizar Envío" con botones [ ! ] y [ -> ]
- * - Título: "¡Envío confirmado!"
- * - Recuadro: "Detalles: Información previa del envío" y Total: Q. [monto]
- * - Subtítulo: "Seleccionar método de pago:"
- * - Botones de método de pago:
- *   [ Efectivo ]           [ Pago contra entrega ]
- *   [ Tarjeta Déb./Créd. ]
- */
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -120,7 +107,7 @@ export const ShipmentApprovalScreen: React.FC<RootStackScreenProps<'AprobacionEn
         {/* Subtítulo: Seleccionar método de pago */}
         <Text style={styles.paymentSectionTitle}>Seleccionar método de pago:</Text>
 
-        {/* Botones de método de pago Excalidraw */}
+        {/* Botones de método de pago  */}
         <View style={styles.paymentButtonsGrid}>
           {/* Fila 1 */}
           <View style={styles.paymentRow}>
