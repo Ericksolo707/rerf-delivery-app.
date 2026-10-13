@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeMode, ThemeColors, getThemeColors } from '../constants/theme';
 import { 
   UserProfile, 
   Shipment, 
@@ -74,6 +76,13 @@ interface AppContextType {
   register: (firstName: string, lastName: string, email: string, pass: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+
+  // Modo Oscuro y Tema
+  themeMode: ThemeMode;
+  isDarkMode: boolean;
+  colors: ThemeColors;
+  setThemeMode: (mode: ThemeMode) => Promise<void>;
+  toggleTheme: () => Promise<void>;
   
   // Envíos
   shipments: Shipment[];
@@ -125,6 +134,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(DEFAULT_SUPPORT_MESSAGES);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>(MOCK_AI_MESSAGES);
+
+  // Modo Oscuro y Tema de la aplicación
+  const systemColorScheme = useColorScheme();
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
+
+  useEffect(() => {
+    const initTheme = async () => {
+      try {
+        const storedTheme = await AsyncStorage.getItem('@rerf_theme_mode');
+        if (storedTheme === 'dark' || storedTheme === 'light' || storedTheme === 'system') {
+          setThemeModeState(storedTheme as ThemeMode);
+        }
+      } catch (e) {
+        console.warn('Error leyendo preferencia de tema guardada:', e);
+      }
+    };
+    initTheme();
+  }, []);
+
+  const isDarkMode = themeMode === 'system' 
+    ? systemColorScheme === 'dark' 
+    : themeMode === 'dark';
+
+  const colors = getThemeColors(isDarkMode);
+
+  const setThemeMode = async (mode: ThemeMode): Promise<void> => {
+    setThemeModeState(mode);
+    try {
+      await AsyncStorage.setItem('@rerf_theme_mode', mode);
+    } catch (e) {
+      console.warn('Error persistiendo preferencia de tema:', e);
+    }
+  };
+
+  const toggleTheme = async (): Promise<void> => {
+    const nextMode: ThemeMode = isDarkMode ? 'light' : 'dark';
+    await setThemeMode(nextMode);
+  };
 
   // Cargar historial de soporte privado persistido y desde Supabase
   const cargarMensajesSoporte = async (): Promise<ChatMessage[]> => {
@@ -1835,6 +1882,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         register,
         logout,
         updateProfile,
+        themeMode,
+        isDarkMode,
+        colors,
+        setThemeMode,
+        toggleTheme,
         shipments: userShipments,
         allShipments,
         addShipment,

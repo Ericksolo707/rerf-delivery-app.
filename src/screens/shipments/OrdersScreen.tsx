@@ -64,7 +64,7 @@ export const sortShipmentsDesc = (list: Shipment[]): Shipment[] => {
 };
 
 export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ navigation }) => {
-  const { shipments, user, users, refreshData, isRefreshing } = useApp();
+  const { shipments, user, users, refreshData, isRefreshing, isDarkMode, colors } = useApp();
   const isAdmin = user?.role === 'admin';
 
   // Si es Administrador: Modo gestión general (supervisa todos los pedidos del sistema).
@@ -141,11 +141,11 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
       : (isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`);
 
     return (
-      <View key={item.id} style={styles.card}>
+      <View key={item.id} style={[styles.card, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
         {/* Lado izquierdo con información */}
         <View style={styles.infoCol}>
           <View style={styles.headerMetaRow}>
-            <Text style={styles.senderMetaText} numberOfLines={1}>
+            <Text style={[styles.senderMetaText, { color: colors.textSecondary }]} numberOfLines={1}>
               {displayLabel}
             </Text>
             <Text style={styles.idMetaText}>
@@ -154,14 +154,14 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           </View>
 
           <View style={styles.productBlock}>
-            <Text style={styles.fieldLabel}>Nombre producto:</Text>
-            <Text style={styles.productNameText} numberOfLines={2}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Nombre producto:</Text>
+            <Text style={[styles.productNameText, { color: colors.textMain }]} numberOfLines={2}>
               {item.description || 'Pedido de envío estándar'}
             </Text>
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={styles.fieldLabel}>Estado: </Text>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Estado: </Text>
             <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
               <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>
                 {statusInfo.label}
@@ -173,19 +173,25 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
         {/* Lado derecho: Botones [ L ] y [ R ] */}
         <View style={styles.actionsCol}>
           <TouchableOpacity 
-            style={styles.squareActionButton}
+            style={[
+              styles.squareActionButton,
+              isDarkMode && { backgroundColor: '#261F0B', borderColor: '#D97706' }
+            ]}
             onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.tracking_number || item.id })}
             activeOpacity={0.7}
           >
-            <Text style={styles.actionLetter}>L</Text>
+            <Text style={[styles.actionLetter, isDarkMode && { color: '#FBBF24' }]}>L</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.squareActionButton}
+            style={[
+              styles.squareActionButton,
+              isDarkMode && { backgroundColor: '#261F0B', borderColor: '#D97706' }
+            ]}
             onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
             activeOpacity={0.7}
           >
-            <Text style={styles.actionLetter}>R</Text>
+            <Text style={[styles.actionLetter, isDarkMode && { color: '#FBBF24' }]}>R</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -203,7 +209,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
       : (isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`);
 
     return (
-      <View key={item.id} style={styles.card}>
+      <View key={item.id} style={[styles.card, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
         {/* Lado izquierdo interactivo: Abre Detalle del Paquete */}
         <TouchableOpacity 
           style={styles.infoCol}
@@ -211,7 +217,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           activeOpacity={0.7}
         >
           <View style={styles.headerMetaRow}>
-            <Text style={styles.senderMetaText} numberOfLines={1}>
+            <Text style={[styles.senderMetaText, { color: colors.textSecondary }]} numberOfLines={1}>
               {displayLabel}
             </Text>
             <Text style={styles.idMetaText}>
@@ -220,15 +226,15 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           </View>
 
           <View style={styles.productBlock}>
-            <Text style={styles.fieldLabel}>Nombre producto:</Text>
-            <Text style={styles.productNameText} numberOfLines={2}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Nombre producto:</Text>
+            <Text style={[styles.productNameText, { color: colors.textMain }]} numberOfLines={2}>
               {item.description || 'Pedido programado'}
             </Text>
           </View>
 
           <View style={styles.dateBlock}>
-            <Text style={styles.fieldLabel}>Fecha programada: </Text>
-            <Text style={styles.dateValueText}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Fecha programada: </Text>
+            <Text style={[styles.dateValueText, { color: colors.textSecondary }]}>
               {item.scheduled_date || 'Hoy (14/10/2026)'}
             </Text>
           </View>
@@ -250,20 +256,28 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           <View style={styles.actionsCol}>
             {/* Botón [ E ]: Editar pedido */}
             <TouchableOpacity 
-              style={[styles.squareActionButton, styles.editSquareButton]}
+              style={[
+                styles.squareActionButton, 
+                styles.editSquareButton,
+                isDarkMode && { backgroundColor: '#132E2B', borderColor: '#0D9488' }
+              ]}
               onPress={() => navigation.navigate('RealizarEnvio', { editShipmentId: item.id })}
               activeOpacity={0.7}
             >
-              <Text style={[styles.actionLetter, styles.editLetter]}>E</Text>
+              <Text style={[styles.actionLetter, styles.editLetter, isDarkMode && { color: '#2DD4BF' }]}>E</Text>
             </TouchableOpacity>
 
             {/* Botón [ X ]: Cancelar pedido */}
             <TouchableOpacity 
-              style={[styles.squareActionButton, styles.cancelSquareButton]}
+              style={[
+                styles.squareActionButton, 
+                styles.cancelSquareButton,
+                isDarkMode && { backgroundColor: '#2E1515', borderColor: '#DC2626' }
+              ]}
               onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: item.tracking_number || item.id })}
               activeOpacity={0.7}
             >
-              <Text style={[styles.actionLetter, styles.cancelLetter]}>X</Text>
+              <Text style={[styles.actionLetter, styles.cancelLetter, isDarkMode && { color: '#F87171' }]}>X</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -280,14 +294,19 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
     const displayLabel = isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`;
 
     return (
-      <View key={item.id} style={[styles.card, { borderColor: '#FECACA', backgroundColor: '#FEF2F2' }]}>
+      <View key={item.id} style={[
+        styles.card, 
+        isDarkMode 
+          ? { borderColor: '#4C1D1D', backgroundColor: '#201314' }
+          : { borderColor: '#FECACA', backgroundColor: '#FEF2F2' }
+      ]}>
         <TouchableOpacity 
           style={styles.infoCol}
           onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
           activeOpacity={0.7}
         >
           <View style={styles.headerMetaRow}>
-            <Text style={styles.senderMetaText} numberOfLines={1}>
+            <Text style={[styles.senderMetaText, { color: colors.textSecondary }]} numberOfLines={1}>
               {displayLabel}
             </Text>
             <Text style={styles.idMetaText}>
@@ -296,8 +315,8 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           </View>
 
           <View style={styles.productBlock}>
-            <Text style={styles.fieldLabel}>Nombre producto:</Text>
-            <Text style={styles.productNameText} numberOfLines={2}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Nombre producto:</Text>
+            <Text style={[styles.productNameText, { color: colors.textMain }]} numberOfLines={2}>
               {item.description || 'Pedido cancelado'}
             </Text>
           </View>
@@ -305,14 +324,14 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           <View style={{ marginTop: 2, marginBottom: 4 }}>
             <Text style={[styles.fieldLabel, { color: RerfColors.errorRed }]}>
               Motivo:{' '}
-              <Text style={{ fontWeight: '700', color: '#7F1D1D' }}>
+              <Text style={{ fontWeight: '700', color: isDarkMode ? '#FCA5A5' : '#7F1D1D' }}>
                 {item.cancellation_reason || 'Cancelado por el usuario'}
               </Text>
             </Text>
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={styles.fieldLabel}>Estado: </Text>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Estado: </Text>
             <View style={[styles.statusBadge, { backgroundColor: '#FEE2E2' }]}>
               <Text style={[styles.statusBadgeText, { color: '#DC2626' }]}>
                 Cancelado
@@ -336,15 +355,18 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Header title={isAdmin ? "Gestión de Pedidos" : "Pedidos"} showBack={true} />
 
       {isAdmin && (
-        <View style={styles.adminBanner}>
-          <Ionicons name="shield-checkmark" size={22} color="#1D4ED8" />
+        <View style={[
+          styles.adminBanner,
+          isDarkMode && { backgroundColor: '#131A2A', borderColor: '#1E293B' }
+        ]}>
+          <Ionicons name="shield-checkmark" size={22} color={isDarkMode ? '#60A5FA' : '#1D4ED8'} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.adminBannerTitle}>Supervisión y Autorización de Envíos</Text>
-            <Text style={styles.adminBannerSub}>
+            <Text style={[styles.adminBannerTitle, { color: colors.textMain }]}>Supervisión y Autorización de Envíos</Text>
+            <Text style={[styles.adminBannerSub, { color: colors.textSecondary }]}>
               Vista general de todos los pedidos de clientes. Revisa y autoriza los pedidos pendientes para darles salida a ruta.
             </Text>
           </View>
@@ -365,14 +387,14 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
       >
         {/* SECCIÓN 1: Activos -> */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>{isAdmin ? "Envíos en Tránsito / Activos" : "Activos"}</Text>
-          <Ionicons name="arrow-forward" size={18} color="#0F172A" />
+          <Text style={[styles.sectionTitle, { color: colors.textMain }]}>{isAdmin ? "Envíos en Tránsito / Activos" : "Activos"}</Text>
+          <Ionicons name="arrow-forward" size={18} color={colors.textMain} />
         </View>
 
         <View style={styles.cardsList}>
           {activeOrders.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyCardText}>
+            <View style={[styles.emptyCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+              <Text style={[styles.emptyCardText, { color: colors.textMuted }]}>
                 {isAdmin ? "No hay pedidos activos en tránsito en el sistema." : "No hay pedidos activos en tránsito."}
               </Text>
             </View>
@@ -384,7 +406,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
         {/* SECCIÓN 2: Pendientes */}
         <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
           <View style={styles.pendingTitleGroup}>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: colors.textMain }]}>
               {isAdmin ? "Pendientes de Autorización" : "Pendientes"}
             </Text>
             {pendingOrders.length > 0 && (
@@ -395,13 +417,13 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
               </View>
             )}
           </View>
-          <Ionicons name="arrow-forward" size={18} color="#0F172A" />
+          <Ionicons name="arrow-forward" size={18} color={colors.textMain} />
         </View>
 
         <View style={styles.cardsList}>
           {pendingOrders.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyCardText}>
+            <View style={[styles.emptyCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+              <Text style={[styles.emptyCardText, { color: colors.textMuted }]}>
                 {isAdmin ? "No hay pedidos pendientes de autorización." : "No tienes pedidos pendientes programados."}
               </Text>
             </View>

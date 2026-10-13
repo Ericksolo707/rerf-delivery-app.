@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { Button } from './Button';
 import { Ionicons } from '@expo/vector-icons';
+import { useApp } from '../context/AppContext';
 
 interface ModalDialogProps {
   visible: boolean;
@@ -33,6 +34,8 @@ export const ModalDialog: React.FC<ModalDialogProps> = ({
   onCancel,
   singleButton = false,
 }) => {
+  const { colors, isDarkMode } = useApp();
+
   return (
     <Modal
       transparent
@@ -41,15 +44,22 @@ export const ModalDialog: React.FC<ModalDialogProps> = ({
       onRequestClose={onCancel}
     >
       <View style={styles.overlay}>
-        <View style={styles.card}>
+        <View style={[
+          styles.card,
+          {
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.surfaceCardBorder,
+            borderWidth: isDarkMode ? 1 : 0,
+          }
+        ]}>
           {iconName && (
             <View style={[styles.iconCircle, { backgroundColor: `${iconColor}15` }]}>
               <Ionicons name={iconName} size={32} color={iconColor} />
             </View>
           )}
 
-          <Text style={styles.title}>{title}</Text>
-          {message && <Text style={styles.message}>{message}</Text>}
+          <Text style={[styles.title, { color: colors.textMain }]}>{title}</Text>
+          {message && <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>}
 
           <View style={styles.buttonRow}>
             {!singleButton && onCancel && (

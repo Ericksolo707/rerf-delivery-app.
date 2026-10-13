@@ -60,7 +60,7 @@ const isFutureScheduledDate = (str?: string): boolean => {
 };
 
 export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ route, navigation }) => {
-  const { addShipment, updateShipment, shipments, warehouseItems, users, user } = useApp();
+  const { addShipment, updateShipment, shipments, warehouseItems, users, user, isDarkMode, colors } = useApp();
   const prefilled = route.params?.prefilledRecipient;
   const editShipmentId = route.params?.editShipmentId;
   const quotedAmount = route.params?.quotedAmount;
@@ -350,7 +350,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
@@ -368,11 +368,14 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         showsVerticalScrollIndicator={false}
       >
         {user?.role === 'admin' && (
-          <View style={styles.adminModeNotice}>
-            <Ionicons name="shield-checkmark" size={22} color="#1D4ED8" />
+          <View style={[
+            styles.adminModeNotice,
+            isDarkMode && { backgroundColor: '#131A2A', borderColor: '#1E293B' }
+          ]}>
+            <Ionicons name="shield-checkmark" size={22} color={isDarkMode ? '#60A5FA' : '#1D4ED8'} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.adminModeTitle}>Modo Administrativo</Text>
-              <Text style={styles.adminModeSub}>
+              <Text style={[styles.adminModeTitle, { color: colors.textMain }]}>Modo Administrativo</Text>
+              <Text style={[styles.adminModeSub, { color: colors.textSecondary }]}>
                 Las cuentas de administración no realizan envíos personales. Tu rol institucional es supervisar y autorizar solicitudes de clientes desde la sección Pedidos.
               </Text>
             </View>

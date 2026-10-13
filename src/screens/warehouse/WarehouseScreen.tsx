@@ -17,7 +17,7 @@ import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>> = ({ route, navigation }) => {
-  const { warehouseItems, user, users, authorizeWarehouseItem } = useApp();
+  const { warehouseItems, user, users, authorizeWarehouseItem, isDarkMode, colors } = useApp();
   const isAdmin = user?.role === 'admin';
   const routeSearch = route?.params?.searchCode || '';
   const [searchInput, setSearchInput] = useState<string>('');
@@ -134,19 +134,25 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
 
     return (
       <TouchableOpacity 
-        style={styles.card}
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.surfaceCardBorder,
+          }
+        ]}
         activeOpacity={0.85}
         onPress={() => navigation.navigate('DetalleAlmacenaje', { itemId: item?.id, storageCode: item?.storage_code })}
       >
         {/* Cabecera de la tarjeta: Nombre / Almacenaje */}
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.productName}>{item?.product_type || 'Mercadería'}</Text>
+          <Text style={[styles.productName, { color: colors.textMain }]}>{item?.product_type || 'Mercadería'}</Text>
           <Text style={styles.storageCode}>{item?.storage_code}</Text>
         </View>
 
         {/* Fila de Estado con Badge visual */}
         <View style={styles.statusRow}>
-          <Text style={styles.metaLabel}>Estado: </Text>
+          <Text style={[styles.metaLabel, { color: colors.textMuted }]}>Estado: </Text>
           <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
             <Ionicons name={badge.icon} size={13} color={badge.text} />
             <Text style={[styles.statusBadgeText, { color: badge.text }]}>
@@ -158,18 +164,18 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
         {/* Mostrar cliente si el usuario logueado es Administrador */}
         {isAdmin && (
           <Text style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Solicitante: </Text>
-            <Text style={styles.metaValue}>{ownerName}</Text>
+            <Text style={[styles.metaLabel, { color: colors.textMuted }]}>Solicitante: </Text>
+            <Text style={[styles.metaValue, { color: colors.textMain }]}>{ownerName}</Text>
           </Text>
         )}
 
         <Text style={styles.metaRow}>
-          <Text style={styles.metaLabel}>Material: </Text>
-          <Text style={styles.metaValue}>{item?.material === 'fragil' ? 'Frágil' : 'Fuerte / Resistente'}</Text>
+          <Text style={[styles.metaLabel, { color: colors.textMuted }]}>Material: </Text>
+          <Text style={[styles.metaValue, { color: colors.textMain }]}>{item?.material === 'fragil' ? 'Frágil' : 'Fuerte / Resistente'}</Text>
         </Text>
 
-        <Text style={styles.descLabel}>Descripción:</Text>
-        <Text style={styles.descValue} numberOfLines={2}>
+        <Text style={[styles.descLabel, { color: colors.textMuted }]}>Descripción:</Text>
+        <Text style={[styles.descValue, { color: colors.textSecondary }]} numberOfLines={2}>
           {item?.description || 'Sin descripción adicional'}
         </Text>
 
@@ -206,15 +212,18 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Header title={isAdmin ? "Bodega Central" : "Mi Bodega"} />
 
       {isAdmin && (
-        <View style={styles.adminBanner}>
-          <Ionicons name="shield-checkmark" size={20} color="#1D4ED8" />
+        <View style={[
+          styles.adminBanner,
+          isDarkMode && { backgroundColor: '#131A2A', borderColor: '#1E293B' }
+        ]}>
+          <Ionicons name="shield-checkmark" size={20} color={isDarkMode ? '#60A5FA' : '#1D4ED8'} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.adminBannerTitle}>Control General de Bodega Central</Text>
-            <Text style={styles.adminBannerSub}>
+            <Text style={[styles.adminBannerTitle, { color: colors.textMain }]}>Control General de Bodega Central</Text>
+            <Text style={[styles.adminBannerSub, { color: colors.textSecondary }]}>
               Supervisión de mercadería en custodia y autorización de ingresos solicitados por clientes.
             </Text>
           </View>

@@ -19,7 +19,7 @@ import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> = ({ navigation }) => {
-  const { user, updateProfile } = useApp();
+  const { user, updateProfile, themeMode, isDarkMode, colors, setThemeMode } = useApp();
 
   const getComputedUsername = (u: typeof user): string => {
     if (!u) return 'Usuario RerF';
@@ -393,6 +393,97 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           </View>
         </View>
 
+        {/* Sección de Apariencia y Modo Oscuro de la App */}
+        <View style={[styles.appearanceCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+          <View style={styles.appearanceHeader}>
+            <View style={styles.appearanceTitleRow}>
+              <Ionicons 
+                name={isDarkMode ? "moon" : "sunny"} 
+                size={18} 
+                color={colors.primaryYellow} 
+              />
+              <Text style={[styles.appearanceTitle, { color: colors.textMain }]}>Tema de la Aplicación</Text>
+            </View>
+            <Text style={[styles.appearanceSubtitle, { color: colors.textSecondary }]}>
+              {themeMode === 'system' ? 'Automático (según tu sistema)' : isDarkMode ? 'Modo Oscuro activo' : 'Modo Claro activo'}
+            </Text>
+          </View>
+
+          <View style={styles.themeSelectorRow}>
+            {/* Opción 1: Claro */}
+            <TouchableOpacity
+              style={[
+                styles.themeChip,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder },
+                themeMode === 'light' && [styles.themeChipActive, { borderColor: colors.primaryYellow, backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }],
+              ]}
+              onPress={() => setThemeMode('light')}
+              activeOpacity={0.8}
+            >
+              <Ionicons 
+                name="sunny-outline" 
+                size={18} 
+                color={themeMode === 'light' ? colors.primaryYellowHover : colors.textSecondary} 
+              />
+              <Text style={[
+                styles.themeChipText,
+                { color: colors.textSecondary },
+                themeMode === 'light' && [styles.themeChipTextActive, { color: isDarkMode ? '#FEF3C7' : '#78350F' }],
+              ]}>
+                Claro
+              </Text>
+            </TouchableOpacity>
+
+            {/* Opción 2: Oscuro */}
+            <TouchableOpacity
+              style={[
+                styles.themeChip,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder },
+                themeMode === 'dark' && [styles.themeChipActive, { borderColor: colors.primaryYellow, backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }],
+              ]}
+              onPress={() => setThemeMode('dark')}
+              activeOpacity={0.8}
+            >
+              <Ionicons 
+                name="moon-outline" 
+                size={18} 
+                color={themeMode === 'dark' ? colors.primaryYellowHover : colors.textSecondary} 
+              />
+              <Text style={[
+                styles.themeChipText,
+                { color: colors.textSecondary },
+                themeMode === 'dark' && [styles.themeChipTextActive, { color: isDarkMode ? '#FEF3C7' : '#78350F' }],
+              ]}>
+                Oscuro
+              </Text>
+            </TouchableOpacity>
+
+            {/* Opción 3: Sistema */}
+            <TouchableOpacity
+              style={[
+                styles.themeChip,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder },
+                themeMode === 'system' && [styles.themeChipActive, { borderColor: colors.primaryYellow, backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }],
+              ]}
+              onPress={() => setThemeMode('system')}
+              activeOpacity={0.8}
+            >
+              <Ionicons 
+                name="phone-portrait-outline" 
+                size={18} 
+                color={themeMode === 'system' ? colors.primaryYellowHover : colors.textSecondary} 
+              />
+              <Text style={[
+                styles.themeChipText,
+                { color: colors.textSecondary },
+                themeMode === 'system' && [styles.themeChipTextActive, { color: isDarkMode ? '#FEF3C7' : '#78350F' }],
+              ]}>
+                Auto
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Botón inferior: [ Guardar ] */}
         <TouchableOpacity 
           style={styles.saveButton}
@@ -574,5 +665,65 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: RerfColors.primaryYellowText,
+  },
+  appearanceCard: {
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
+    padding: 16,
+    backgroundColor: RerfColors.surfaceCard,
+    marginBottom: 20,
+    ...RerfShadows.card,
+  },
+  appearanceHeader: {
+    marginBottom: 12,
+  },
+  appearanceTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  appearanceTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: RerfColors.textMain,
+  },
+  appearanceSubtitle: {
+    fontSize: 12,
+    color: RerfColors.textMuted,
+    marginTop: 2,
+  },
+  themeSelectorRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  themeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceSubtle,
+  },
+  themeChipActive: {
+    borderWidth: 1.5,
+    borderColor: RerfColors.primaryYellow,
+    backgroundColor: '#FEF3C7',
+  },
+  themeChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: RerfColors.textSecondary,
+  },
+  themeChipTextActive: {
+    color: '#78350F',
+    fontWeight: '800',
   },
 });
