@@ -20,7 +20,7 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = ({ route, navigation }) => {
-  const { supportMessages, sendSupportMessage, user, isRefreshing, refreshData } = useApp();
+  const { supportMessages, sendSupportMessage, user, isRefreshing, refreshData, isDarkMode, colors } = useApp();
   const contactId: string = route.params?.contact?.id || 'usr-001';
   const contactName: string = route.params?.contact?.name || 'Soporte y Atención';
   const contactRole: string = route.params?.contact?.role || 'Línea de soporte y atención';
@@ -102,12 +102,17 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
             {item.is_support ? '🛡️ Soporte RerF' : `👤 ${item.sender_name || contactName || 'Cliente'}`}
           </Text>
         )}
-        <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}>
-          <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.otherMessageText]}>
+        <View style={[
+          styles.bubble, 
+          isMe 
+            ? styles.myBubble 
+            : [styles.otherBubble, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]
+        ]}>
+          <Text style={[styles.messageText, isMe ? styles.myMessageText : [styles.otherMessageText, { color: colors.textMain }]]}>
             {item.message}
           </Text>
         </View>
-        <Text style={styles.timestamp}>{item.created_at || '10:00'}</Text>
+        <Text style={[styles.timestamp, { color: colors.textMuted }]}>{item.created_at || '10:00'}</Text>
       </View>
     );
   };
@@ -116,6 +121,7 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
     <KeyboardAvoidingView 
       style={[
         styles.container,
+        { backgroundColor: colors.background },
         Platform.OS === 'android' && keyboardHeight > 0 ? { paddingBottom: keyboardHeight } : null
       ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -124,13 +130,21 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
       <Header title={isAdmin ? contactName : "Soporte RerF"} showBack={true} />
 
       {/* Banner identificador de canal y privacidad */}
-      <View style={[styles.channelBadgeRow, isAdmin && styles.channelBadgeRowAdmin]}>
+      <View style={[
+        styles.channelBadgeRow, 
+        { backgroundColor: colors.surfaceSubtle, borderBottomColor: colors.surfaceCardBorder },
+        isAdmin && (isDarkMode ? { backgroundColor: '#131A2A', borderBottomColor: '#1E293B' } : styles.channelBadgeRowAdmin)
+      ]}>
         <Ionicons 
           name={isAdmin ? "shield-checkmark" : "lock-closed"} 
           size={14} 
-          color={isAdmin ? "#0284C7" : RerfColors.logisticsBlue} 
+          color={isAdmin ? (isDarkMode ? "#60A5FA" : "#0284C7") : RerfColors.logisticsBlue} 
         />
-        <Text style={[styles.channelBadgeText, isAdmin && styles.channelBadgeTextAdmin]} numberOfLines={1}>
+        <Text style={[
+          styles.channelBadgeText, 
+          { color: colors.textMuted },
+          isAdmin && (isDarkMode ? { color: '#93C5FD' } : styles.channelBadgeTextAdmin)
+        ]} numberOfLines={1}>
           {isAdmin 
             ? `Modo Administrador • Chat con ${contactName} (${contactRole})` 
             : "Chat oficial y privado con Administración RERF"}
@@ -156,9 +170,9 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubbles-outline" size={44} color="#94A3B8" />
-            <Text style={styles.emptyTitle}>Conversación Iniciada</Text>
-            <Text style={styles.emptySubtitle}>
+            <Ionicons name="chatbubbles-outline" size={44} color={colors.textMuted} />
+            <Text style={[styles.emptyTitle, { color: colors.textMain }]}>Conversación Iniciada</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
               {isAdmin 
                 ? `Envía un mensaje para responder a ${contactName}.` 
                 : 'Escribe tu consulta y un asesor te atenderá a la brevedad.'}
@@ -168,11 +182,18 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
       />
 
       {/* Barra de entrada: "Escribir mensaje" + botón circular  */}
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { backgroundColor: colors.surfaceCard, borderTopColor: colors.surfaceCardBorder }]}>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: isDarkMode ? colors.surfaceSubtle : '#F8FAFC',
+              color: colors.textMain,
+              borderColor: colors.surfaceCardBorder,
+            }
+          ]}
           placeholder={isAdmin ? `Responder a ${contactName}...` : "Escribir a Soporte RerF..."}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={colors.textMuted}
           value={inputText}
           onChangeText={setInputText}
           returnKeyType="send"

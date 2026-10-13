@@ -18,7 +18,7 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 import { downloadInvoicePdf } from '../../utils/invoicePdf';
 
 export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ navigation }) => {
-  const { invoices, user } = useApp();
+  const { invoices, user, isDarkMode, colors } = useApp();
   const [search, setSearch] = useState<string>('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
@@ -59,37 +59,49 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
 
   const renderInvoice = ({ item }: { item: Invoice }) => (
     <TouchableOpacity 
-      style={styles.card}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surfaceCard,
+          borderColor: colors.surfaceCardBorder,
+        }
+      ]}
       onPress={() => setSelectedInvoice(item)}
       activeOpacity={0.8}
     >
       <View style={styles.cardContent}>
         {/* Fila superior: Fecha | Monto */}
-        <View style={styles.cardTopRow}>
+        <View style={[styles.cardTopRow, { borderBottomColor: colors.surfaceSubtle }]}>
           <View style={styles.dateAndNumberRow}>
-            <Ionicons name="receipt-outline" size={14} color="#64748B" style={{ marginRight: 4 }} />
-            <Text style={styles.dateText}>{item.issued_date || '14/10/2026'}</Text>
+            <Ionicons name="receipt-outline" size={14} color={colors.textMuted} style={{ marginRight: 4 }} />
+            <Text style={[styles.dateText, { color: colors.textMuted }]}>{item.issued_date || '14/10/2026'}</Text>
           </View>
-          <Text style={styles.amountText}>Q {item.amount.toFixed(2)}</Text>
+          <Text style={[styles.amountText, { color: colors.textMain }]}>Q {item.amount.toFixed(2)}</Text>
         </View>
 
         {/* Factura No. y Etiqueta de Guía */}
         <View style={styles.invoiceMetaRow}>
           <Text style={styles.invoiceNumberText}>{item.invoice_number}</Text>
           {item.tracking_number ? (
-            <View style={styles.trackingBadge}>
-              <Ionicons name="barcode-outline" size={11} color="#1D4ED8" />
-              <Text style={styles.trackingBadgeText}>{item.tracking_number}</Text>
+            <View style={[
+              styles.trackingBadge,
+              isDarkMode && { backgroundColor: '#1E293B', borderColor: '#334155' }
+            ]}>
+              <Ionicons name="barcode-outline" size={11} color={isDarkMode ? '#60A5FA' : '#1D4ED8'} />
+              <Text style={[styles.trackingBadgeText, isDarkMode && { color: '#93C5FD' }]}>{item.tracking_number}</Text>
             </View>
           ) : null}
         </View>
 
         {/* Remitente / Cliente (Relevante para el Administrador y envíos comerciales) */}
         {item.client_name ? (
-          <View style={styles.clientBadgeRow}>
-            <Ionicons name="person-circle-outline" size={13} color="#0D9488" />
-            <Text style={styles.clientBadgeText}>
-              Cliente: <Text style={styles.clientBadgeHighlight}>{item.client_name}</Text>
+          <View style={[
+            styles.clientBadgeRow,
+            isDarkMode && { backgroundColor: '#132E2B', borderColor: '#115E59' }
+          ]}>
+            <Ionicons name="person-circle-outline" size={13} color={isDarkMode ? '#2DD4BF' : '#0D9488'} />
+            <Text style={[styles.clientBadgeText, isDarkMode && { color: '#5EEAD4' }]}>
+              Cliente: <Text style={[styles.clientBadgeHighlight, isDarkMode && { color: '#99F6E4' }]}>{item.client_name}</Text>
             </Text>
           </View>
         ) : null}
@@ -97,16 +109,16 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
         {/* Destinatario si existe */}
         {item.recipient_name ? (
           <View style={styles.recipientRow}>
-            <Ionicons name="arrow-forward-outline" size={11} color="#64748B" />
-            <Text style={styles.recipientText} numberOfLines={1}>
+            <Ionicons name="arrow-forward-outline" size={11} color={colors.textMuted} />
+            <Text style={[styles.recipientText, { color: colors.textSecondary }]} numberOfLines={1}>
               Para: {item.recipient_name}
             </Text>
           </View>
         ) : null}
 
         {/* Cuerpo: Descripción */}
-        <Text style={styles.descLabel}>Descripción del servicio:</Text>
-        <Text style={styles.descContent} numberOfLines={2}>
+        <Text style={[styles.descLabel, { color: colors.textMuted }]}>Descripción del servicio:</Text>
+        <Text style={[styles.descContent, { color: colors.textSecondary }]} numberOfLines={2}>
           {item.description}
         </Text>
 
@@ -126,7 +138,10 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
           </Text>
 
           {item.payment_method ? (
-            <Text style={styles.paymentMethodPill}>
+            <Text style={[
+              styles.paymentMethodPill,
+              isDarkMode && { backgroundColor: colors.surfaceSubtle, color: colors.textSecondary }
+            ]}>
               {item.payment_method}
             </Text>
           ) : null}
@@ -134,43 +149,58 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
       </View>
 
       {/* Botón derecho [ E ] ( Pantalla 28 - Comprobante FEL) */}
-      <View style={styles.squareActionButton}>
-        <Text style={styles.actionLetter}>E</Text>
+      <View style={[
+        styles.squareActionButton,
+        isDarkMode && { backgroundColor: '#261F0B', borderColor: '#D97706' }
+      ]}>
+        <Text style={[styles.actionLetter, isDarkMode && { color: '#FBBF24' }]}>E</Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Header title="Facturas" showBack={true} />
 
       <View style={styles.content}>
         {/* Banner de Auditoría Global para el Administrador */}
         {isAdmin && (
-          <View style={styles.adminSummaryCard}>
+          <View style={[
+            styles.adminSummaryCard,
+            isDarkMode && { backgroundColor: '#131A2A', borderColor: '#1E293B' }
+          ]}>
             <View style={styles.adminSummaryHeader}>
               <View style={styles.adminBadge}>
-                <Ionicons name="shield-checkmark" size={13} color="#1D4ED8" />
-                <Text style={styles.adminBadgeText}>AUDITORÍA FISCAL FEL • ADMINISTRADOR</Text>
+                <Ionicons name="shield-checkmark" size={13} color={isDarkMode ? '#60A5FA' : '#1D4ED8'} />
+                <Text style={[styles.adminBadgeText, isDarkMode && { color: '#93C5FD' }]}>AUDITORÍA FISCAL FEL • ADMINISTRADOR</Text>
               </View>
-              <Text style={styles.adminDocCount}>{invoices.length} docs</Text>
+              <Text style={[styles.adminDocCount, isDarkMode && { backgroundColor: '#1E293B', color: '#93C5FD' }]}>{invoices.length} docs</Text>
             </View>
-            <Text style={styles.adminSummaryDescription}>
+            <Text style={[styles.adminSummaryDescription, { color: colors.textSecondary }]}>
               Comprobantes electrónicos vinculados en tiempo real a todos los movimientos de los clientes.
             </Text>
 
             <View style={styles.adminMetricsRow}>
-              <View style={styles.adminMetricChip}>
-                <Text style={styles.adminMetricLabel}>Total Facturado</Text>
-                <Text style={styles.adminMetricValue}>Q {totalFacturado.toFixed(2)}</Text>
+              <View style={[
+                styles.adminMetricChip,
+                { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }
+              ]}>
+                <Text style={[styles.adminMetricLabel, { color: colors.textMuted }]}>Total Facturado</Text>
+                <Text style={[styles.adminMetricValue, { color: colors.textMain }]}>Q {totalFacturado.toFixed(2)}</Text>
               </View>
-              <View style={styles.adminMetricChip}>
-                <Text style={styles.adminMetricLabel}>Pagadas</Text>
-                <Text style={[styles.adminMetricValue, { color: '#15803D' }]}>{facturasPagadas}</Text>
+              <View style={[
+                styles.adminMetricChip,
+                { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }
+              ]}>
+                <Text style={[styles.adminMetricLabel, { color: colors.textMuted }]}>Pagadas</Text>
+                <Text style={[styles.adminMetricValue, { color: '#10B981' }]}>{facturasPagadas}</Text>
               </View>
-              <View style={styles.adminMetricChip}>
-                <Text style={styles.adminMetricLabel}>Pendientes</Text>
-                <Text style={[styles.adminMetricValue, { color: '#B45309' }]}>
+              <View style={[
+                styles.adminMetricChip,
+                { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }
+              ]}>
+                <Text style={[styles.adminMetricLabel, { color: colors.textMuted }]}>Pendientes</Text>
+                <Text style={[styles.adminMetricValue, { color: '#F59E0B' }]}>
                   {invoices.length - facturasPagadas}
                 </Text>
               </View>
@@ -184,7 +214,7 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
             placeholder={isAdmin ? "Buscar por cliente, guía o No. factura..." : "Buscar por No. de factura o concepto..."}
             value={search}
             onChangeText={setSearch}
-            leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
+            leftIcon={<Ionicons name="search-outline" size={18} color={colors.textMuted} />}
             containerStyle={{ marginBottom: 0 }}
           />
         </View>
@@ -197,13 +227,13 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <Ionicons name="receipt-outline" size={42} color="#94A3B8" />
+              <View style={[styles.emptyIconCircle, { backgroundColor: colors.surfaceSubtle }]}>
+                <Ionicons name="receipt-outline" size={42} color={colors.textMuted} />
               </View>
-              <Text style={styles.emptyTitle}>
+              <Text style={[styles.emptyTitle, { color: colors.textMain }]}>
                 {isAdmin ? 'No hay facturas registradas' : 'No tienes facturas emitidas aún'}
               </Text>
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 {isAdmin
                   ? 'Cuando los clientes registren envíos o servicios en la plataforma, las facturas FEL de sus movimientos aparecerán automáticamente en esta vista.'
                   : 'Al crear envíos o recibir paquetes se emitirán tus comprobantes fiscales FEL automáticamente en esta sección.'}
@@ -258,7 +288,7 @@ export const InvoicesScreen: React.FC<RootStackScreenProps<'Facturas'>> = ({ nav
       )}
 
       {/* Barra inferior funcional adaptada por rol */}
-      <View style={styles.bottomTabBar}>
+      <View style={[styles.bottomTabBar, { backgroundColor: colors.surfaceCard, borderTopColor: colors.surfaceCardBorder }]}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal')}>
           <Ionicons name="menu-outline" size={24} color="#3B82F6" />
           <Text style={[styles.tabText, { color: '#3B82F6' }]}>App</Text>

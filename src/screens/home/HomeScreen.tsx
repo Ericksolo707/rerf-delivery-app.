@@ -15,7 +15,7 @@ import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({ navigation }) => {
-  const { user, shipments, warehouseItems, users, refreshData, isRefreshing } = useApp();
+  const { user, shipments, warehouseItems, users, refreshData, isRefreshing, isDarkMode, colors } = useApp();
   const isAdmin = user?.role === 'admin';
   
   // Nombre limpio y profesional para la bienvenida (sin dominio @correo.com)
@@ -74,7 +74,7 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
   const activeService = services[currentServiceIndex];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header : "Bienvenido [usuario]" con [ ! ] y [ -> ] */}
       <Header 
         title={`Bienvenido ${displayName}`} 
@@ -87,22 +87,22 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={refreshData}
-            colors={[RerfColors.primaryYellow, RerfColors.logisticsBlue]}
-            tintColor={RerfColors.logisticsBlue}
+            colors={[colors.primaryYellow, colors.logisticsBlue]}
+            tintColor={colors.logisticsBlue}
           />
         }
       >
         {/* Título RERF APP */}
         <View style={styles.appTitleContainer}>
-          <Text style={styles.appTitle}>
+          <Text style={[styles.appTitle, { color: colors.textMain }]}>
             {isAdmin ? 'RERF APP • PANEL ADMINISTRADOR' : 'RERF APP'}
           </Text>
         </View>
 
         {/* Muestra de Servicios (Cliente) O Métricas Operativas (Administrador) */}
         {isAdmin ? (
-          <View style={styles.adminKpiCard}>
-            <View style={styles.showcaseHeader}>
+          <View style={[styles.adminKpiCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+            <View style={[styles.showcaseHeader, { borderBottomColor: colors.surfaceSubtle }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Ionicons name="shield-checkmark" size={16} color="#1D4ED8" />
                 <Text style={styles.adminKpiHeaderLabel}>MÉTRICAS OPERATIVAS DEL SISTEMA</Text>
@@ -115,52 +115,53 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
 
             <View style={styles.kpiGrid}>
               <TouchableOpacity 
-                style={[styles.kpiItem, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}
+                style={[styles.kpiItem, { backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7', borderColor: isDarkMode ? '#78350F' : '#FDE68A' }]}
                 onPress={() => navigation.navigate('Pedidos')}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.kpiValue, { color: '#B45309' }]}>{adminMetrics.pendingOrders}</Text>
-                <Text style={styles.kpiLabel}>Por autorizar</Text>
+                <Text style={[styles.kpiValue, { color: isDarkMode ? '#FBBF24' : '#B45309' }]}>{adminMetrics.pendingOrders}</Text>
+                <Text style={[styles.kpiLabel, { color: isDarkMode ? '#FCD34D' : '#475569' }]}>Por autorizar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.kpiItem, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}
+                style={[styles.kpiItem, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: isDarkMode ? '#3B82F6' : '#BFDBFE' }]}
                 onPress={() => navigation.navigate('Entregas')}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.kpiValue, { color: '#1D4ED8' }]}>{adminMetrics.inRouteOrders}</Text>
-                <Text style={styles.kpiLabel}>En ruta activa</Text>
+                <Text style={[styles.kpiValue, { color: isDarkMode ? '#93C5FD' : '#1D4ED8' }]}>{adminMetrics.inRouteOrders}</Text>
+                <Text style={[styles.kpiLabel, { color: isDarkMode ? '#BFDBFE' : '#475569' }]}>En ruta activa</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.kpiItem, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}
+                style={[styles.kpiItem, { backgroundColor: isDarkMode ? '#064E3B' : '#F0FDF4', borderColor: isDarkMode ? '#047857' : '#BBF7D0' }]}
                 onPress={() => navigation.navigate('Usuarios')}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.kpiValue, { color: '#15803D' }]}>{adminMetrics.clientsCount}</Text>
-                <Text style={styles.kpiLabel}>Clientes activos</Text>
+                <Text style={[styles.kpiValue, { color: isDarkMode ? '#6EE7B7' : '#15803D' }]}>{adminMetrics.clientsCount}</Text>
+                <Text style={[styles.kpiLabel, { color: isDarkMode ? '#A7F3D0' : '#475569' }]}>Clientes activos</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.kpiItem, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}
+                style={[styles.kpiItem, { backgroundColor: isDarkMode ? '#2E1065' : '#F5F3FF', borderColor: isDarkMode ? '#5B21B6' : '#DDD6FE' }]}
                 onPress={() => navigation.navigate('Principal', { screen: 'BodegaTab' } as any)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.kpiValue, { color: '#6D28D9' }]}>{adminMetrics.warehouseCount}</Text>
-                <Text style={styles.kpiLabel}>En bodega</Text>
+                <Text style={[styles.kpiValue, { color: isDarkMode ? '#C4B5FD' : '#6D28D9' }]}>{adminMetrics.warehouseCount}</Text>
+                <Text style={[styles.kpiLabel, { color: isDarkMode ? '#DDD6FE' : '#475569' }]}>En bodega</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
-          <View style={styles.showcaseCard}>
-            <View style={styles.showcaseHeader}>
-              <Text style={styles.showcaseLabel}>Nuestros servicios</Text>
+          <View style={[styles.showcaseCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+            <View style={[styles.showcaseHeader, { borderBottomColor: colors.surfaceSubtle }]}>
+              <Text style={[styles.showcaseLabel, { color: colors.textSecondary }]}>Nuestros servicios</Text>
               <View style={styles.dotIndicatorRow}>
                 {services.map((_, idx) => (
                   <View 
                     key={idx} 
                     style={[
                       styles.dot, 
+                      { backgroundColor: isDarkMode ? '#334155' : '#CBD5E1' },
                       idx === currentServiceIndex && styles.activeDot
                     ]} 
                   />
@@ -173,8 +174,8 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
                 <Ionicons name={activeService.icon} size={28} color={activeService.color} />
               </View>
               <View style={styles.serviceTextCol}>
-                <Text style={styles.serviceTitle}>{activeService.title}</Text>
-                <Text style={styles.serviceDesc}>{activeService.desc}</Text>
+                <Text style={[styles.serviceTitle, { color: colors.textMain }]}>{activeService.title}</Text>
+                <Text style={[styles.serviceDesc, { color: colors.textSecondary }]}>{activeService.desc}</Text>
               </View>
             </View>
           </View>
@@ -200,75 +201,75 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               {/* Fila 1 Admin: Pedidos/Autorizaciones y Monitoreo Entregas */}
               <View style={styles.gridRow}>
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Pedidos')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
-                    <Ionicons name="clipboard-outline" size={28} color="#B45309" />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }]}>
+                    <Ionicons name="clipboard-outline" size={28} color={isDarkMode ? '#FBBF24' : '#B45309'} />
                   </View>
-                  <Text style={styles.gridCardText}>Autorizaciones</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Autorizaciones</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Entregas')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: RerfColors.logisticsBlueLight }]}>
-                    <Ionicons name="bicycle-outline" size={28} color={RerfColors.logisticsBlue} />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1E293B' : RerfColors.logisticsBlueLight }]}>
+                    <Ionicons name="bicycle-outline" size={28} color={colors.logisticsBlue} />
                   </View>
-                  <Text style={styles.gridCardText}>Entregas Flota</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Entregas Flota</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Fila 2 Admin: Bodega Central y Directorio Clientes */}
               <View style={styles.gridRow}>
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Principal', { screen: 'BodegaTab' } as any)}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: '#F5F3FF' }]}>
-                    <Ionicons name="cube-outline" size={28} color="#6D28D9" />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#2E1065' : '#F5F3FF' }]}>
+                    <Ionicons name="cube-outline" size={28} color={isDarkMode ? '#C4B5FD' : '#6D28D9'} />
                   </View>
-                  <Text style={styles.gridCardText}>Bodega Central</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Bodega Central</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Usuarios')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: '#EFF6FF' }]}>
-                    <Ionicons name="people-outline" size={28} color="#1D4ED8" />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF' }]}>
+                    <Ionicons name="people-outline" size={28} color={isDarkMode ? '#93C5FD' : '#1D4ED8'} />
                   </View>
-                  <Text style={styles.gridCardText}>Clientes</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Clientes</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Fila 3 Admin: Facturación FEL y Consultas */}
               <View style={styles.gridRow}>
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Facturas')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: '#CCFBF1' }]}>
-                    <Ionicons name="receipt-outline" size={28} color="#0D9488" />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#042F2E' : '#CCFBF1' }]}>
+                    <Ionicons name="receipt-outline" size={28} color={isDarkMode ? '#5EEAD4' : '#0D9488'} />
                   </View>
-                  <Text style={styles.gridCardText}>Facturas FEL</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Facturas FEL</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('DesglosePaquetes')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
-                    <Ionicons name="search-outline" size={28} color={RerfColors.successGreen} />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#064E3B' : '#ECFDF5' }]}>
+                    <Ionicons name="search-outline" size={28} color={colors.successGreen} />
                   </View>
-                  <Text style={styles.gridCardText}>Desglose General</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Desglose General</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -279,26 +280,26 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               <View style={styles.gridRow}>
                 {/* Botón Envíos (Pantalla 12: Enviar Paquete y Gestión) */}
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('GestionEnvio')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: RerfColors.primaryYellowLight }]}>
-                    <Ionicons name="paper-plane-outline" size={28} color={RerfColors.primaryYellowHover} />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#451A03' : RerfColors.primaryYellowLight }]}>
+                    <Ionicons name="paper-plane-outline" size={28} color={colors.primaryYellow} />
                   </View>
-                  <Text style={styles.gridCardText}>Envíos</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Envíos</Text>
                 </TouchableOpacity>
 
                 {/* Botón Pedidos (Pantalla 8) */}
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Pedidos')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: '#EFF6FF' }]}>
-                    <Ionicons name="clipboard-outline" size={28} color={RerfColors.logisticsBlue} />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF' }]}>
+                    <Ionicons name="clipboard-outline" size={28} color={colors.logisticsBlue} />
                   </View>
-                  <Text style={styles.gridCardText}>Pedidos</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Pedidos</Text>
                 </TouchableOpacity>
               </View>
 
@@ -306,26 +307,26 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               <View style={styles.gridRow}>
                 {/* Botón Entregas (Pantalla 7) */}
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Entregas')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: RerfColors.logisticsBlueLight }]}>
-                    <Ionicons name="bicycle-outline" size={28} color={RerfColors.logisticsBlue} />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1E293B' : RerfColors.logisticsBlueLight }]}>
+                    <Ionicons name="bicycle-outline" size={28} color={colors.logisticsBlue} />
                   </View>
-                  <Text style={styles.gridCardText}>Entregas</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Entregas</Text>
                 </TouchableOpacity>
 
                 {/* Botón Cotizador de Envío (Pantalla 26) */}
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Cotizador')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
-                    <Ionicons name="calculator-outline" size={28} color={RerfColors.successGreen} />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#064E3B' : '#ECFDF5' }]}>
+                    <Ionicons name="calculator-outline" size={28} color={colors.successGreen} />
                   </View>
-                  <Text style={styles.gridCardText}>Cotizar Envío</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Cotizar Envío</Text>
                 </TouchableOpacity>
               </View>
 
@@ -333,26 +334,26 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
               <View style={styles.gridRow}>
                 {/* Botón Facturas FEL (Pantalla 28) */}
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Facturas')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: '#CCFBF1' }]}>
-                    <Ionicons name="receipt-outline" size={28} color="#0D9488" />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#042F2E' : '#CCFBF1' }]}>
+                    <Ionicons name="receipt-outline" size={28} color={isDarkMode ? '#5EEAD4' : '#0D9488'} />
                   </View>
-                  <Text style={styles.gridCardText}>Facturas FEL</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Facturas FEL</Text>
                 </TouchableOpacity>
 
                 {/* Botón Directorio de Usuarios */}
                 <TouchableOpacity 
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
                   onPress={() => navigation.navigate('Usuarios')}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
-                    <Ionicons name="people-outline" size={28} color="#B45309" />
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }]}>
+                    <Ionicons name="people-outline" size={28} color={isDarkMode ? '#FBBF24' : '#B45309'} />
                   </View>
-                  <Text style={styles.gridCardText}>Usuarios</Text>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Usuarios</Text>
                 </TouchableOpacity>
               </View>
             </>

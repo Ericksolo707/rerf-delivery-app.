@@ -1,7 +1,8 @@
 
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, DefaultTheme, DarkTheme } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
 import { useApp } from "../context/AppContext";
 import { RootStackParamList } from "../types/navigation";
 
@@ -47,10 +48,35 @@ import { NotificationsScreen } from "../screens/home/NotificationsScreen";
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator: React.FC = () => {
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, isDarkMode, colors } = useApp();
+
+  const navTheme = isDarkMode
+    ? {
+        ...DarkTheme,
+        colors: {
+          ...DarkTheme.colors,
+          background: colors.background,
+          card: colors.surfaceCard,
+          text: colors.textMain,
+          border: colors.surfaceCardBorder,
+          primary: colors.primaryYellow,
+        },
+      }
+    : {
+        ...DefaultTheme,
+        colors: {
+          ...DefaultTheme.colors,
+          background: colors.background,
+          card: colors.surfaceCard,
+          text: colors.textMain,
+          border: colors.surfaceCardBorder,
+          primary: colors.primaryYellow,
+        },
+      };
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Stack.Navigator
         screenOptions={{ headerShown: false, animation: "slide_from_right" }}
       >

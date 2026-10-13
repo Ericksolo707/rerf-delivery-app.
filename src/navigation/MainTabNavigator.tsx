@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MainTabParamList } from '../types/navigation';
-import { RerfColors } from '../constants/theme';
+import { useApp } from '../context/AppContext';
 
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { WarehouseScreen } from '../screens/warehouse/WarehouseScreen';
@@ -16,6 +16,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export const MainTabNavigator: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const { isDarkMode, colors } = useApp();
   const bottomInset = insets.bottom > 0 ? insets.bottom : 8;
 
   return (
@@ -26,12 +27,12 @@ export const MainTabNavigator: React.FC = () => {
           height: 56 + bottomInset,
           paddingBottom: bottomInset,
           paddingTop: 6,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: isDarkMode ? colors.surfaceCard : '#FFFFFF',
           borderTopWidth: 1,
-          borderTopColor: RerfColors.surfaceCardBorder,
+          borderTopColor: colors.surfaceCardBorder,
         },
-        tabBarActiveTintColor: RerfColors.logisticsBlue,
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: colors.primaryYellow,
+        tabBarInactiveTintColor: isDarkMode ? '#94A3B8' : '#64748B',
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '700',
