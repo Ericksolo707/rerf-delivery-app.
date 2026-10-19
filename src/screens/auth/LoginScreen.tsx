@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   View,
@@ -10,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,6 +26,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
   const { login } = useApp();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -57,7 +58,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* SECCIÓN SUPERIOR: Identidad RerF e Ilustración Animada */}
+        {/* SECCIÓN SUPERIOR */}
         <View
           style={[styles.headerBackground, { paddingTop: insets.top + 16 }]}
         >
@@ -72,16 +73,15 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
             </Text>
           </View>
 
-          {/* CONTROL DE RENDERIZADO HÍBRIDO  */}
           <View style={styles.visualContainer}>
             {Platform.OS === "web" ? (
-              // Esti es para web
+              //Para Web
               <Image
                 source={require("../../../assets/delivery-guy.jpg")}
                 style={styles.deliveryImage}
               />
             ) : (
-              // Para telefono
+              //Para telefono
               <LottieView
                 source={require("../../../assets/delivery-animation.json")}
                 autoPlay
@@ -94,7 +94,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
 
         {/* SECCIÓN INFERIOR */}
         <View style={styles.sheetContainer}>
-          <Text style={styles.welcomeTitle}>Welcome Back</Text>
+          <Text style={styles.welcomeTitle}>¡Bienvenido de nuevo!</Text>
 
           {error ? (
             <View style={styles.errorBanner}>
@@ -103,7 +103,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
             </View>
           ) : null}
 
-          {/* Campos de texto estilo cápsula limpia */}
+          {/* Campo Email */}
           <View style={styles.inputWrapper}>
             <Ionicons
               name="mail-outline"
@@ -124,6 +124,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
             />
           </View>
 
+          {/* Campo Contraseña */}
           <View style={styles.inputWrapper}>
             <Ionicons
               name="lock-closed-outline"
@@ -138,9 +139,19 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
                 setPassword(val);
                 if (error) setError("");
               }}
-              secureTextEntry
+              secureTextEntry={!showPassword}
               containerStyle={styles.cleanInputContainer}
             />
+            <Pressable
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeButton}
+            >
+              <Ionicons
+                name={showPassword ? "eye-outline" : "eye-off-outline"}
+                size={20}
+                color="#94A3B8"
+              />
+            </Pressable>
           </View>
 
           {/* Opciones extras */}
@@ -150,7 +161,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Botón Principal con los colores oficiales de la App */}
+          {/* Botón Principal */}
           <TouchableOpacity
             style={[styles.loginButton, loading && styles.disabledButton]}
             onPress={handleLogin}
@@ -163,7 +174,7 @@ export const LoginScreen: React.FC<RootStackScreenProps<"Login">> = ({
             )}
           </TouchableOpacity>
 
-          {/* Enlace al Registro */}
+          {/* Registro */}
           <View style={styles.registerContainer}>
             <Text style={styles.noAccountText}>¿No tienes cuenta? </Text>
             <TouchableOpacity onPress={() => navigation.navigate("Register")}>
@@ -253,23 +264,19 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     borderWidth: 0,
     height: "100%",
+    paddingHorizontal: 0, // Evita espacios extra innecesarios
+  },
+  eyeButton: {
+    paddingLeft: 8,
+    justifyContent: "center",
+    alignItems: "center",
   },
   optionsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginBottom: 24,
     marginTop: 4,
-  },
-  checkboxRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  checkboxText: {
-    fontSize: 13,
-    color: "#64748B",
-    fontWeight: "500",
   },
   forgotText: {
     fontSize: 13,
