@@ -26,10 +26,18 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ navigation }) => {
-  const { users } = useApp();
+  const { users, user: currentUser } = useApp();
   const [search, setSearch] = useState<string>('');
   const [submittedQuery, setSubmittedQuery] = useState<string>('');
   const [hasSearched, setHasSearched] = useState<boolean>(false);
+
+  // Excluir al titular de la sesión para mostrar solo otros contactos del directorio
+  const otherUsers = React.useMemo(() => {
+    return users.filter(u => 
+      u.id !== currentUser?.id && 
+      (!currentUser?.email || u.email?.toLowerCase() !== currentUser?.email?.toLowerCase())
+    );
+  }, [users, currentUser]);
 
   const handleSearch = () => {
     const trimmed = search.trim();
@@ -45,14 +53,17 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
 
   const activeQuery = hasSearched ? submittedQuery : search.trim();
   const filteredUsers = activeQuery
-    ? users.filter(u =>
+    ? otherUsers.filter(u =>
         `${u?.first_name || ''} ${u?.last_name || ''}`.toLowerCase().includes(activeQuery.toLowerCase()) ||
+        (u?.username || '').toLowerCase().includes(activeQuery.toLowerCase()) ||
+        (u?.alias || '').toLowerCase().includes(activeQuery.toLowerCase()) ||
+        (u?.description || u?.bio || '').toLowerCase().includes(activeQuery.toLowerCase()) ||
         (u?.email || '').toLowerCase().includes(activeQuery.toLowerCase())
       )
-    : users;
+    : otherUsers;
 
   const isNotFound = hasSearched && submittedQuery !== '' && filteredUsers.length === 0;
-  const recentUsers = users.slice(0, 4);
+  const recentUsers = otherUsers.slice(0, 4);
 
   return (
     <View style={styles.container}>
@@ -123,8 +134,8 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
                   <Ionicons name="person-outline" size={20} color="#0F172A" />
                 </View>
                 <View style={styles.userRowInfo}>
-                  <Text style={styles.userRowName}>{user.first_name} {user.last_name}</Text>
-                  <Text style={styles.userRowEmail}>{user.email}</Text>
+                  <Text style={styles.userRowName}>{user.username || `${user.first_name} ${user.last_name}`.trim()}</Text>
+                  <Text style={styles.userRowEmail}>{user.alias ? `${user.alias} • ` : ''}{user.email}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
               </TouchableOpacity>
@@ -167,7 +178,7 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
                 <Text style={styles.recentFotoText}>foto</Text>
               </View>
               <Text style={styles.recentUserName} numberOfLines={1}>
-                {user.first_name} {user.last_name}
+                {user.alias || user.username || `${user.first_name} ${user.last_name}`.trim()}
               </Text>
             </TouchableOpacity>
           ))}

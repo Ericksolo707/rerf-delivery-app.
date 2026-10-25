@@ -3,12 +3,15 @@
  * Programación II - UMG / RerF Logistics
  *
  * Responsabilidad: Pantalla 22 del boceto Excalidraw con:
- * - Header: avatar circular + "Moderación 1" con botones [ ! ] y [ -> ]
- * - Burbujas de chat estilizadas (izquierda entrante, derecha saliente)
- * - Barra inferior: "Escribir mensaje" + botón circular de envío
+ * - Soporte Privado 1 a 1:
+ *   - Cliente: Canal oficial y directo con Administración RerF.
+ *   - Administrador: Chat individual con cada cliente para resolver sus dudas específicas.
+ * - Header: Botón de retorno [ < ] + Nombre del contacto/canal.
+ * - Burbujas estilizadas según rol (Admin vs Cliente).
+ * - Barra inferior: "Escribir mensaje" + botón circular de envío con ajuste perfecto de teclado y auto-scroll.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -17,7 +20,9 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   TextInput, 
-  TouchableOpacity 
+  TouchableOpacity,
+  Keyboard,
+  RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -27,22 +32,88 @@ import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = ({ route, navigation }) => {
-  const { supportMessages, sendSupportMessage, user } = useApp();
-  const contactName: string = route.params?.contact?.name || 'Moderación 1';
+  const { supportMessages, sendSupportMessage, user, isRefreshing, refreshData } = useApp();
+  const contactId: string = route.params?.contact?.id || 'usr-001';
+  const contactName: string = route.params?.contact?.name || 'Soporte y Atención';
+  const contactRole: string = route.params?.contact?.role || 'Línea de soporte y atención';
 
+  const isAdmin = user?.role === 'admin';
   const [inputText, setInputText] = useState<string>('');
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+  const flatListRef = useRef<FlatList>(null);
 
-  const handleSend = () => {
+  // Filtrar mensajes específicos de esta conversación 1-a-1
+  const conversationMessages = useMemo(() => {
+    if (isAdmin) {
+      // El administrador ve los mensajes intercambiados con este cliente específico
+      return supportMessages.filter(m => 
+        m.client_id === contactId || 
+        m.sender_id === contactId || 
+        m.receiver_id === contactId ||
+        (m.client_name && contactName && m.client_name.toLowerCase() === contactName.toLowerCase())
+      );
+    } else {
+      // El cliente ve sus propios mensajes con el soporte
+      const myId = user?.id || 'usr-001';
+      return supportMessages.filter(m => 
+        m.client_id === myId || 
+        m.sender_id === myId || 
+        m.receiver_id === myId
+      );
+    }
+  }, [supportMessages, contactId, contactName, isAdmin, user?.id]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const hideListener = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  }, [conversationMessages.length]);
+
+  const handleSend = async () => {
     if (!inputText.trim()) return;
-    sendSupportMessage(inputText.trim());
+    const textToSend = inputText.trim();
     setInputText('');
+    await sendSupportMessage(textToSend, contactId, contactName);
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
   const renderBubble = ({ item }: { item: ChatMessage }) => {
-    const isMe = item.sender_id === user?.id || item.sender_id === 'usr-001';
+    // Si el usuario actual es admin: sus respuestas (o mensajes marcados is_support) son suyos (derecha)
+    // Si el usuario actual es cliente: sus propios mensajes son suyos (derecha)
+    const isMe = isAdmin 
+      ? (item.sender_id === user?.id || item.is_support)
+      : (!item.is_support && item.sender_id === user?.id);
 
     return (
       <View style={[styles.bubbleWrapper, isMe ? styles.myBubbleWrapper : styles.otherBubbleWrapper]}>
+        {!isMe && (
+          <Text style={styles.senderNameLabel}>
+            {item.is_support ? '🛡️ Soporte RerF' : `👤 ${item.sender_name || contactName || 'Cliente'}`}
+          </Text>
+        )}
         <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}>
           <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.otherMessageText]}>
             {item.message}
@@ -55,28 +126,69 @@ export const SupportChatScreen: React.FC<RootStackScreenProps<'ChatSoporte'>> = 
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={[
+        styles.container,
+        Platform.OS === 'android' && keyboardHeight > 0 ? { paddingBottom: keyboardHeight } : null
+      ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <Header title={contactName} showBack={true} />
+      <Header title={isAdmin ? contactName : "Soporte RerF"} showBack={true} />
+
+      {/* Banner identificador de canal y privacidad */}
+      <View style={[styles.channelBadgeRow, isAdmin && styles.channelBadgeRowAdmin]}>
+        <Ionicons 
+          name={isAdmin ? "shield-checkmark" : "lock-closed"} 
+          size={14} 
+          color={isAdmin ? "#0284C7" : RerfColors.logisticsBlue} 
+        />
+        <Text style={[styles.channelBadgeText, isAdmin && styles.channelBadgeTextAdmin]} numberOfLines={1}>
+          {isAdmin 
+            ? `Modo Administrador • Chat con ${contactName} (${contactRole})` 
+            : "Chat oficial y privado con Administración RERF"}
+        </Text>
+      </View>
 
       <FlatList
-        data={supportMessages}
+        ref={flatListRef}
+        data={conversationMessages}
         keyExtractor={item => item.id}
         renderItem={renderBubble}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshData}
+            colors={[RerfColors.primaryYellowText]}
+            tintColor={RerfColors.primaryYellowText}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="chatbubbles-outline" size={44} color="#94A3B8" />
+            <Text style={styles.emptyTitle}>Conversación Iniciada</Text>
+            <Text style={styles.emptySubtitle}>
+              {isAdmin 
+                ? `Envía un mensaje para responder a ${contactName}.` 
+                : 'Escribe tu consulta y un asesor te atenderá a la brevedad.'}
+            </Text>
+          </View>
+        }
       />
 
       {/* Barra de entrada: "Escribir mensaje" + botón circular (Excalidraw Pantalla 22) */}
       <View style={styles.inputBar}>
         <TextInput
           style={styles.input}
-          placeholder="Escribir mensaje"
+          placeholder={isAdmin ? `Responder a ${contactName}...` : "Escribir a Soporte RerF..."}
           placeholderTextColor="#94A3B8"
           value={inputText}
           onChangeText={setInputText}
+          returnKeyType="send"
+          onSubmitEditing={handleSend}
         />
         <TouchableOpacity 
           style={[styles.circleSendBtn, !inputText.trim() && styles.disabledSendBtn]} 
@@ -96,9 +208,53 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: RerfColors.background,
   },
+  channelBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: RerfColors.surfaceSubtle,
+    borderBottomWidth: 1,
+    borderBottomColor: RerfColors.surfaceCardBorder,
+  },
+  channelBadgeRowAdmin: {
+    backgroundColor: '#F0F9FF',
+    borderBottomColor: '#BAE6FD',
+  },
+  channelBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: RerfColors.textMuted,
+    flex: 1,
+  },
+  channelBadgeTextAdmin: {
+    color: '#0369A1',
+    fontWeight: '800',
+  },
   messagesList: {
     padding: 16,
     gap: 12,
+    flexGrow: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: RerfColors.textMain,
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    color: RerfColors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    lineHeight: 18,
   },
   bubbleWrapper: {
     maxWidth: '82%',
@@ -111,6 +267,13 @@ const styles = StyleSheet.create({
   otherBubbleWrapper: {
     alignSelf: 'flex-start',
     alignItems: 'flex-start',
+  },
+  senderNameLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: RerfColors.textMuted,
+    marginBottom: 3,
+    marginLeft: 4,
   },
   bubble: {
     borderRadius: 16,
@@ -142,44 +305,45 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: RerfColors.textMuted,
     marginTop: 4,
     marginHorizontal: 4,
-    fontWeight: '500',
   },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: RerfColors.surfaceCard,
     borderTopWidth: 1,
     borderTopColor: RerfColors.surfaceCardBorder,
-    gap: 10,
+    gap: 12,
   },
   input: {
     flex: 1,
     height: 46,
+    backgroundColor: RerfColors.background,
     borderWidth: 1,
     borderColor: RerfColors.surfaceCardBorder,
     borderRadius: 23,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     fontSize: 14,
     color: RerfColors.textMain,
-    backgroundColor: RerfColors.surfaceSubtle,
   },
   circleSendBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
+    backgroundColor: RerfColors.primaryYellow,
     borderWidth: 1,
     borderColor: RerfColors.primaryYellowHover,
-    backgroundColor: RerfColors.primaryYellow,
     justifyContent: 'center',
     alignItems: 'center',
-    ...RerfShadows.card,
+    ...RerfShadows.cardHover,
   },
   disabledSendBtn: {
-    opacity: 0.5,
     backgroundColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
+    opacity: 0.6,
   },
 });

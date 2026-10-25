@@ -25,7 +25,6 @@ import {
 } from '../repositories';
 import { 
   MOCK_NOTIFICATIONS, 
-  MOCK_CHAT_MESSAGES, 
   MOCK_AI_MESSAGES 
 } from '../services/mockData';
 
@@ -36,6 +35,42 @@ const isUuid = (str?: string): boolean => {
   if (!str) return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
 };
+
+const DEFAULT_SUPPORT_MESSAGES: ChatMessage[] = [
+  {
+    id: 'msg-carlos-1',
+    sender_id: 'support-rerf',
+    sender_name: 'Soporte RerF',
+    receiver_id: 'usr-001',
+    client_id: 'usr-001',
+    client_name: 'Carlos Gómez',
+    message: '¡Hola Carlos! Bienvenido al soporte técnico y de atención de RERF APP. ¿En qué podemos orientarte hoy?',
+    created_at: '10:14 AM',
+    is_support: true,
+  },
+  {
+    id: 'msg-carlos-2',
+    sender_id: 'usr-001',
+    sender_name: 'Carlos Gómez',
+    receiver_id: 'support-rerf',
+    client_id: 'usr-001',
+    client_name: 'Carlos Gómez',
+    message: 'Hola, quería consultar la hora estimada de llegada de mi paquete RERF-98234-GT.',
+    created_at: '10:15 AM',
+    is_support: false,
+  },
+  {
+    id: 'msg-carlos-3',
+    sender_id: 'support-rerf',
+    sender_name: 'Soporte RerF',
+    receiver_id: 'usr-001',
+    client_id: 'usr-001',
+    client_name: 'Carlos Gómez',
+    message: 'El piloto se encuentra a aproximadamente 15 minutos de la dirección registrada. Puedes seguir la ruta en tiempo real desde la sección GPS.',
+    created_at: '10:17 AM',
+    is_support: true,
+  },
+];
 
 interface AppContextType {
   // Autenticación y Perfil
@@ -61,7 +96,8 @@ interface AppContextType {
   
   // Notificaciones
   notifications: NotificationItem[];
-  markNotificationRead: (id: string) => void;
+  markNotificationRead: (id: string) => Promise<void> | void;
+  markAllNotificationsAsRead: () => Promise<void>;
   
   // Facturas y Directorio
   invoices: Invoice[];
@@ -71,7 +107,7 @@ interface AppContextType {
   
   // Soporte y Chat IA
   supportMessages: ChatMessage[];
-  sendSupportMessage: (text: string) => void;
+  sendSupportMessage: (text: string, targetClientId?: string, targetClientName?: string) => Promise<void>;
   aiMessages: ChatMessage[];
   sendAiMessage: (text: string) => void;
 
@@ -93,8 +129,106 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [users, setUsers] = useState<UserProfile[]>([]);
   
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(MOCK_CHAT_MESSAGES);
+  const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(DEFAULT_SUPPORT_MESSAGES);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>(MOCK_AI_MESSAGES);
+
+  // Cargar historial de soporte privado persistido y desde Supabase
+  const cargarMensajesSoporte = async (): Promise<ChatMessage[]> => {
+    try {
+      let mensajesLocales: ChatMessage[] = [];
+      const storedRaw = await AsyncStorage.getItem('@rerf_private_support_messages');
+      if (storedRaw) {
+        try {
+          const parsed = JSON.parse(storedRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            mensajesLocales = parsed;
+          }
+        } catch {}
+      }
+
+      // Migrar mensajes antiguos si existían en los canales de prueba
+      const legacyRaw = await AsyncStorage.getItem('@rerf_support_messages_channels');
+      if (legacyRaw) {
+        try {
+          const parsedLegacy = JSON.parse(legacyRaw);
+          if (Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
+            for (const lm of parsedLegacy) {
+              if (lm.id && !lm.id.startsWith('msg-mod')) {
+                const cId = lm.sender_id;
+                const existe = mensajesLocales.some(m => m.id === lm.id || (m.sender_id === lm.sender_id && m.message === lm.message));
+                if (!existe) {
+                  mensajesLocales.push({
+                    id: lm.id,
+                    sender_id: lm.sender_id,
+                    sender_name: lm.sender_name || 'Cliente',
+                    receiver_id: lm.is_support ? undefined : 'support-rerf',
+                    client_id: cId,
+                    client_name: lm.sender_name || 'Cliente',
+                    message: lm.message,
+                    created_at: lm.created_at || 'Reciente',
+                    is_support: Boolean(lm.is_support),
+                  });
+                }
+              }
+            }
+          }
+        } catch {}
+      }
+
+      if (mensajesLocales.length === 0) {
+        mensajesLocales = DEFAULT_SUPPORT_MESSAGES;
+        await AsyncStorage.setItem('@rerf_private_support_messages', JSON.stringify(DEFAULT_SUPPORT_MESSAGES));
+      }
+
+      // Si Supabase está configurado, sincronizar con la tabla mensajes
+      if (isSupabaseConfigured) {
+        try {
+          const { data: remoteMsgs } = await supabase
+            .from('mensajes')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+          if (remoteMsgs && remoteMsgs.length > 0) {
+            const mappedRemotes: ChatMessage[] = remoteMsgs.map((rm: any) => {
+              const cId = rm.is_support ? (rm.receiver_id || rm.sender_id) : (rm.sender_id || rm.receiver_id);
+              return {
+                id: rm.id,
+                sender_id: rm.sender_id,
+                sender_name: rm.is_support ? 'Administración RerF' : 'Cliente',
+                receiver_id: rm.receiver_id,
+                client_id: cId,
+                client_name: rm.is_support ? 'Administración RerF' : 'Cliente',
+                message: rm.message,
+                created_at: new Date(rm.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                is_support: Boolean(rm.is_support),
+                is_bot: Boolean(rm.is_bot),
+              };
+            });
+
+            const seen = new Set<string>();
+            const combinados: ChatMessage[] = [];
+            for (const m of [...mensajesLocales, ...mappedRemotes]) {
+              const sig = `${m.sender_id}|${m.message}|${m.created_at}`;
+              if (!seen.has(m.id) && !seen.has(sig)) {
+                seen.add(m.id);
+                seen.add(sig);
+                combinados.push(m);
+              }
+            }
+            mensajesLocales = combinados;
+          }
+        } catch (sbErr) {
+          console.warn('[AppContext] Aviso al consultar tabla mensajes:', sbErr);
+        }
+      }
+
+      setSupportMessages(mensajesLocales);
+      return mensajesLocales;
+    } catch (err) {
+      console.warn('Error cargando mensajes de soporte:', err);
+      return DEFAULT_SUPPORT_MESSAGES;
+    }
+  };
 
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
@@ -106,11 +240,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const STORAGE_KEY_READ_NOTIFS = '@rerf_read_notifications_global';
+
+  const obtenerIdsLeidos = async (): Promise<Set<string>> => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY_READ_NOTIFS);
+      return raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
+    } catch {
+      return new Set<string>();
+    }
+  };
+
+  const registrarNotificacionesLeidas = async (
+    items: { id: string; title?: string; message?: string }[]
+  ): Promise<void> => {
+    try {
+      const set = await obtenerIdsLeidos();
+      for (const it of items) {
+        if (it.id) set.add(it.id);
+        if (it.title && it.message) {
+          set.add(`${(it.title || '').trim()}|${(it.message || '').trim()}`);
+        }
+      }
+      await AsyncStorage.setItem(STORAGE_KEY_READ_NOTIFS, JSON.stringify(Array.from(set)));
+    } catch (err) {
+      console.warn('[AppContext] Error registrando notificaciones leídas:', err);
+    }
+  };
+
   // Cargar notificaciones persistidas y aisladas específicamente para el usuario en sesión
   const obtenerNotificacionesUsuario = async (currentUser: UserProfile): Promise<NotificationItem[]> => {
     try {
       const storageKey = `@rerf_notifications_${currentUser.id}`;
-      const guardadasRaw = await AsyncStorage.getItem(storageKey);
+      const emailKey = currentUser.email ? `@rerf_notifications_${currentUser.email.toLowerCase().trim()}` : null;
+      const guardadasRaw = (await AsyncStorage.getItem(storageKey)) || (emailKey ? await AsyncStorage.getItem(emailKey) : null);
       let lista: NotificationItem[] = [];
       if (guardadasRaw) {
         lista = JSON.parse(guardadasRaw);
@@ -119,6 +282,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         lista = MOCK_NOTIFICATIONS;
         await AsyncStorage.setItem(storageKey, JSON.stringify(MOCK_NOTIFICATIONS));
       }
+
+      // Obtener el registro persistente de notificaciones ya leídas
+      const readSet = await obtenerIdsLeidos();
 
       // Si Supabase está disponible y el usuario tiene ID, cargar alertas remotas
       if (isSupabaseConfigured && currentUser.id && currentUser.id.includes('-')) {
@@ -158,7 +324,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (!seen.has(sig) && !seen.has(m.id)) {
                 seen.add(sig);
                 seen.add(m.id);
-                const wasRead = Boolean(m.is_read || localReadMap.get(m.id) || localReadMap.get(sig));
+                const wasRead = Boolean(
+                  m.is_read || 
+                  localReadMap.get(m.id) || 
+                  localReadMap.get(sig) || 
+                  readSet.has(m.id) || 
+                  readSet.has(sig)
+                );
                 combined.push({
                   ...m,
                   is_read: wasRead,
@@ -172,7 +344,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (!seen.has(sig) && !seen.has(l.id)) {
                 seen.add(sig);
                 seen.add(l.id);
-                combined.push(l);
+                const wasRead = Boolean(
+                  l.is_read || 
+                  readSet.has(l.id) || 
+                  readSet.has(sig)
+                );
+                combined.push({
+                  ...l,
+                  is_read: wasRead,
+                });
               }
             }
 
@@ -183,7 +363,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      // Deduplicación final por firma y ID
+      // Deduplicación final por firma y ID aplicando el set de lectura
       const finalUnique: NotificationItem[] = [];
       const finalSeen = new Set<string>();
       for (const item of lista) {
@@ -191,11 +371,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!finalSeen.has(sig) && !finalSeen.has(item.id)) {
           finalSeen.add(sig);
           finalSeen.add(item.id);
-          finalUnique.push(item);
+          const wasRead = Boolean(item.is_read || readSet.has(item.id) || readSet.has(sig));
+          finalUnique.push({
+            ...item,
+            is_read: wasRead,
+          });
         }
       }
 
-      return ordenarNotificacionesRecientes(finalUnique);
+      const ordenadas = ordenarNotificacionesRecientes(finalUnique);
+
+      // Persistir de inmediato la consolidación limpia para futuras sesiones
+      await AsyncStorage.setItem(storageKey, JSON.stringify(ordenadas));
+      if (emailKey) {
+        await AsyncStorage.setItem(emailKey, JSON.stringify(ordenadas));
+      }
+
+      return ordenadas;
     } catch (err) {
       console.warn('Error cargando notificaciones del usuario:', err);
       return [];
@@ -217,6 +409,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       isCurrent = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Re-aplicar cancelaciones locales persistidas sobre la lista de envíos
@@ -256,6 +449,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInvoices(listaFacturas);
       const actualizados = await repositorioUsuarios.listarDirectorio();
       setUsers(actualizados);
+      await cargarMensajesSoporte();
       if (user) {
         const userNotifs = await obtenerNotificacionesUsuario(user);
         setNotifications(userNotifs);
@@ -274,6 +468,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (user) {
       try {
         await AsyncStorage.setItem(`@rerf_notifications_${user.id}`, JSON.stringify(ordenadas));
+        if (user.email) {
+          await AsyncStorage.setItem(`@rerf_notifications_${user.email.toLowerCase().trim()}`, JSON.stringify(ordenadas));
+        }
       } catch (err) {
         console.warn('Error persistiendo notificaciones:', err);
       }
@@ -356,6 +553,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setWarehouseItems(listaBodega);
         setInvoices(listaFacturas);
         setUsers(listaUsuarios);
+        await cargarMensajesSoporte();
       } catch (error: unknown) {
         console.error('Error al inicializar datos desde repositorios:', error);
       }
@@ -381,6 +579,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInvoices(listaFacturas);
       const actualizados = await repositorioUsuarios.listarDirectorio();
       setUsers(actualizados);
+      await cargarMensajesSoporte();
     } catch {}
     return true;
   };
@@ -410,8 +609,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAllShipments(conCancelaciones);
       const listaBodega = await repositorioBodega.listar();
       setWarehouseItems(listaBodega);
+      const listaFacturas = await repositorioFacturas.listar();
+      setInvoices(listaFacturas);
       const actualizados = await repositorioUsuarios.listarDirectorio();
       setUsers(actualizados);
+      await cargarMensajesSoporte();
     } catch {}
     return true;
   };
@@ -426,6 +628,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProfile = async (data: Partial<UserProfile>): Promise<void> => {
     const actualizado = await repositorioUsuarios.actualizarPerfil(data);
     setUser(actualizado);
+    const listaUsuarios = await repositorioUsuarios.listarDirectorio();
+    setUsers(listaUsuarios);
   };
 
   const addShipment = async (
@@ -834,24 +1038,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const markNotificationRead = (id: string): void => {
+  const markNotificationRead = async (id: string): Promise<void> => {
     const target = notifications.find(n => n.id === id);
     const actualizadas = notifications.map(n => (n.id === id ? { ...n, is_read: true } : n));
-    persistirNotificaciones(actualizadas);
+    await persistirNotificaciones(actualizadas);
+
+    await registrarNotificacionesLeidas([
+      { id, title: target?.title, message: target?.message }
+    ]);
 
     if (isSupabaseConfigured) {
-      if (id.includes('-') && isUuid(id)) {
-        void supabase
+      try {
+        if (id.includes('-') && isUuid(id)) {
+          await supabase
+            .from('notificaciones')
+            .update({ is_read: true })
+            .eq('id', id);
+        } else if (target && user?.id) {
+          if (isUuid(user.id)) {
+            await supabase
+              .from('notificaciones')
+              .update({ is_read: true })
+              .eq('user_id', user.id)
+              .eq('title', target.title);
+          }
+        }
+      } catch (err) {
+        console.warn('[AppContext] Error actualizando lectura en Supabase:', err);
+      }
+    }
+  };
+
+  const markAllNotificationsAsRead = async (): Promise<void> => {
+    if (notifications.length === 0) return;
+    const actualizadas = notifications.map(n => ({ ...n, is_read: true }));
+    await persistirNotificaciones(actualizadas);
+
+    await registrarNotificacionesLeidas(
+      notifications.map(n => ({ id: n.id, title: n.title, message: n.message }))
+    );
+
+    if (isSupabaseConfigured && user?.id && isUuid(user.id)) {
+      try {
+        await supabase
           .from('notificaciones')
           .update({ is_read: true })
-          .eq('id', id);
-      } else if (target && user?.id) {
-        void supabase
-          .from('notificaciones')
-          .update({ is_read: true })
-          .eq('user_id', user.id)
-          .eq('title', target.title)
-          .eq('message', target.message);
+          .eq('user_id', user.id);
+      } catch (err) {
+        console.warn('[AppContext] Error actualizando todas en Supabase:', err);
       }
     }
   };
@@ -869,29 +1103,181 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const sendSupportMessage = (text: string): void => {
-    const nuevoMensaje: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender_id: user?.id || 'usr-001',
-      sender_name: user ? `${user.first_name} ${user.last_name}` : 'Usuario',
-      message: text,
-      created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setSupportMessages(prev => [...prev, nuevoMensaje]);
+  const sendSupportMessage = async (
+    text: string, 
+    targetClientId?: string, 
+    targetClientName?: string
+  ): Promise<void> => {
+    const isAdmin = user?.role === 'admin';
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Respuesta simulada de soporte institucional
+    if (isAdmin) {
+      // 1. EL ADMINISTRADOR ESTÁ RESPONDIENDO DIRECTAMENTE AL CLIENTE
+      const clientUser = users.find(u => u.id === targetClientId) ||
+        users.find(u => `${u.first_name} ${u.last_name || ''}`.trim().toLowerCase() === (targetClientName || '').toLowerCase().trim());
+      const resolvedClientId = clientUser?.id || targetClientId || 'usr-001';
+      const resolvedClientName = clientUser 
+        ? `${clientUser.first_name} ${clientUser.last_name || ''}`.trim() 
+        : (targetClientName || 'Cliente');
+
+      const adminMessage: ChatMessage = {
+        id: `msg-admin-${now.getTime()}`,
+        sender_id: user?.id || 'admin-root',
+        sender_name: `Administración (${user?.first_name || 'Admin'})`,
+        receiver_id: resolvedClientId,
+        client_id: resolvedClientId,
+        client_name: resolvedClientName,
+        message: text,
+        created_at: timeStr,
+        is_support: true,
+      };
+
+      setSupportMessages(prev => {
+        const actualizados = [...prev, adminMessage];
+        void AsyncStorage.setItem('@rerf_private_support_messages', JSON.stringify(actualizados));
+        return actualizados;
+      });
+
+      if (isSupabaseConfigured) {
+        try {
+          await supabase.from('mensajes').insert({
+            sender_id: isUuid(user?.id) ? user?.id : null,
+            receiver_id: isUuid(resolvedClientId) ? resolvedClientId : null,
+            is_support: true,
+            message: text,
+          });
+        } catch (eSb) {
+          console.warn('[AppContext] Error guardando mensaje admin en Supabase:', eSb);
+        }
+      }
+
+      // Notificar al cliente específico
+      try {
+        const notifClient: NotificationItem = {
+          id: `notif-reply-${now.getTime()}`,
+          title: 'Respuesta de Soporte RerF',
+          message: `La Administración RerF ha respondido a tu consulta: "${text}"`,
+          type: 'info',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+        };
+
+        const clientKey = `@rerf_notifications_${resolvedClientId}`;
+        const prevRaw = await AsyncStorage.getItem(clientKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(clientKey, JSON.stringify([notifClient, ...prevList]));
+
+        if (isSupabaseConfigured && isUuid(resolvedClientId)) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: resolvedClientId,
+              title: notifClient.title,
+              message: notifClient.message,
+              type: 'info',
+              is_read: false,
+            });
+          } catch {}
+        }
+      } catch (errNotif) {
+        console.warn('Error notificando a cliente:', errNotif);
+      }
+
+      // El administrador no recibe respuestas de bots automáticos
+      return;
+    }
+
+    // 2. UN CLIENTE ENVÍA SU CONSULTA PRIVADA AL ADMINISTRADOR
+    const clientId = user?.id || 'usr-client';
+    const clientName = user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Cliente';
+
+    const clientMessage: ChatMessage = {
+      id: `msg-client-${now.getTime()}`,
+      sender_id: clientId,
+      sender_name: clientName,
+      receiver_id: 'support-rerf',
+      client_id: clientId,
+      client_name: clientName,
+      message: text,
+      created_at: timeStr,
+      is_support: false,
+    };
+
+    setSupportMessages(prev => {
+      const actualizados = [...prev, clientMessage];
+      void AsyncStorage.setItem('@rerf_private_support_messages', JSON.stringify(actualizados));
+      return actualizados;
+    });
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('mensajes').insert({
+          sender_id: isUuid(clientId) ? clientId : null,
+          receiver_id: null,
+          is_support: false,
+          message: text,
+        });
+      } catch (eSb) {
+        console.warn('[AppContext] Error guardando mensaje cliente en Supabase:', eSb);
+      }
+    }
+
+    // Notificar a administradores de la nueva consulta
+    try {
+      const adminUsers = users.filter(u => u.role === 'admin' && u.id !== user?.id);
+
+      for (const admin of adminUsers) {
+        const notifAdmin: NotificationItem = {
+          id: `notif-chat-admin-${now.getTime()}-${admin.id}`,
+          title: 'Nueva consulta de Soporte',
+          message: `${clientName} ha escrito: "${text}"`,
+          type: 'alerta',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+        };
+
+        const adminKey = `@rerf_notifications_${admin.id}`;
+        const prevRaw = await AsyncStorage.getItem(adminKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(adminKey, JSON.stringify([notifAdmin, ...prevList]));
+
+        if (isSupabaseConfigured && isUuid(admin.id)) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: admin.id,
+              title: notifAdmin.title,
+              message: notifAdmin.message,
+              type: 'alerta',
+              is_read: false,
+            });
+          } catch {}
+        }
+      }
+    } catch (errAdmin) {
+      console.warn('Error notificando a administradores:', errAdmin);
+    }
+
+    // Confirmación automática de recepción para el cliente
     setTimeout(() => {
-      setSupportMessages(prev => [
-        ...prev,
-        {
-          id: `msg-rep-${Date.now()}`,
-          sender_id: 'support-1',
-          sender_name: 'Moderación RERF',
-          message: 'Gracias por escribirnos. Estamos revisando tu consulta y te responderemos en breve.',
-          created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          is_support: true,
-        },
-      ]);
+      const ackMessage: ChatMessage = {
+        id: `msg-ack-${Date.now()}`,
+        sender_id: 'support-rerf',
+        sender_name: 'Soporte RerF',
+        receiver_id: clientId,
+        client_id: clientId,
+        client_name: clientName,
+        message: `Hola ${user?.first_name || 'estimado cliente'}. Tu mensaje ha sido recibido por la Administración de RERF Logistics. Un moderador revisará tu consulta y te responderá en breve.`,
+        created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        is_support: true,
+      };
+
+      setSupportMessages(prev => {
+        const listaConAck = [...prev, ackMessage];
+        void AsyncStorage.setItem('@rerf_private_support_messages', JSON.stringify(listaConAck));
+        return listaConAck;
+      });
     }, 1200);
   };
 
@@ -942,6 +1328,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         authorizeWarehouseItem,
         notifications,
         markNotificationRead,
+        markAllNotificationsAsRead,
         invoices: userInvoices,
         users,
         toggleFavoriteUser,

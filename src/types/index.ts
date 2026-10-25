@@ -4,12 +4,15 @@ export interface UserProfile {
   id: string;
   first_name: string;
   last_name: string;
+  username?: string;
+  alias?: string;
   email: string;
   phone?: string;
   address?: string;
   address_references?: string;
   avatar_url?: string;
   bio?: string;
+  description?: string;
   role: UserRole;
   is_favorite?: boolean;
 }
@@ -120,8 +123,13 @@ export interface ChatMessage {
   id: string;
   sender_id: string;
   sender_name: string;
+  receiver_id?: string;
+  client_id?: string;
+  client_name?: string;
   message: string;
   created_at: string;
   is_bot?: boolean;
   is_support?: boolean;
+  channel_id?: string;
+  channel_name?: string;
 }

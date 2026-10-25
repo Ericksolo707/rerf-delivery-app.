@@ -9,7 +9,7 @@
  * - Barra inferior: "Escribir mensaje" + botón circular de envío
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -19,7 +19,9 @@ import {
   Platform, 
   TextInput, 
   TouchableOpacity,
-  ScrollView 
+  ScrollView,
+  Keyboard,
+  RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -31,13 +33,45 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 type AiChatScreenProps = Partial<RootStackScreenProps<'ChatIA'>> & Partial<MainTabCompositeScreenProps<'ChatTab'>>;
 
 export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
-  const { aiMessages, sendAiMessage } = useApp();
+  const { aiMessages, sendAiMessage, isRefreshing, refreshData } = useApp();
   const [input, setInput] = useState<string>('');
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+  const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const hideListener = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  }, [aiMessages.length]);
 
   const handleSend = () => {
     if (!input.trim()) return;
     sendAiMessage(input.trim());
     setInput('');
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
   const quickPrompts = [
@@ -63,18 +97,32 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[
+        styles.container,
+        Platform.OS === 'android' && keyboardHeight > 0 ? { paddingBottom: keyboardHeight } : null
+      ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <Header title="Chat IA" showBack={true} />
 
       <FlatList
+        ref={flatListRef}
         data={aiMessages}
         keyExtractor={item => item.id}
         renderItem={renderBubble}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshData}
+            colors={[RerfColors.primaryYellowText]}
+            tintColor={RerfColors.primaryYellowText}
+          />
+        }
       />
 
       {/* Sugerencias Rápidas estilo Excalidraw */}
@@ -101,6 +149,8 @@ export const AiChatScreen: React.FC<AiChatScreenProps> = () => {
           placeholderTextColor="#94A3B8"
           value={input}
           onChangeText={setInput}
+          returnKeyType="send"
+          onSubmitEditing={handleSend}
         />
 
         <TouchableOpacity
