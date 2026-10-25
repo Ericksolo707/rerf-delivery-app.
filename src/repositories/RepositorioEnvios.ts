@@ -119,8 +119,8 @@ export class RepositorioEnvios extends RepositorioBase<
     const cleanLower = clean.toLowerCase();
     const encontrado = this.envios.find(
       (e) =>
-        e.id.toLowerCase() === cleanLower ||
-        e.tracking_number.toLowerCase() === cleanLower,
+        (e.id || '').toLowerCase() === cleanLower ||
+        (e.tracking_number || '').toLowerCase() === cleanLower,
     );
     return encontrado ? { ...encontrado } : undefined;
   }

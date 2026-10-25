@@ -32,13 +32,12 @@ import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
-import { GABRIEL_MOCK_PACKAGES } from './PackagesOverviewScreen';
 
 export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'>> = ({ route, navigation }) => {
-  const { shipments, user, users, updateShipment } = useApp();
+  const { shipments, allShipments, user, users, updateShipment } = useApp();
   const shipmentId: string | undefined = route.params?.shipmentId;
-  const demoFallback = GABRIEL_MOCK_PACKAGES.find(p => p.id === shipmentId || p.tracking_number === shipmentId) || GABRIEL_MOCK_PACKAGES[0];
-  const shipment: Shipment = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId) || demoFallback;
+  const shipment: Shipment | undefined = shipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId)
+    || allShipments.find((s: Shipment) => s.id === shipmentId || s.tracking_number === shipmentId);
 
   const firstPackage = shipment?.packages?.[0];
   const isSender = shipment?.sender_id === user?.id;
@@ -127,6 +126,19 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
             </Text>
           </View>
 
+          {/* Recuadro de Cancelación si está cancelado */}
+          {shipment?.status === 'cancelado' && (
+            <View style={styles.cancellationBox}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Ionicons name="alert-circle" size={18} color="#DC2626" />
+                <Text style={styles.cancellationBoxLabel}>Motivo de cancelación</Text>
+              </View>
+              <Text style={styles.cancellationBoxText}>
+                {shipment?.cancellation_reason || 'Cancelado por el usuario'}
+              </Text>
+            </View>
+          )}
+
           {/* Costos y Facturación */}
           <View style={styles.costItemRow}>
             <Text style={styles.fieldLabel}>Costo Total:</Text>
@@ -180,7 +192,7 @@ export const PackageDetailScreen: React.FC<RootStackScreenProps<'DetallePaquete'
         )}
 
         {/* Acciones directas de Seguimiento y Cancelación */}
-        {shipment?.status !== 'pendiente' && (
+        {shipment?.status !== 'pendiente' && shipment?.status !== 'cancelado' && (
           <TouchableOpacity
             style={styles.gpsActionButton}
             onPress={() => navigation.navigate('TrackingGPS', { shipmentId: shipment?.id })}
@@ -338,6 +350,25 @@ const styles = StyleSheet.create({
   descText: {
     fontSize: 13,
     color: RerfColors.textSecondary,
+    lineHeight: 18,
+  },
+  cancellationBox: {
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#FEF2F2',
+    marginVertical: 6,
+  },
+  cancellationBoxLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  cancellationBoxText: {
+    fontSize: 13,
+    color: '#7F1D1D',
+    fontWeight: '600',
     lineHeight: 18,
   },
   costItemRow: {

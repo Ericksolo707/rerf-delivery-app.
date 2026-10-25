@@ -8,13 +8,13 @@
  * - Sección 2: "Pendientes [ + ] ->" con tarjetas y botones [ E ] (Editar) y [ X ] (Cancelar)
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity,
+  TouchableOpacity, 
   RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,20 +24,99 @@ import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
+const getShipmentTimestamp = (item: Shipment): number => {
+  // 1. Si el envío está cancelado, priorizar la fecha de cancelación
+  if (item.status === 'cancelado') {
+    if (item.cancelled_at) {
+      const parsed = new Date(item.cancelled_at.replace(' ', 'T')).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+    if (item.updated_at) {
+      const parsed = new Date(item.updated_at.replace(' ', 'T')).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+  }
+
+  // 2. Si tiene fecha de última actualización
+  if (item.updated_at) {
+    const parsed = new Date(item.updated_at.replace(' ', 'T')).getTime();
+    if (!isNaN(parsed)) return parsed;
+  }
+
+  // 3. Fecha de creación
+  if (item.created_at) {
+    const parsed = new Date(item.created_at.replace(' ', 'T')).getTime();
+    if (!isNaN(parsed)) return parsed;
+    const directParsed = new Date(item.created_at).getTime();
+    if (!isNaN(directParsed)) return directParsed;
+  }
+  const numId = parseInt(item.id, 10);
+  if (!isNaN(numId) && numId > 1600000000000) {
+    return numId;
+  }
+  if (item.scheduled_date) {
+    if (item.scheduled_date.includes('/')) {
+      const parts = item.scheduled_date.split('/');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10)).getTime();
+        if (!isNaN(d)) return d;
+      }
+    }
+    const parsedSched = new Date(item.scheduled_date).getTime();
+    if (!isNaN(parsedSched)) return parsedSched;
+  }
+  return 0;
+};
+
+export const sortShipmentsDesc = (list: Shipment[]): Shipment[] => {
+  return [...list].sort((a, b) => getShipmentTimestamp(b) - getShipmentTimestamp(a));
+};
+
 export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ navigation }) => {
   const { shipments, user, users, refreshData, isRefreshing } = useApp();
+  const [adminScope, setAdminScope] = useState<'mis_pedidos' | 'todos'>('mis_pedidos');
 
-  // En Pedidos mostramos los envíos realizados/solicitados por el usuario o donde él es remitente.
-  // Si el usuario es Administrador, ve todos los pedidos del sistema.
+  // En Pedidos mostramos estrictamente los envíos realizados/solicitados por el usuario (remitente).
+  // Si el usuario es Administrador y elige "Todos los Pedidos", puede supervisar todo el sistema.
   const myOrders = React.useMemo(() => {
-    if (user?.role === 'admin') return shipments;
-    const sent = shipments.filter(s => s.sender_id === user?.id);
-    return sent.length > 0 ? sent : shipments;
-  }, [shipments, user]);
+    if (!user) return [];
 
-  const activeOrders = myOrders.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado');
-  const pendingOrders = myOrders.filter(s => s.status === 'pendiente');
-  const cancelledOrders = myOrders.filter(s => s.status === 'cancelado');
+    if (user.role === 'admin' && adminScope === 'todos') {
+      return shipments;
+    }
+
+    return shipments.filter(s => {
+      // 1. Remitente por ID
+      if (s.sender_id && s.sender_id === user.id) return true;
+      // 2. Remitente por nombre en registros heredados
+      const userFullName = `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase();
+      const userFirstName = (user.first_name || '').trim().toLowerCase();
+      const agentName = (s.agent_name || '').trim().toLowerCase();
+      if (agentName && (agentName === userFullName || agentName === userFirstName)) return true;
+      return false;
+    });
+  }, [shipments, user, adminScope]);
+
+  const activeOrders = React.useMemo(
+    () => sortShipmentsDesc(myOrders.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado')),
+    [myOrders]
+  );
+  const pendingOrders = React.useMemo(
+    () => sortShipmentsDesc(myOrders.filter(s => s.status === 'pendiente')),
+    [myOrders]
+  );
+  const cancelledOrders = React.useMemo(() => {
+    const cancelled = myOrders.filter(s => s.status === 'cancelado');
+    return [...cancelled].sort((a, b) => {
+      const timeA = a.cancelled_at 
+        ? new Date(a.cancelled_at.replace(' ', 'T')).getTime() 
+        : (a.updated_at ? new Date(a.updated_at.replace(' ', 'T')).getTime() : getShipmentTimestamp(a));
+      const timeB = b.cancelled_at 
+        ? new Date(b.cancelled_at.replace(' ', 'T')).getTime() 
+        : (b.updated_at ? new Date(b.updated_at.replace(' ', 'T')).getTime() : getShipmentTimestamp(b));
+      return timeB - timeA;
+    });
+  }, [myOrders]);
 
   // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
@@ -195,7 +274,11 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
 
     return (
       <View key={item.id} style={[styles.card, { borderColor: '#FECACA', backgroundColor: '#FEF2F2' }]}>
-        <View style={styles.infoCol}>
+        <TouchableOpacity 
+          style={styles.infoCol}
+          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+          activeOpacity={0.7}
+        >
           <View style={styles.headerMetaRow}>
             <Text style={styles.senderMetaText} numberOfLines={1}>
               {displayLabel}
@@ -212,13 +295,14 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
             </Text>
           </View>
 
-          {item.cancellation_reason ? (
-            <View style={{ marginTop: 2, marginBottom: 4 }}>
-              <Text style={[styles.fieldLabel, { color: RerfColors.errorRed }]}>
-                Motivo: <Text style={{ fontWeight: '600', color: '#7F1D1D' }}>{item.cancellation_reason}</Text>
+          <View style={{ marginTop: 2, marginBottom: 4 }}>
+            <Text style={[styles.fieldLabel, { color: RerfColors.errorRed }]}>
+              Motivo:{' '}
+              <Text style={{ fontWeight: '700', color: '#7F1D1D' }}>
+                {item.cancellation_reason || 'Cancelado por el usuario'}
               </Text>
-            </View>
-          ) : null}
+            </Text>
+          </View>
 
           <View style={styles.statusRow}>
             <Text style={styles.fieldLabel}>Estado: </Text>
@@ -228,15 +312,16 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
               </Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.actionsCol}>
           <TouchableOpacity 
-            style={[styles.squareActionButton, { borderColor: '#FECACA' }]}
+            style={styles.detailPillButton}
             onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
             activeOpacity={0.7}
           >
-            <Text style={[styles.actionLetter, { color: '#DC2626' }]}>R</Text>
+            <Ionicons name="document-text-outline" size={15} color="#DC2626" />
+            <Text style={styles.detailPillText}>Detalle</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -246,6 +331,29 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
   return (
     <View style={styles.container}>
       <Header title="Pedidos" showBack={true} />
+
+      {user?.role === 'admin' && (
+        <View style={styles.adminFilterRow}>
+          <TouchableOpacity
+            style={[styles.adminFilterBtn, adminScope === 'mis_pedidos' && styles.adminFilterBtnActive]}
+            onPress={() => setAdminScope('mis_pedidos')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.adminFilterText, adminScope === 'mis_pedidos' && styles.adminFilterTextActive]}>
+              Mis Pedidos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.adminFilterBtn, adminScope === 'todos' && styles.adminFilterBtnActive]}
+            onPress={() => setAdminScope('todos')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.adminFilterText, adminScope === 'todos' && styles.adminFilterTextActive]}>
+              Todos los Pedidos ({shipments.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
@@ -498,5 +606,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: RerfColors.primaryYellowHover,
+  },
+  adminFilterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  adminFilterBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminFilterBtnActive: {
+    backgroundColor: RerfColors.primaryYellow,
+  },
+  adminFilterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  adminFilterTextActive: {
+    color: RerfColors.primaryYellowText,
+  },
+  detailPillButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    ...RerfShadows.card,
+  },
+  detailPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#DC2626',
   },
 });

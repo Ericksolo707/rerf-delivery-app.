@@ -276,6 +276,7 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
     date: 'Hace 25 min',
     is_read: false,
     created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+    tracking_number: 'RERF-98234-GT',
   },
   {
     id: 'notif-2',

@@ -32,6 +32,11 @@ import {
 import { AiLogisticsService } from '../services/aiLogisticsService';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
+const isUuid = (str?: string): boolean => {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+};
+
 interface AppContextType {
   // Autenticación y Perfil
   user: UserProfile | null;
@@ -43,6 +48,7 @@ interface AppContextType {
   
   // Envíos
   shipments: Shipment[];
+  allShipments: Shipment[];
   addShipment: (newShipment: Omit<Shipment, 'id' | 'created_at'>) => Promise<Shipment>;
   updateShipment: (shipmentId: string, updates: Partial<Shipment>) => Promise<void>;
   cancelShipment: (shipmentId: string, reason: string) => Promise<void>;
@@ -51,6 +57,7 @@ interface AppContextType {
   // Bodega Personal
   warehouseItems: WarehouseItem[];
   addWarehouseItem: (item: Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>) => Promise<WarehouseItem>;
+  authorizeWarehouseItem: (id: string, approved: boolean) => Promise<void>;
   
   // Notificaciones
   notifications: NotificationItem[];
@@ -132,13 +139,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               is_read: Boolean(n.is_read),
               created_at: n.created_at,
             }));
-            const existingIds = new Set(mapped.map(m => m.id));
-            const combined = [...mapped];
+
+            // Mapa para preservar si la notificación ya fue leída localmente
+            const localReadMap = new Map<string, boolean>();
             for (const l of lista) {
-              if (!existingIds.has(l.id)) {
+              if (l.is_read) {
+                localReadMap.set(l.id, true);
+                localReadMap.set(`${(l.title || '').trim()}|${(l.message || '').trim()}`, true);
+              }
+            }
+
+            const seen = new Set<string>();
+            const combined: NotificationItem[] = [];
+
+            // 1. Agregar remotas de Supabase primero
+            for (const m of mapped) {
+              const sig = `${(m.title || '').trim()}|${(m.message || '').trim()}`;
+              if (!seen.has(sig) && !seen.has(m.id)) {
+                seen.add(sig);
+                seen.add(m.id);
+                const wasRead = Boolean(m.is_read || localReadMap.get(m.id) || localReadMap.get(sig));
+                combined.push({
+                  ...m,
+                  is_read: wasRead,
+                });
+              }
+            }
+
+            // 2. Agregar locales que no estén duplicadas
+            for (const l of lista) {
+              const sig = `${(l.title || '').trim()}|${(l.message || '').trim()}`;
+              if (!seen.has(sig) && !seen.has(l.id)) {
+                seen.add(sig);
+                seen.add(l.id);
                 combined.push(l);
               }
             }
+
             lista = combined;
           }
         } catch (sbNotifErr) {
@@ -146,7 +183,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      return ordenarNotificacionesRecientes(lista);
+      // Deduplicación final por firma y ID
+      const finalUnique: NotificationItem[] = [];
+      const finalSeen = new Set<string>();
+      for (const item of lista) {
+        const sig = `${(item.title || '').trim()}|${(item.message || '').trim()}`;
+        if (!finalSeen.has(sig) && !finalSeen.has(item.id)) {
+          finalSeen.add(sig);
+          finalSeen.add(item.id);
+          finalUnique.push(item);
+        }
+      }
+
+      return ordenarNotificacionesRecientes(finalUnique);
     } catch (err) {
       console.warn('Error cargando notificaciones del usuario:', err);
       return [];
@@ -170,12 +219,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [user]);
 
+  // Re-aplicar cancelaciones locales persistidas sobre la lista de envíos
+  const aplicarCancelacionesPersistidas = async (lista: Shipment[]): Promise<Shipment[]> => {
+    try {
+      const cancelsRaw = await AsyncStorage.getItem('@rerf_cancellations_map');
+      if (!cancelsRaw) return lista;
+      const cancelsMap: Record<string, { cancelled_at: string; cancellation_reason: string }> = JSON.parse(cancelsRaw);
+      return lista.map(s => {
+        const entry = cancelsMap[s.id] || cancelsMap[s.tracking_number];
+        if (entry) {
+          return {
+            ...s,
+            status: 'cancelado' as const,
+            cancellation_reason: s.cancellation_reason || entry.cancellation_reason,
+            cancelled_at: s.cancelled_at || entry.cancelled_at,
+            updated_at: s.updated_at || entry.cancelled_at,
+          };
+        }
+        return s;
+      });
+    } catch {
+      return lista;
+    }
+  };
+
   // Función pública de refresco para pull-to-refresh y botón manual
   const refreshData = async (): Promise<void> => {
     setIsRefreshing(true);
     try {
       const listaEnvios = await repositorioEnvios.listar();
-      setAllShipments(listaEnvios);
+      const conCancelaciones = await aplicarCancelacionesPersistidas(listaEnvios);
+      setAllShipments(conCancelaciones);
       const listaBodega = await repositorioBodega.listar();
       setWarehouseItems(listaBodega);
       const listaFacturas = await repositorioFacturas.listar();
@@ -299,7 +373,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(true);
     try {
       const listaEnvios = await repositorioEnvios.listar();
-      setAllShipments(listaEnvios);
+      const conCancelaciones = await aplicarCancelacionesPersistidas(listaEnvios);
+      setAllShipments(conCancelaciones);
       const listaBodega = await repositorioBodega.listar();
       setWarehouseItems(listaBodega);
       const listaFacturas = await repositorioFacturas.listar();
@@ -331,7 +406,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(true);
     try {
       const listaEnvios = await repositorioEnvios.listar();
-      setAllShipments(listaEnvios);
+      const conCancelaciones = await aplicarCancelacionesPersistidas(listaEnvios);
+      setAllShipments(conCancelaciones);
       const listaBodega = await repositorioBodega.listar();
       setWarehouseItems(listaBodega);
       const actualizados = await repositorioUsuarios.listarDirectorio();
@@ -373,6 +449,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       date: 'Hoy',
       is_read: false,
       created_at: now.toISOString(),
+      shipment_id: nuevoEnvio.id,
+      tracking_number: nuevoEnvio.tracking_number,
     };
     await persistirNotificaciones([nuevaNotificacion, ...notifications]);
 
@@ -413,6 +491,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           date: 'Hoy',
           is_read: false,
           created_at: now.toISOString(),
+          shipment_id: nuevoEnvio.id,
+          tracking_number: nuevoEnvio.tracking_number,
         };
 
         const destKey = `@rerf_notifications_${destinatarioUsuario.id}`;
@@ -460,22 +540,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const cancelShipment = async (shipmentId: string, reason: string): Promise<void> => {
+    const nowCancel = new Date();
+    const nowIso = nowCancel.toISOString();
+
     const res = await repositorioEnvios.cancelar(shipmentId, reason);
 
     // Identificar el envío cancelado
     const targetShipment = allShipments.find(s => s.id === shipmentId || s.tracking_number === shipmentId) || res;
     const trackingCode = targetShipment?.tracking_number || shipmentId;
 
-    setAllShipments(prev =>
-      prev.map(s =>
-        s.id === shipmentId || s.tracking_number === shipmentId
-          ? { ...s, status: 'cancelado', cancellation_reason: reason }
-          : s
-      )
-    );
+    // Guardar registro de cancelación para persistencia local
+    try {
+      const prevCancelsRaw = await AsyncStorage.getItem('@rerf_cancellations_map');
+      const cancelsMap: Record<string, { cancelled_at: string; cancellation_reason: string }> = prevCancelsRaw ? JSON.parse(prevCancelsRaw) : {};
+      cancelsMap[shipmentId] = { cancelled_at: nowIso, cancellation_reason: reason };
+      if (trackingCode) {
+        cancelsMap[trackingCode] = { cancelled_at: nowIso, cancellation_reason: reason };
+      }
+      if (targetShipment?.id) {
+        cancelsMap[targetShipment.id] = { cancelled_at: nowIso, cancellation_reason: reason };
+      }
+      await AsyncStorage.setItem('@rerf_cancellations_map', JSON.stringify(cancelsMap));
+    } catch (e) {
+      console.warn('Error guardando cancelación en storage:', e);
+    }
+
+    setAllShipments(prev => {
+      const target = prev.find(s => s.id === shipmentId || s.tracking_number === shipmentId);
+      const updatedItem: Shipment = target 
+        ? {
+            ...target,
+            status: 'cancelado' as const,
+            cancellation_reason: reason,
+            cancelled_at: nowIso,
+            updated_at: nowIso,
+          }
+        : {
+            ...(res || {} as Shipment),
+            id: targetShipment?.id || shipmentId,
+            tracking_number: trackingCode,
+            status: 'cancelado' as const,
+            cancellation_reason: reason,
+            cancelled_at: nowIso,
+            updated_at: nowIso,
+          };
+
+      const others = prev.filter(s => s.id !== shipmentId && s.tracking_number !== shipmentId && (!targetShipment?.id || s.id !== targetShipment.id));
+      return [updatedItem, ...others];
+    });
 
     // 1. Notificación para el usuario que realizó la cancelación
-    const nowCancel = new Date();
     const notifUser: NotificationItem = {
       id: `notif-cancel-${nowCancel.getTime()}`,
       title: 'Envío Cancelado',
@@ -483,7 +597,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'alerta',
       date: 'Hoy',
       is_read: false,
-      created_at: nowCancel.toISOString(),
+      created_at: nowIso,
+      shipment_id: targetShipment?.id || shipmentId,
+      tracking_number: trackingCode,
     };
     await persistirNotificaciones([notifUser, ...notifications]);
 
@@ -521,6 +637,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             date: 'Hoy',
             is_read: false,
             created_at: nowCancel.toISOString(),
+            shipment_id: targetShipment?.id || shipmentId,
+            tracking_number: trackingCode,
           };
 
           const destKey = `@rerf_notifications_${otherUserId}`;
@@ -566,7 +684,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 1. Buscar en envíos locales cargados
     const local = allShipments.find(
-      s => s.id.toLowerCase() === cleanLower || s.tracking_number.toLowerCase() === cleanLower
+      s => (s.id || '').toLowerCase() === cleanLower || (s.tracking_number || '').toLowerCase() === cleanLower
     );
     if (local) return local;
 
@@ -588,15 +706,154 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const itemWithUser = {
       ...itemData,
       user_id: user?.id || 'usr-001',
+      status: itemData.status || 'solicitado',
     };
     const nuevoArticulo = await repositorioBodega.solicitarAlmacenaje(itemWithUser);
     setWarehouseItems(prev => [nuevoArticulo, ...prev]);
+
+    const now = new Date();
+    // 1. Notificación para el cliente solicitante
+    const notifUser: NotificationItem = {
+      id: `notif-wh-req-${now.getTime()}`,
+      title: 'Solicitud de Almacenaje Enviada',
+      message: `Tu solicitud para almacenar "${nuevoArticulo.product_type}" (${nuevoArticulo.storage_code}) fue enviada y está pendiente de autorización.`,
+      type: 'info',
+      date: 'Hoy',
+      is_read: false,
+      created_at: now.toISOString(),
+    };
+    await persistirNotificaciones([notifUser, ...notifications]);
+
+    if (isSupabaseConfigured && user?.id && user.id.includes('-')) {
+      try {
+        await supabase.from('notificaciones').insert({
+          user_id: user.id,
+          title: notifUser.title,
+          message: notifUser.message,
+          type: 'info',
+          is_read: false,
+        });
+      } catch (eSb) {
+        console.warn('[AppContext] Error guardando notificación en Supabase:', eSb);
+      }
+    }
+
+    // 2. Notificación para los administradores ("le llegue notificacion de solicitud de almacenamiento")
+    try {
+      const adminUsers = users.filter(u => u.role === 'admin' && u.id !== user?.id);
+      const requesterName = user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Un cliente';
+
+      for (const admin of adminUsers) {
+        const notifAdmin: NotificationItem = {
+          id: `notif-wh-admin-${now.getTime()}-${admin.id}`,
+          title: 'Nueva Solicitud de Almacenaje',
+          message: `${requesterName} ha solicitado almacenar "${nuevoArticulo.product_type}" (${nuevoArticulo.storage_code}). Pendiente de autorización.`,
+          type: 'alerta',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+        };
+
+        const adminKey = `@rerf_notifications_${admin.id}`;
+        const prevRaw = await AsyncStorage.getItem(adminKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(adminKey, JSON.stringify([notifAdmin, ...prevList]));
+
+        if (isSupabaseConfigured && admin.id && admin.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: admin.id,
+              title: notifAdmin.title,
+              message: notifAdmin.message,
+              type: 'alerta',
+              is_read: false,
+            });
+          } catch (eSb) {
+            console.warn('[AppContext] Error guardando notificación para admin en Supabase:', eSb);
+          }
+        }
+      }
+    } catch (errAdminNotif) {
+      console.warn('[AppContext] Error notificando a administradores:', errAdminNotif);
+    }
+
     return nuevoArticulo;
   };
 
+  const authorizeWarehouseItem = async (itemId: string, approved: boolean): Promise<void> => {
+    const newStatus: 'almacenado' | 'rechazado' = approved ? 'almacenado' : 'rechazado';
+    const itemTarget = warehouseItems.find(w => w.id === itemId || w.storage_code === itemId);
+
+    await repositorioBodega.actualizar(itemId, { status: newStatus });
+
+    setWarehouseItems(prev =>
+      prev.map(w => (w.id === itemId || w.storage_code === itemId ? { ...w, status: newStatus } : w))
+    );
+
+    const now = new Date();
+    const productName = itemTarget?.product_type || 'Mercadería';
+    const storageCode = itemTarget?.storage_code || itemId;
+    const ownerId = itemTarget?.user_id;
+
+    // Notificación al usuario cliente: "cuando se lo autoricen"
+    if (ownerId) {
+      const notifClient: NotificationItem = {
+        id: `notif-wh-auth-${now.getTime()}`,
+        title: approved ? 'Almacenaje Autorizado' : 'Almacenaje Rechazado',
+        message: approved
+          ? `Tu solicitud de almacenaje para "${productName}" (${storageCode}) ha sido autorizada y se encuentra activa en bodega.`
+          : `Tu solicitud de almacenaje para "${productName}" (${storageCode}) fue rechazada por el administrador.`,
+        type: approved ? 'info' : 'alerta',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+      };
+
+      if (user?.id === ownerId) {
+        await persistirNotificaciones([notifClient, ...notifications]);
+      } else {
+        const clientKey = `@rerf_notifications_${ownerId}`;
+        const prevRaw = await AsyncStorage.getItem(clientKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(clientKey, JSON.stringify([notifClient, ...prevList]));
+      }
+
+      if (isSupabaseConfigured && ownerId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: ownerId,
+            title: notifClient.title,
+            message: notifClient.message,
+            type: approved ? 'info' : 'alerta',
+            is_read: false,
+          });
+        } catch (eSb) {
+          console.warn('[AppContext] Error guardando notificación en Supabase:', eSb);
+        }
+      }
+    }
+  };
+
   const markNotificationRead = (id: string): void => {
+    const target = notifications.find(n => n.id === id);
     const actualizadas = notifications.map(n => (n.id === id ? { ...n, is_read: true } : n));
     persistirNotificaciones(actualizadas);
+
+    if (isSupabaseConfigured) {
+      if (id.includes('-') && isUuid(id)) {
+        void supabase
+          .from('notificaciones')
+          .update({ is_read: true })
+          .eq('id', id);
+      } else if (target && user?.id) {
+        void supabase
+          .from('notificaciones')
+          .update({ is_read: true })
+          .eq('user_id', user.id)
+          .eq('title', target.title)
+          .eq('message', target.message);
+      }
+    }
   };
 
   const toggleFavoriteUser = async (userId: string): Promise<void> => {
@@ -675,12 +932,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logout,
         updateProfile,
         shipments: userShipments,
+        allShipments,
         addShipment,
         updateShipment,
         cancelShipment,
         getShipmentByTracking,
         warehouseItems: userWarehouseItems,
         addWarehouseItem,
+        authorizeWarehouseItem,
         notifications,
         markNotificationRead,
         invoices: userInvoices,

@@ -41,6 +41,7 @@ export type RootStackParamList = {
 
   // Bodega Personal
   SolicitudAlmacenaje: undefined;
+  DetalleAlmacenaje: { itemId?: string; storageCode?: string } | undefined;
 
   // Directorio y Perfiles de Usuario
   Usuarios: undefined;
@@ -62,7 +63,7 @@ export type RootStackParamList = {
  */
 export type MainTabParamList = {
   InicioTab: undefined;
-  BodegaTab: undefined;
+  BodegaTab: { searchCode?: string } | undefined;
   GpsTab: undefined;
   ContactoTab: undefined;
   PerfilTab: undefined;

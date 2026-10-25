@@ -113,8 +113,67 @@ const getDisplayDateTime = (item: NotificationItem): { dateLabel: string; timeLa
 };
 
 export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'>> = ({ navigation }) => {
-  const { notifications, markNotificationRead, refreshData, isRefreshing } = useApp();
+  const { notifications, markNotificationRead, refreshData, isRefreshing, shipments } = useApp();
   const [search, setSearch] = useState<string>('');
+
+  const handlePressNotification = (item: NotificationItem) => {
+    // 1. Marcar como leída
+    markNotificationRead(item.id);
+
+    // 2. Redirigir al movimiento específico
+    // A. Buscar por shipment_id o tracking_number explícito
+    if (item.shipment_id || item.tracking_number) {
+      const found = shipments.find(s => 
+        (item.shipment_id && s.id === item.shipment_id) || 
+        (item.tracking_number && s.tracking_number === item.tracking_number)
+      );
+      if (found) {
+        navigation.navigate('DetallePaquete', { shipmentId: found.id });
+        return;
+      }
+    }
+
+    // B. Buscar por regex de guía RERF-... en el título o mensaje
+    const match = (item.title + ' ' + item.message).match(/RERF-[A-Z0-9-]+/i);
+    if (match) {
+      const code = match[0].toUpperCase();
+      const found = shipments.find(s => 
+        s.tracking_number?.toUpperCase() === code || 
+        s.id?.toUpperCase() === code ||
+        code.includes(s.tracking_number?.toUpperCase())
+      );
+      if (found) {
+        navigation.navigate('DetallePaquete', { shipmentId: found.id });
+        return;
+      }
+    }
+
+    // C. Si es pago o factura
+    if (item.type === 'pago' || item.title.toLowerCase().includes('factura') || item.message.toLowerCase().includes('factura')) {
+      navigation.navigate('Facturas');
+      return;
+    }
+
+    // D. Si es de almacenaje o bodega
+    if (item.message.toLowerCase().includes('bodega') || item.title.toLowerCase().includes('almacenaje')) {
+      const bdgMatch = (item.title + ' ' + item.message).match(/BDG-\d+/i);
+      if (bdgMatch) {
+        navigation.navigate('DetalleAlmacenaje', { storageCode: bdgMatch[0].toUpperCase() });
+        return;
+      }
+      (navigation as any).navigate('Principal', {
+        screen: 'BodegaTab',
+        params: { searchCode: '' },
+      });
+      return;
+    }
+
+    // E. Si es alerta o envío genérico
+    if (item.type === 'envio' || item.type === 'alerta') {
+      navigation.navigate('Pedidos');
+      return;
+    }
+  };
 
   const sortedNotifications = useMemo(() => {
     const term = search.toLowerCase().trim();
@@ -136,7 +195,7 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
     return (
       <TouchableOpacity 
         style={[styles.notifCard, !item.is_read && styles.unreadCard]}
-        onPress={() => markNotificationRead(item.id)}
+        onPress={() => handlePressNotification(item)}
         activeOpacity={0.8}
       >
         {/* Fila superior: Fecha | Hora | Estado */}
@@ -154,6 +213,12 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
         <View style={styles.contentBox}>
           <Text style={styles.informativeTitle}>{item.title}</Text>
           <Text style={styles.informativeText}>{item.message}</Text>
+        </View>
+
+        {/* Pie con acceso directo al movimiento */}
+        <View style={styles.actionRow}>
+          <Text style={styles.actionText}>Ver detalle del movimiento</Text>
+          <Ionicons name="arrow-forward" size={13} color={RerfColors.logisticsBlue} />
         </View>
       </TouchableOpacity>
     );
@@ -274,5 +339,20 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#94A3B8',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  actionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: RerfColors.logisticsBlue,
   },
 });

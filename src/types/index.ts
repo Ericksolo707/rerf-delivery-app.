@@ -50,6 +50,8 @@ export interface Shipment {
   status: ShipmentStatus;
   rejection_reason?: string;
   cancellation_reason?: string;
+  cancelled_at?: string;
+  updated_at?: string;
   payment_method?: PaymentMethod;
   payment_status: 'pendiente' | 'pagado';
   total_amount: number;
@@ -78,7 +80,7 @@ export interface WarehouseItem {
   description: string;
   material: MaterialType;
   pickup_method: PickupMethod;
-  status: 'almacenado' | 'solicitado' | 'en_transito' | 'retirado';
+  status: 'almacenado' | 'solicitado' | 'en_transito' | 'retirado' | 'rechazado';
   storage_code: string;
   created_at: string;
 }
@@ -110,6 +112,8 @@ export interface NotificationItem {
   date: string;
   is_read: boolean;
   created_at?: string;
+  shipment_id?: string;
+  tracking_number?: string;
 }
 
 export interface ChatMessage {

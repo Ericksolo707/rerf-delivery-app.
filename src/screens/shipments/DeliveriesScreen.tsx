@@ -9,13 +9,13 @@
  *   - Derecha: Botones cuadrados estilizados [ L ] (Localizar GPS) y [ R ] (Rastrear / Detalle de Paquete).
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   FlatList, 
-  TouchableOpacity,
+  TouchableOpacity, 
   RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,15 +24,17 @@ import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
+import { sortShipmentsDesc } from './OrdersScreen';
 
 export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ navigation }) => {
   const { shipments, user, users, refreshData, isRefreshing } = useApp();
+  const [adminScope, setAdminScope] = useState<'mis_entregas' | 'todas'>('mis_entregas');
 
-  // Para un usuario cliente, Entregas representa los paquetes dirigidos hacia él (donde es destinatario)
-  // Para el Administrador o Piloto, representa todas las entregas operativas del sistema
+  // Para un usuario cliente, Entregas representa los paquetes dirigidos hacia él (donde es destinatario).
+  // Para el Piloto representa todas las entregas operativas, y el Administrador puede alternar.
   const deliveries = React.useMemo(() => {
     if (!user) return [];
-    if (user.role === 'admin' || user.role === 'piloto') {
+    if (user.role === 'piloto' || (user.role === 'admin' && adminScope === 'todas')) {
       return shipments;
     }
 
@@ -57,7 +59,11 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
 
       return false;
     });
-  }, [shipments, user]);
+  }, [shipments, user, adminScope]);
+
+  const sortedDeliveries = React.useMemo(() => {
+    return sortShipmentsDesc(deliveries);
+  }, [deliveries]);
 
   // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
@@ -88,11 +94,16 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
       : (item.sender_id ? 'Remitente' : 'RerF Logistics');
 
     const isRecipientView = user?.role !== 'admin' && user?.role !== 'piloto';
+    const isCancelled = item.status === 'cancelado';
 
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, isCancelled && styles.cancelledCard]}>
         {/* Lado izquierdo con información estructurada del boceto */}
-        <View style={styles.infoCol}>
+        <TouchableOpacity 
+          style={styles.infoCol}
+          onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+          activeOpacity={0.7}
+        >
           <View style={styles.headerMetaRow}>
             <Text style={styles.recipientMetaText} numberOfLines={1}>
               {isRecipientView ? `De: ${senderName}` : `Para: ${item.recipient_name || 'Destinatario'}`}
@@ -109,6 +120,17 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
             </Text>
           </View>
 
+          {isCancelled && (
+            <View style={{ marginTop: 2, marginBottom: 4 }}>
+              <Text style={[styles.fieldLabel, { color: RerfColors.errorRed }]}>
+                Motivo:{' '}
+                <Text style={{ fontWeight: '700', color: '#7F1D1D' }}>
+                  {item.cancellation_reason || 'Cancelado por el usuario'}
+                </Text>
+              </Text>
+            </View>
+          )}
+
           <View style={styles.statusRow}>
             <Text style={styles.fieldLabel}>Estado: </Text>
             <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
@@ -117,27 +139,40 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
               </Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
-        {/* Lado derecho con botones de acción Excalidraw [ L ] y [ R ] */}
+        {/* Lado derecho con botones de acción Excalidraw */}
         <View style={styles.actionsCol}>
-          {/* Botón L (Localizar en GPS) */}
-          <TouchableOpacity 
-            style={styles.squareActionButton}
-            onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.actionLetter}>L</Text>
-          </TouchableOpacity>
+          {isCancelled ? (
+            <TouchableOpacity 
+              style={styles.detailPillButton}
+              onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="document-text-outline" size={15} color="#DC2626" />
+              <Text style={styles.detailPillText}>Detalle</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              {/* Botón L (Localizar en GPS) */}
+              <TouchableOpacity 
+                style={styles.squareActionButton}
+                onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.id })}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.actionLetter}>L</Text>
+              </TouchableOpacity>
 
-          {/* Botón R (Rastrear / Detalle de Paquete) */}
-          <TouchableOpacity 
-            style={styles.squareActionButton}
-            onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.actionLetter}>R</Text>
-          </TouchableOpacity>
+              {/* Botón R (Rastrear / Detalle de Paquete) */}
+              <TouchableOpacity 
+                style={styles.squareActionButton}
+                onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.actionLetter}>R</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     );
@@ -147,8 +182,31 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
     <View style={styles.container}>
       <Header title="Entregas" showBack={true} />
 
+      {user?.role === 'admin' && (
+        <View style={styles.adminFilterRow}>
+          <TouchableOpacity
+            style={[styles.adminFilterBtn, adminScope === 'mis_entregas' && styles.adminFilterBtnActive]}
+            onPress={() => setAdminScope('mis_entregas')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.adminFilterText, adminScope === 'mis_entregas' && styles.adminFilterTextActive]}>
+              Mis Entregas
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.adminFilterBtn, adminScope === 'todas' && styles.adminFilterBtnActive]}
+            onPress={() => setAdminScope('todas')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.adminFilterText, adminScope === 'todas' && styles.adminFilterTextActive]}>
+              Todas las Entregas ({shipments.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <FlatList
-        data={deliveries}
+        data={sortedDeliveries}
         keyExtractor={item => item.id}
         renderItem={renderDelivery}
         contentContainerStyle={styles.listContent}
@@ -299,5 +357,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: RerfColors.primaryYellowText,
+  },
+  adminFilterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  adminFilterBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminFilterBtnActive: {
+    backgroundColor: RerfColors.primaryYellow,
+  },
+  adminFilterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  adminFilterTextActive: {
+    color: RerfColors.primaryYellowText,
+  },
+  cancelledCard: {
+    borderColor: '#FECACA',
+    backgroundColor: '#FEF2F2',
+  },
+  detailPillButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    ...RerfShadows.card,
+  },
+  detailPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#DC2626',
   },
 });

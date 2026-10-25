@@ -16,91 +16,64 @@
  * - Barra inferior funcional (5 pestañas).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   FlatList, 
-  TouchableOpacity 
+  TouchableOpacity,
+  TextInput 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { Input } from '../../components/Input';
 import { useApp } from '../../context/AppContext';
 import { Shipment } from '../../types';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
-export const GABRIEL_MOCK_PACKAGES: Shipment[] = [
-  {
-    id: 'paquete-1',
-    tracking_number: 'ORD-9841',
-    sender_id: 'usr-demo',
-    recipient_name: 'usuario2',
-    recipient_phone: '5555-9841',
-    delivery_address: 'Jalapa, Guatemala',
-    scheduled_date: '14/10/2026',
-    description: 'Caja con materiales',
-    status: 'entregado',
-    payment_method: 'contra_entrega',
-    payment_status: 'pagado',
-    total_amount: 45.00,
-    created_at: '2026-10-04 15:00',
-    packages: [
-      {
-        id: 'pkg-demo-1',
-        category: 'Encomiendas',
-        name: 'Caja con materiales',
-        quantity: 1,
-        weight_kg: 5.0,
-        material: 'fuerte',
-        description: 'Caja con materiales de trabajo',
-      },
-    ],
-  },
-  {
-    id: 'paquete-2',
-    tracking_number: 'ORD-5522',
-    sender_id: 'usr-demo',
-    recipient_name: 'usuario3',
-    recipient_phone: '5555-5522',
-    delivery_address: 'Ciudad de Guatemala',
-    scheduled_date: '14/10/2026',
-    description: 'Documentos frágiles',
-    status: 'en_camino',
-    payment_method: 'contra_entrega',
-    payment_status: 'pendiente',
-    total_amount: 25.00,
-    created_at: '2026-10-04 15:00',
-    packages: [
-      {
-        id: 'pkg-demo-2',
-        category: 'Documentación',
-        name: 'Documentos frágiles',
-        quantity: 1,
-        weight_kg: 1.0,
-        material: 'fragil',
-        description: 'Documentos confidenciales para entrega urgente',
-      },
-    ],
-  },
-];
-
 export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaquetes'>> = ({ navigation }) => {
-  const { shipments, user } = useApp();
+  const { shipments, allShipments, user } = useApp();
   const [search, setSearch] = useState<string>('');
-  const [showDemoMock, setShowDemoMock] = useState<boolean>(false);
+  const [submittedQuery, setSubmittedQuery] = useState<string>('');
+  const [hasSearched, setHasSearched] = useState<boolean>(false);
 
-  // Cada usuario visualiza únicamente sus propios envíos reales.
-  // En caso de estar en una cuenta recién creada sin envíos, puede activar opcionalmente el modo demo para pruebas.
-  const sourceList = shipments.length > 0 ? shipments : (showDemoMock ? GABRIEL_MOCK_PACKAGES : []);
+  const handleSearch = () => {
+    const trimmed = search.trim();
+    setSubmittedQuery(trimmed);
+    setHasSearched(true);
+  };
 
-  const filtered = sourceList.filter(s =>
-    s.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
-    s.recipient_name.toLowerCase().includes(search.toLowerCase()) ||
-    s.description.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleClear = () => {
+    setSearch('');
+    setSubmittedQuery('');
+    setHasSearched(false);
+  };
+
+  const activeQuery = hasSearched ? submittedQuery : search.trim();
+
+  // Filtrado: Muestra los envíos del usuario o busca en el catálogo general si ingresa una guía específica
+  const filtered = useMemo(() => {
+    if (!activeQuery) {
+      return shipments;
+    }
+    const q = activeQuery.toLowerCase();
+    const matchShipment = (s: Shipment) => {
+      const tracking = (s?.tracking_number || '').toLowerCase();
+      const recipient = (s?.recipient_name || '').toLowerCase();
+      const desc = (s?.description || '').toLowerCase();
+      const id = (s?.id || '').toLowerCase();
+      return tracking.includes(q) || recipient.includes(q) || desc.includes(q) || id.includes(q);
+    };
+
+    const userMatches = shipments.filter(matchShipment);
+    if (userMatches.length > 0) {
+      return userMatches;
+    }
+    return allShipments.filter(matchShipment);
+  }, [activeQuery, shipments, allShipments]);
+
+  const isNotFound = hasSearched && submittedQuery !== '' && filtered.length === 0;
 
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
@@ -117,11 +90,12 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
   };
 
   const renderItem = ({ item }: { item: Shipment }) => {
-    const isDelivery = item.status === 'entregado';
+    const status = item?.status || 'pendiente';
+    const isDelivery = status === 'entregado';
     const sender = user?.first_name 
       ? `${user.first_name} ${user.last_name || ''}`.trim() 
       : 'Remitente RerF';
-    const badgeColors = getStatusBadgeStyle(item.status);
+    const badgeColors = getStatusBadgeStyle(status);
 
     return (
       <TouchableOpacity
@@ -135,14 +109,14 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
           </Text>
           <View style={[styles.statusPill, { backgroundColor: badgeColors.bg }]}>
             <Text style={[styles.statusPillText, { color: badgeColors.text }]}>
-              {item.status.replace('_', ' ').toUpperCase()}
+              {status.replace('_', ' ').toUpperCase()}
             </Text>
           </View>
         </View>
 
         <Text style={styles.fieldLine}>
           <Text style={styles.fieldLabel}>Destino: </Text>
-          <Text style={styles.fieldValue} numberOfLines={1}>{item.delivery_address}</Text>
+          <Text style={styles.fieldValue} numberOfLines={1}>{item?.delivery_address || 'Dirección no especificada'}</Text>
         </Text>
 
         <Text style={styles.fieldLine}>
@@ -152,13 +126,13 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
 
         <Text style={styles.fieldLine}>
           <Text style={styles.fieldLabel}>Personas: </Text>
-          <Text style={styles.fieldValue}>{sender}, {item.recipient_name}</Text>
+          <Text style={styles.fieldValue}>{sender}, {item?.recipient_name || 'Destinatario'}</Text>
         </Text>
 
         <View style={styles.cardFooter}>
           <View style={styles.trackingBadge}>
             <Ionicons name="barcode-outline" size={14} color="#475569" style={{ marginRight: 4 }} />
-            <Text style={styles.trackingText}>{item.tracking_number}</Text>
+            <Text style={styles.trackingText}>{item?.tracking_number || item?.id || 'S/N'}</Text>
           </View>
           <View style={styles.detailButton}>
             <Text style={styles.detailButtonText}>Ver detalle</Text>
@@ -174,29 +148,55 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
       <Header title="Listar paquetes" showBack={true} />
 
       <View style={styles.content}>
-        {/* Banner de Modo Demostración si está activo */}
-        {showDemoMock && shipments.length === 0 && (
-          <View style={styles.demoNoticeBanner}>
-            <View style={styles.demoNoticeLeft}>
-              <Ionicons name="information-circle" size={18} color="#D97706" />
-              <Text style={styles.demoNoticeText}>Modo Demo: Paquetes de prueba para evaluación</Text>
+        {/* Campo Buscar con Botón Buscar integrado */}
+        <View style={styles.searchBarRow}>
+          <View style={styles.inputWrapper}>
+            <Ionicons name="search-outline" size={18} color="#64748B" style={styles.searchIcon} />
+            <TextInput
+              style={styles.textInput}
+              placeholder="Buscar por guía, destinatario..."
+              placeholderTextColor="#94A3B8"
+              value={search}
+              onChangeText={(text) => {
+                setSearch(text);
+                if (hasSearched && text.trim() === '') {
+                  setHasSearched(false);
+                }
+              }}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={handleClear} style={{ padding: 4 }}>
+                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity 
+            style={styles.searchButton}
+            onPress={handleSearch}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="search" size={16} color={RerfColors.primaryYellowText} />
+            <Text style={styles.searchButtonText}>Buscar</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Anuncio cuando no se encuentran coincidencias */}
+        {isNotFound && (
+          <View style={styles.notFoundCard}>
+            <Ionicons name="alert-circle-outline" size={24} color="#DC2626" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.notFoundTitle}>Paquete no encontrado</Text>
+              <Text style={styles.notFoundSubtitle}>
+                {`No se encontraron paquetes que coincidan con "${submittedQuery}". Verifica el número de guía o destinatario.`}
+              </Text>
             </View>
-            <TouchableOpacity onPress={() => setShowDemoMock(false)} style={styles.demoNoticeBtn}>
-              <Text style={styles.demoNoticeBtnText}>Ocultar</Text>
+            <TouchableOpacity onPress={handleClear} style={styles.clearSearchBtn}>
+              <Text style={styles.clearSearchBtnText}>Limpiar</Text>
             </TouchableOpacity>
           </View>
         )}
-
-        {/* Campo Buscar */}
-        <View style={styles.searchContainer}>
-          <Input
-            placeholder="Buscar por guía, destinatario o contenido..."
-            value={search}
-            onChangeText={setSearch}
-            leftIcon={<Ionicons name="search-outline" size={18} color="#64748B" />}
-            containerStyle={{ marginBottom: 0 }}
-          />
-        </View>
 
         <FlatList
           data={filtered}
@@ -205,35 +205,18 @@ export const PackagesOverviewScreen: React.FC<RootStackScreenProps<'DesglosePaqu
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <Ionicons name="cube-outline" size={42} color="#94A3B8" />
-              </View>
-              <Text style={styles.emptyTitle}>No tienes paquetes registrados</Text>
-              <Text style={styles.emptyText}>
-                Cada usuario cuenta con su propio historial aislado. Cotiza o realiza un envío para comenzar a rastrear tus paquetes.
-              </Text>
-              
-              <View style={styles.emptyActionsRow}>
-                <TouchableOpacity
-                  style={styles.quoteEmptyBtn}
-                  onPress={() => navigation.navigate('Cotizador')}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="calculator-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.quoteEmptyBtnText}>Cotizar Envío</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.demoEmptyBtn}
-                  onPress={() => setShowDemoMock(true)}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="eye-outline" size={16} color={RerfColors.logisticsBlue} style={{ marginRight: 6 }} />
-                  <Text style={styles.demoEmptyBtnText}>Ver Muestra Demo</Text>
+            isNotFound ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={44} color="#DC2626" />
+                <Text style={styles.emptyTitle}>Sin coincidencias</Text>
+                <Text style={styles.emptyText}>
+                  {`No se encontraron paquetes asociados a la búsqueda "${submittedQuery}".`}
+                </Text>
+                <TouchableOpacity onPress={handleClear} style={styles.resetBtn}>
+                  <Text style={styles.resetBtnText}>Ver todos los paquetes</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            ) : null
           }
         />
       </View>
@@ -278,43 +261,94 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  demoNoticeBanner: {
+  searchBarRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    gap: 8,
+    marginBottom: 14,
+  },
+  inputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 10,
+    borderColor: RerfColors.surfaceCardBorder,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
+    height: 48,
+    ...RerfShadows.card,
   },
-  demoNoticeLeft: {
+  searchIcon: {
+    marginRight: 8,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 14,
+    color: RerfColors.textMain,
+    fontWeight: '600',
+  },
+  searchButton: {
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: RerfColors.primaryYellow,
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
     gap: 6,
+    ...RerfShadows.card,
   },
-  demoNoticeText: {
+  searchButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: RerfColors.primaryYellowText,
+  },
+  notFoundCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  notFoundTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  notFoundSubtitle: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#92400E',
-    flex: 1,
+    color: '#7F1D1D',
+    marginTop: 2,
   },
-  demoNoticeBtn: {
+  clearSearchBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FECACA',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#FDE68A',
     borderRadius: 6,
   },
-  demoNoticeBtnText: {
+  clearSearchBtnText: {
     fontSize: 11,
-    fontWeight: '800',
-    color: '#78350F',
+    fontWeight: '700',
+    color: '#DC2626',
   },
-  searchContainer: {
-    marginBottom: 14,
+  resetBtn: {
+    marginTop: 10,
+    backgroundColor: RerfColors.logisticsBlue,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  resetBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   listContent: {
     gap: 12,
@@ -403,15 +437,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 10,
   },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '800',
@@ -422,40 +447,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
-  },
-  emptyActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-  quoteEmptyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: RerfColors.logisticsBlue,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    ...RerfShadows.card,
-  },
-  quoteEmptyBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  demoEmptyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  demoEmptyBtnText: {
-    color: RerfColors.logisticsBlue,
-    fontWeight: '700',
-    fontSize: 12,
   },
   bottomTabBar: {
     flexDirection: 'row',

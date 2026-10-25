@@ -126,10 +126,25 @@ export class RepositorioBodega extends RepositorioBase<WarehouseItem, Omit<Wareh
   public async solicitarAlmacenaje(
     datos: Omit<WarehouseItem, 'id' | 'created_at' | 'storage_code'>
   ): Promise<WarehouseItem> {
-    const correlativo: number = this.articulos.length + 1;
+    let nextNum = this.articulos.length + 1;
+    if (isSupabaseConfigured) {
+      try {
+        const { data } = await supabase.from(this.nombreEntidad).select('storage_code');
+        if (data && data.length > 0) {
+          const nums = data.map((d: any) => {
+            const m = d.storage_code?.match(/\d+/);
+            return m ? parseInt(m[0], 10) : 0;
+          });
+          nextNum = Math.max(...nums, this.articulos.length, 0) + 1;
+        }
+      } catch (e) {
+        console.warn('[RepositorioBodega] Error calculando correlativo:', e);
+      }
+    }
+
     const fallbackId = `wh-${Date.now()}`;
     const fallbackCreatedAt = new Date().toISOString();
-    const storageCode = `BDG-${String(correlativo).padStart(3, '0')}`;
+    let storageCode = `BDG-${String(nextNum).padStart(3, '0')}`;
 
     const nuevoArticulo: WarehouseItem = {
       ...datos,
@@ -145,7 +160,7 @@ export class RepositorioBodega extends RepositorioBase<WarehouseItem, Omit<Wareh
           description: datos.description || null,
           material: datos.material || 'fuerte',
           pickup_method: datos.pickup_method || 'entrega_personal',
-          status: datos.status || 'almacenado',
+          status: datos.status || 'solicitado',
           storage_code: storageCode,
         };
 
