@@ -527,12 +527,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return warehouseItems.filter(w => w.user_id === user.id);
   }, [user, warehouseItems]);
 
-  // Filtrado de facturas: el Administrador ve todas, el usuario solo las de sus propios envíos
+  // Filtrado de facturas: el Administrador ve todas, el usuario ve las de sus propios envíos (creados o recibidos)
   const userInvoices = React.useMemo(() => {
     if (!user) return [];
     if (user.role === 'admin') return invoices;
+
     const userShipmentIds = new Set(userShipments.map(s => s.id));
-    return invoices.filter(inv => inv.shipment_id && userShipmentIds.has(inv.shipment_id));
+    const userTrackingNumbers = new Set(userShipments.map(s => s.tracking_number).filter(Boolean));
+
+    // 1. Facturas directas existentes
+    const directInvoices = invoices.filter(inv => {
+      if (!inv.shipment_id) return false;
+      return userShipmentIds.has(inv.shipment_id) || 
+             userTrackingNumbers.has(inv.shipment_id) ||
+             userShipments.some(s => s.tracking_number && inv.description.includes(s.tracking_number));
+    });
+
+    // 2. Para envíos del usuario que no tengan registro explícito en la tabla de facturas (sincronización multi-dispositivo)
+    const coveredShipmentIds = new Set(directInvoices.map(i => i.shipment_id));
+    const generatedInvoices: Invoice[] = [];
+
+    userShipments.forEach(s => {
+      if (!coveredShipmentIds.has(s.id) && !coveredShipmentIds.has(s.tracking_number) && s.status !== 'cancelado') {
+        generatedInvoices.push({
+          id: `inv-${s.id}`,
+          shipment_id: s.id,
+          invoice_number: `FEL-2026-${(s.tracking_number || '').replace(/\D/g, '').slice(-4) || '7608'}`,
+          amount: s.total_amount || 35.00,
+          issued_date: s.scheduled_date || '11/10/2026',
+          status: 'pagado',
+          description: `Servicio de Logística y Envío - Guía ${s.tracking_number} (${s.description || 'General'})`,
+          payment_method: s.payment_method === 'contra_entrega' ? 'Contra entrega' : 'Efectivo',
+        });
+      }
+    });
+
+    return [...directInvoices, ...generatedInvoices];
   }, [user, invoices, userShipments]);
 
   // Inicialización de datos desde los repositorios al arrancar
@@ -872,6 +902,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateShipment = async (shipmentId: string, updates: Partial<Shipment>): Promise<void> => {
     await repositorioEnvios.actualizar(shipmentId, updates);
+    const targetShipment = allShipments.find(s => s.id === shipmentId || s.tracking_number === shipmentId);
+
     setAllShipments(prev =>
       prev.map(s =>
         s.id === shipmentId || s.tracking_number === shipmentId
@@ -879,6 +911,104 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : s
       )
     );
+
+    // Si la actualización es a 'entregado', notificar al remitente y al receptor
+    if (updates.status === 'entregado' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const recipientName = targetShipment.recipient_name || 'Destinatario';
+      const address = targetShipment.delivery_address || 'Dirección de entrega';
+      const pilotName = targetShipment.agent_name || 'Piloto RerF';
+
+      // 1. Notificación para el Remitente (quien envió el paquete)
+      const notifRemitente: NotificationItem = {
+        id: `notif-deliv-sender-${now.getTime()}`,
+        title: 'Envío Entregado Exitosamente',
+        message: `Tu envío ${trackingCode} fue entregado con éxito a ${recipientName} en ${address}.`,
+        type: 'envio',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === targetShipment.sender_id) {
+        await persistirNotificaciones([notifRemitente, ...notifications]);
+      } else {
+        const senderKey = `@rerf_notifications_${targetShipment.sender_id}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifRemitente, ...prevList]));
+        } catch (eSend) {
+          console.warn('[AppContext] Error guardando notificación local de entrega para remitente:', eSend);
+        }
+      }
+
+      if (isSupabaseConfigured && targetShipment.sender_id && targetShipment.sender_id.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: targetShipment.sender_id,
+            title: notifRemitente.title,
+            message: notifRemitente.message,
+            type: 'envio',
+            is_read: false,
+          });
+        } catch (eSb) {
+          console.warn('[AppContext] Error guardando notificación de entrega para remitente en Supabase:', eSb);
+        }
+      }
+
+      // 2. Notificación para el Receptor / Destinatario
+      const destinatarioUser = users.find(u => {
+        const uFull = `${u.first_name} ${u.last_name}`.trim().toLowerCase();
+        return uFull === recipientName.trim().toLowerCase() ||
+          (u.email && u.email.trim().toLowerCase() === recipientName.trim().toLowerCase()) ||
+          Boolean(targetShipment.address_references && targetShipment.address_references.includes(u.id));
+      });
+
+      if (destinatarioUser) {
+        const notifReceptor: NotificationItem = {
+          id: `notif-deliv-recv-${now.getTime()}`,
+          title: '¡Paquete Recibido!',
+          message: `Has recibido tu paquete con guía ${trackingCode} (${targetShipment.description || 'Entrega RerF'}). Entregado por ${pilotName} en ${address}.`,
+          type: 'envio',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+          shipment_id: targetShipment.id,
+          tracking_number: trackingCode,
+        };
+
+        if (user?.id === destinatarioUser.id) {
+          await persistirNotificaciones([notifReceptor, ...notifications]);
+        } else {
+          const recvKey = `@rerf_notifications_${destinatarioUser.id}`;
+          try {
+            const prevRaw = await AsyncStorage.getItem(recvKey);
+            const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+            await AsyncStorage.setItem(recvKey, JSON.stringify([notifReceptor, ...prevList]));
+          } catch (eRecv) {
+            console.warn('[AppContext] Error guardando notificación local de entrega para destinatario:', eRecv);
+          }
+        }
+
+        if (isSupabaseConfigured && destinatarioUser.id && destinatarioUser.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: destinatarioUser.id,
+              title: notifReceptor.title,
+              message: notifReceptor.message,
+              type: 'envio',
+              is_read: false,
+            });
+          } catch (eSb) {
+            console.warn('[AppContext] Error guardando notificación para receptor en Supabase:', eSb);
+          }
+        }
+      }
+    }
   };
 
   const getShipmentByTracking = async (trackingOrId: string): Promise<Shipment | undefined> => {
