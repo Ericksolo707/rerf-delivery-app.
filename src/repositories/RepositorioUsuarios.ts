@@ -1,16 +1,9 @@
-/**
- * RepositorioUsuarios.ts - Repositorio de Usuarios y Perfiles
- * Programación II - Sesiones 5, 6 y 7 UMG
- *
- * Responsabilidad: Gestión de usuarios, perfiles, búsqueda en el directorio,
- * registro de nuevos usuarios, persistencia en AsyncStorage y autenticación.
- * Aplica el patrón Singleton (Sesión 6).
- */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile } from '../types';
 import { ADMIN_USER } from '../services/mockData';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { authRepo, traducirErrorAuth } from '../database';
 
 const STORAGE_KEY_USERS = '@rerf_registered_users';
 const STORAGE_KEY_CREDS = '@rerf_user_credentials';
@@ -25,7 +18,7 @@ const isUuid = (str?: string): boolean => {
 export class RepositorioUsuarios {
   public readonly nombreEntidad: string = 'users';
 
-  // Referencia Singleton única en memoria (Sesión 6)
+  // Referencia Singleton única en memoria 
   private static instancia: RepositorioUsuarios | null = null;
 
   private usuarioActual: UserProfile | null = null;
@@ -40,7 +33,7 @@ export class RepositorioUsuarios {
   }
 
   /**
-   * Punto de acceso global a la instancia única de Usuarios (Sesión 6)
+   * Punto de acceso global a la instancia única de Usuarios 
    */
   public static getInstance(): RepositorioUsuarios {
     if (RepositorioUsuarios.instancia === null) {
@@ -109,21 +102,31 @@ export class RepositorioUsuarios {
       }
     }
 
-    // 1. Autenticación con Supabase Auth
+    // Soporte para cuenta de demostración / evaluación (admin@rerf.gt / admin)
+    if (
+      (cleanEmail === 'admin@rerf.gt' || cleanEmail === 'admin' || cleanEmail === 'administrador') &&
+      cleanPass === 'admin'
+    ) {
+      this.usuarioActual = { ...ADMIN_USER };
+      this.credenciales['admin@rerf.gt'] = 'admin';
+      await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
+      return { ...this.usuarioActual };
+    }
+
+    // 1. Autenticación con Supabase Auth a través de authRepo 
     if (isSupabaseConfigured) {
       try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password: cleanPass,
-        });
+        let sesionUsuario: any = null;
+        try {
+          sesionUsuario = await authRepo.iniciarSesion(cleanEmail, cleanPass);
+        } catch (authError: any) {
+          const mensajeError = authError?.message || '';
 
-        if (authError) {
-          if (authError.message.includes('Invalid login credentials')) {
-            throw new Error('Usuario, correo o contraseña incorrectos. Verifique sus datos o regístrese si es nuevo.');
-          }
-          if (authError.message.includes('Email not confirmed')) {
-            // La contraseña es correcta (Supabase valida la contraseña antes de chequear confirmación).
-            // Recuperamos el perfil y permitimos el acceso sin bloquear al usuario.
+          // Caso especial: correo no confirmado en Supabase pero contraseña correcta
+          if (
+            mensajeError.includes('Email not confirmed') ||
+            mensajeError.includes('confirmar tu correo')
+          ) {
             const localUser = this.directorio.find((u) => u.email.toLowerCase() === cleanEmail);
             let profileData: any = null;
             try {
@@ -143,11 +146,11 @@ export class RepositorioUsuarios {
               last_name: profileData?.last_name || localUser?.last_name || '',
               email: cleanEmail,
               phone: profileData?.phone || localUser?.phone || '',
-              address: profileData?.address || localUser?.address || 'Ciudad de Guatemala',
+              address: profileData?.address || localUser?.address || '',
               address_references: profileData?.address_references || localUser?.address_references || '',
               role: profileData?.role || localUser?.role || 'cliente',
               avatar_url: profileData?.avatar_url || localUser?.avatar_url,
-              bio: profileData?.bio || localUser?.bio || 'Usuario activo en RerF Logistics',
+              bio: profileData?.bio || localUser?.bio || '',
             };
 
             this.usuarioActual = { ...resolvedUser };
@@ -155,11 +158,13 @@ export class RepositorioUsuarios {
             await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(this.usuarioActual));
             return { ...this.usuarioActual };
           }
-          throw new Error(authError.message);
+
+          // Error traducido con traducirErrorAuth 
+          throw new Error(traducirErrorAuth(authError));
         }
 
-        if (authData?.user) {
-          const userId = authData.user.id;
+        if (sesionUsuario?.id) {
+          const userId = sesionUsuario.id;
 
           // Consultar perfil de negocio en public.usuarios (con fallback a profiles)
           let userProfile: UserProfile | null = null;
@@ -198,14 +203,14 @@ export class RepositorioUsuarios {
           }
 
           if (!userProfile) {
-            const rawName = authData.user.user_metadata?.first_name || cleanEmail.split('@')[0];
+            const rawName = sesionUsuario.nombre || cleanEmail.split('@')[0];
             const cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
             userProfile = {
               id: userId,
               first_name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
-              last_name: authData.user.user_metadata?.last_name || '',
-              email: authData.user.email || cleanEmail,
-              role: (authData.user.user_metadata?.role as any) || 'cliente',
+              last_name: '',
+              email: sesionUsuario.correo || cleanEmail,
+              role: 'cliente',
               bio: 'Usuario autenticado vía Supabase',
             };
             try {
@@ -271,34 +276,43 @@ export class RepositorioUsuarios {
     await this.inicializarPersistencia();
 
     const cleanEmail = nuevoPerfil.email.trim().toLowerCase();
+    // 0. Validación de duplicidad en directorio local y base de datos
+    const existeLocal = this.directorio.some(
+      (u) => u.email.toLowerCase() === cleanEmail
+    );
+    if (existeLocal) {
+      throw new Error('Ese correo ya está registrado');
+    }
+
     let createdId = `usr-${Date.now()}`;
 
-    // 1. Registrar en Supabase Auth oficial (aparecerá en Authentication > Users)
+    // 1. Registrar en Supabase Auth oficial mediante authRepo 
     if (isSupabaseConfigured) {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: password,
-        options: {
-          data: {
-            first_name: nuevoPerfil.first_name,
-            last_name: nuevoPerfil.last_name,
-            role: nuevoPerfil.role || 'cliente',
-          },
-        },
-      });
+      try {
+        const { data: existenteRemoto } = await supabase
+          .from('usuarios')
+          .select('id')
+          .eq('email', cleanEmail)
+          .maybeSingle();
 
-      if (authError) {
-        if (
-          authError.message.includes('User already registered') ||
-          authError.message.includes('already exists')
-        ) {
-          throw new Error('El correo electrónico ya se encuentra registrado en el sistema.');
+        if (existenteRemoto) {
+          throw new Error('Ese correo ya está registrado');
         }
-        throw new Error(authError.message);
-      }
 
-      if (authData?.user) {
-        createdId = authData.user.id;
+        const nombreCompleto = `${nuevoPerfil.first_name} ${nuevoPerfil.last_name || ''}`.trim();
+        const resultado = await authRepo.registrar(cleanEmail, password, nombreCompleto, {
+          first_name: nuevoPerfil.first_name,
+          last_name: nuevoPerfil.last_name || '',
+          role: nuevoPerfil.role || 'cliente',
+        });
+
+        if (resultado.sesion?.id) {
+          createdId = resultado.sesion.id;
+        } else if (resultado.usuario?.id) {
+          createdId = resultado.usuario.id;
+        }
+      } catch (authError: any) {
+        throw new Error(traducirErrorAuth(authError));
       }
     }
 
@@ -321,7 +335,7 @@ export class RepositorioUsuarios {
           address: nuevoUsuario.address || '',
           address_references: nuevoUsuario.address_references || '',
           role: nuevoUsuario.role || 'cliente',
-          bio: nuevoUsuario.bio || 'Usuario registrado en RerF Logistics',
+          bio: nuevoUsuario.bio || '',
         };
 
         let resU = await supabase.from('usuarios').upsert([payload]);
@@ -366,15 +380,44 @@ export class RepositorioUsuarios {
   }
 
   /**
-   * Cierra la sesión activa en el dispositivo
+   * Cierra la sesión activa en el dispositivo y en Supabase Auth 
    */
   public async cerrarSesion(): Promise<void> {
     this.usuarioActual = null;
     try {
+      if (isSupabaseConfigured) {
+        await authRepo.cerrarSesion().catch((err) => {
+          console.warn('[RepositorioUsuarios] Aviso cerrando sesión en Supabase:', err);
+        });
+      }
       await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
     } catch (err) {
       console.warn('[RepositorioUsuarios] Error borrando sesión activa:', err);
     }
+  }
+
+  /**
+   * Obtiene la sesión activa directamente desde Supabase Auth 
+   */
+  public async obtenerSesionAuth(): Promise<import('../models/UsuarioSesion').UsuarioSesion | null> {
+    if (isSupabaseConfigured) {
+      try {
+        return await authRepo.obtenerSesion();
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Escucha cambios reactivos en la autenticación de Supabase 
+   */
+  public escucharCambiosAuth(alCambiar: (usuario: import('../models/UsuarioSesion').UsuarioSesion | null) => void): () => void {
+    if (isSupabaseConfigured) {
+      return authRepo.escucharCambios(alCambiar);
+    }
+    return () => {};
   }
 
   /**

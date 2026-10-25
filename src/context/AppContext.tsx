@@ -1,14 +1,8 @@
-/**
- * AppContext.tsx - Proveedor de Estado Global y Orquestador de Repositorios
- * Programación II - UMG
- *
- * Responsabilidad: Exponer el estado reactivo de la aplicación a los componentes
- * de React Native, consumiendo los Repositorios de datos para mantener
- * una estricta separación de capas (Arquitectura Limpia).
- */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeMode, ThemeColors, getThemeColors } from '../constants/theme';
 import { 
   UserProfile, 
   Shipment, 
@@ -25,7 +19,9 @@ import {
 } from '../repositories';
 import { 
   MOCK_NOTIFICATIONS, 
-  MOCK_AI_MESSAGES 
+  MOCK_AI_MESSAGES,
+  ADMIN_USER,
+  ERICK_USER
 } from '../services/mockData';
 
 import { AiLogisticsService } from '../services/aiLogisticsService';
@@ -80,6 +76,13 @@ interface AppContextType {
   register: (firstName: string, lastName: string, email: string, pass: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+
+  // Modo Oscuro y Tema
+  themeMode: ThemeMode;
+  isDarkMode: boolean;
+  colors: ThemeColors;
+  setThemeMode: (mode: ThemeMode) => Promise<void>;
+  toggleTheme: () => Promise<void>;
   
   // Envíos
   shipments: Shipment[];
@@ -131,6 +134,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [supportMessages, setSupportMessages] = useState<ChatMessage[]>(DEFAULT_SUPPORT_MESSAGES);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>(MOCK_AI_MESSAGES);
+
+  // Modo Oscuro y Tema de la aplicación
+  const systemColorScheme = useColorScheme();
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
+
+  useEffect(() => {
+    const initTheme = async () => {
+      try {
+        const storedTheme = await AsyncStorage.getItem('@rerf_theme_mode');
+        if (storedTheme === 'dark' || storedTheme === 'light' || storedTheme === 'system') {
+          setThemeModeState(storedTheme as ThemeMode);
+        }
+      } catch (e) {
+        console.warn('Error leyendo preferencia de tema guardada:', e);
+      }
+    };
+    initTheme();
+  }, []);
+
+  const isDarkMode = themeMode === 'system' 
+    ? systemColorScheme === 'dark' 
+    : themeMode === 'dark';
+
+  const colors = getThemeColors(isDarkMode);
+
+  const setThemeMode = async (mode: ThemeMode): Promise<void> => {
+    setThemeModeState(mode);
+    try {
+      await AsyncStorage.setItem('@rerf_theme_mode', mode);
+    } catch (e) {
+      console.warn('Error persistiendo preferencia de tema:', e);
+    }
+  };
+
+  const toggleTheme = async (): Promise<void> => {
+    const nextMode: ThemeMode = isDarkMode ? 'light' : 'dark';
+    await setThemeMode(nextMode);
+  };
 
   // Cargar historial de soporte privado persistido y desde Supabase
   const cargarMensajesSoporte = async (): Promise<ChatMessage[]> => {
@@ -379,6 +420,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
+      // Si el usuario es administrador, verificar si hay envíos pendientes de autorización
+      // para asegurar que tenga la notificación visible en su bandeja
+      if (currentUser.role === 'admin') {
+        const enviosActuales = allShipments.length > 0 ? allShipments : await repositorioEnvios.listar();
+        const enviosPendientes = enviosActuales.filter(s => s.status === 'pendiente');
+        for (const pend of enviosPendientes) {
+          const yaExiste = finalUnique.some(n => 
+            n.shipment_id === pend.id || 
+            (n.tracking_number && n.tracking_number === pend.tracking_number) ||
+            (pend.tracking_number && n.message.includes(pend.tracking_number))
+          );
+          if (!yaExiste) {
+            const senderUser = users.find(u => u.id === pend.sender_id);
+            const clientName = senderUser 
+              ? `${senderUser.first_name} ${senderUser.last_name || ''}`.trim() 
+              : (pend.sender_id === 'usr-001' ? 'Pedro Alcántara' : 'Un cliente');
+            const notifPend: NotificationItem = {
+              id: `notif-order-admin-${pend.id}`,
+              title: 'Nuevo Pedido por Autorizar',
+              message: `${clientName} ha registrado el envío ${pend.tracking_number} para ${pend.recipient_name}. Requiere tu autorización.`,
+              type: 'alerta',
+              date: 'Hoy',
+              is_read: false,
+              created_at: pend.created_at || new Date().toISOString(),
+              shipment_id: pend.id,
+              tracking_number: pend.tracking_number,
+            };
+            finalUnique.unshift(notifPend);
+          }
+        }
+      }
+
       const ordenadas = ordenarNotificacionesRecientes(finalUnique);
 
       // Persistir de inmediato la consolidación limpia para futuras sesiones
@@ -527,35 +600,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return warehouseItems.filter(w => w.user_id === user.id);
   }, [user, warehouseItems]);
 
-  // Filtrado de facturas: el Administrador ve todas, el usuario ve las de sus propios envíos (creados o recibidos)
+  // Filtrado de facturas: el Administrador ve las facturas de todos los movimientos de los clientes del sistema.
+  // El usuario cliente ve las de sus propios envíos (creados o recibidos).
   const userInvoices = React.useMemo(() => {
     if (!user) return [];
-    if (user.role === 'admin') return invoices;
 
-    const userShipmentIds = new Set(userShipments.map(s => s.id));
-    const userTrackingNumbers = new Set(userShipments.map(s => s.tracking_number).filter(Boolean));
+    const isAdmin = user.role === 'admin';
+    const targetShipments = isAdmin ? allShipments : userShipments;
 
-    // 1. Facturas directas existentes
-    const directInvoices = invoices.filter(inv => {
+    const targetShipmentIds = new Set(targetShipments.map(s => s.id));
+    const targetTrackingNumbers = new Set(targetShipments.map(s => s.tracking_number).filter(Boolean));
+
+    // 1. Facturas directas existentes en la base de datos o memoria
+    const directInvoices = (isAdmin ? invoices : invoices.filter(inv => {
       if (!inv.shipment_id) return false;
-      return userShipmentIds.has(inv.shipment_id) || 
-             userTrackingNumbers.has(inv.shipment_id) ||
-             userShipments.some(s => s.tracking_number && inv.description.includes(s.tracking_number));
+      return targetShipmentIds.has(inv.shipment_id) || 
+             targetTrackingNumbers.has(inv.shipment_id) ||
+             targetShipments.some(s => s.tracking_number && inv.description.includes(s.tracking_number));
+    })).map(inv => {
+      const match = allShipments.find(s => 
+        s.id === inv.shipment_id || 
+        s.tracking_number === inv.shipment_id || 
+        (s.tracking_number && inv.description.includes(s.tracking_number))
+      );
+      const sender = match ? users.find(u => u.id === match.sender_id) : undefined;
+      const clientName = inv.client_name || (sender ? `${sender.first_name} ${sender.last_name || ''}`.trim() : (match?.sender_id === 'usr-001' ? 'Pedro Alcántara' : 'Cliente RerF'));
+      return {
+        ...inv,
+        shipment_id: inv.shipment_id || match?.id,
+        tracking_number: inv.tracking_number || match?.tracking_number,
+        client_id: inv.client_id || match?.sender_id,
+        client_name: clientName,
+        recipient_name: inv.recipient_name || match?.recipient_name,
+      };
     });
 
-    // 2. Para envíos del usuario que no tengan registro explícito en la tabla de facturas (sincronización multi-dispositivo)
-    const coveredShipmentIds = new Set(directInvoices.map(i => i.shipment_id));
+    // 2. Para envíos que no tengan registro explícito en facturas (movimientos y envíos de clientes)
+    const coveredShipmentIds = new Set(directInvoices.map(i => i.shipment_id).filter(Boolean));
+    const coveredTrackings = new Set(directInvoices.map(i => i.tracking_number).filter(Boolean));
     const generatedInvoices: Invoice[] = [];
 
-    userShipments.forEach(s => {
-      if (!coveredShipmentIds.has(s.id) && !coveredShipmentIds.has(s.tracking_number) && s.status !== 'cancelado') {
+    targetShipments.forEach(s => {
+      if (!coveredShipmentIds.has(s.id) && !coveredTrackings.has(s.tracking_number) && s.status !== 'cancelado') {
+        const sender = users.find(u => u.id === s.sender_id);
+        const clientName = sender 
+          ? `${sender.first_name} ${sender.last_name || ''}`.trim() 
+          : (s.sender_id === 'usr-001' ? 'Pedro Alcántara' : 'Cliente RerF');
+
         generatedInvoices.push({
           id: `inv-${s.id}`,
           shipment_id: s.id,
+          tracking_number: s.tracking_number,
+          client_id: s.sender_id,
+          client_name: clientName,
+          recipient_name: s.recipient_name,
           invoice_number: `FEL-2026-${(s.tracking_number || '').replace(/\D/g, '').slice(-4) || '7608'}`,
           amount: s.total_amount || 35.00,
           issued_date: s.scheduled_date || '11/10/2026',
-          status: 'pagado',
+          status: s.payment_status === 'pagado' || s.status === 'entregado' ? 'pagado' : 'pendiente',
           description: `Servicio de Logística y Envío - Guía ${s.tracking_number} (${s.description || 'General'})`,
           payment_method: s.payment_method === 'contra_entrega' ? 'Contra entrega' : 'Efectivo',
         });
@@ -563,7 +665,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     return [...directInvoices, ...generatedInvoices];
-  }, [user, invoices, userShipments]);
+  }, [user, invoices, userShipments, allShipments, users]);
 
   // Inicialización de datos desde los repositorios al arrancar
   useEffect(() => {
@@ -626,8 +728,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         last_name: lastName,
         email,
         role: 'cliente',
-        address: 'Ciudad de Guatemala',
-        bio: 'Usuario registrado en RerF Logistics',
+        phone: '',
+        address: '',
+        address_references: '',
+        bio: '',
       },
       pass
     );
@@ -752,6 +856,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Error enviando notificación al destinatario:', notifErr);
     }
 
+    // 3. Notificación para los administradores ("pedido por autorizar")
+    try {
+      const allAdmins = users.filter(u => u.role === 'admin' && u.id !== user?.id);
+      if (!allAdmins.some(a => a.id === 'usr-admin' || a.email === 'admin@rerf.gt') && user?.email !== 'admin@rerf.gt') {
+        allAdmins.push(ADMIN_USER);
+      }
+      if (!allAdmins.some(a => a.email === 'esolorzanoj@mi.edu.gt') && user?.email !== 'esolorzanoj@mi.edu.gt') {
+        allAdmins.push(ERICK_USER);
+      }
+
+      const clientSenderName = user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Un cliente';
+
+      for (const admin of allAdmins) {
+        const notifAdmin: NotificationItem = {
+          id: `notif-order-admin-${now.getTime()}-${admin.id}`,
+          title: 'Nuevo Pedido por Autorizar',
+          message: `${clientSenderName} ha registrado el envío ${nuevoEnvio.tracking_number} para ${nuevoEnvio.recipient_name}. Requiere tu autorización.`,
+          type: 'alerta',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+          shipment_id: nuevoEnvio.id,
+          tracking_number: nuevoEnvio.tracking_number,
+        };
+
+        const adminKey = `@rerf_notifications_${admin.id}`;
+        const prevRaw = await AsyncStorage.getItem(adminKey);
+        const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+        await AsyncStorage.setItem(adminKey, JSON.stringify([notifAdmin, ...prevList]));
+
+        if (admin.email) {
+          const adminEmailKey = `@rerf_notifications_${admin.email.toLowerCase().trim()}`;
+          const prevEmailRaw = await AsyncStorage.getItem(adminEmailKey);
+          const prevEmailList = prevEmailRaw ? JSON.parse(prevEmailRaw) : [];
+          await AsyncStorage.setItem(adminEmailKey, JSON.stringify([notifAdmin, ...prevEmailList]));
+        }
+
+        if (user && (user.id === admin.id || user.email?.toLowerCase() === admin.email?.toLowerCase())) {
+          setNotifications(prev => [notifAdmin, ...prev]);
+        }
+
+        if (isSupabaseConfigured && admin.id && admin.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: admin.id,
+              title: notifAdmin.title,
+              message: notifAdmin.message,
+              type: 'alerta',
+              is_read: false,
+            });
+          } catch (eSb) {
+            console.warn('[AppContext] Error guardando notificación para admin en Supabase:', eSb);
+          }
+        }
+      }
+    } catch (errAdminNotif) {
+      console.warn('[AppContext] Error notificando nuevo envío a administradores:', errAdminNotif);
+    }
+
     // Generar automáticamente la factura electrónica FEL asociada al envío
     try {
       const nuevaFactura: Invoice = {
@@ -768,6 +931,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInvoices(prev => [nuevaFactura, ...prev]);
     } catch (e) {
       console.warn('Error generando factura electrónica:', e);
+    }
+
+    // Si el envío se despachó desde Mi Bodega, retirar el artículo de inventario activo
+    if (dataWithUser.warehouse_item_id) {
+      try {
+        await repositorioBodega.actualizar(dataWithUser.warehouse_item_id, { status: 'retirado' });
+        setWarehouseItems(prev =>
+          prev.map(w =>
+            w.id === dataWithUser.warehouse_item_id || w.storage_code === dataWithUser.warehouse_item_id
+              ? { ...w, status: 'retirado' }
+              : w
+          )
+        );
+        if (isSupabaseConfigured && dataWithUser.warehouse_item_id.includes('-')) {
+          await supabase
+            .from('bodega')
+            .update({ status: 'retirado' })
+            .eq('id', dataWithUser.warehouse_item_id);
+        }
+      } catch (errRetiro) {
+        console.warn('[AppContext] Error retirando producto de bodega al despachar envío:', errRetiro);
+      }
     }
 
     return nuevoEnvio;
@@ -912,7 +1097,257 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     );
 
-    // Si la actualización es a 'entregado', notificar al remitente y al receptor
+    // 1. Notificación cuando el envío es 'aprobado' por administración
+    if (updates.status === 'aprobado' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const recipientName = targetShipment.recipient_name || 'Destinatario';
+      const senderId = targetShipment.sender_id;
+
+      // Alerta para el Remitente (ej. Pedro)
+      const notifAprobadoRemitente: NotificationItem = {
+        id: `notif-appr-sender-${now.getTime()}`,
+        title: '¡Envío Aprobado y en Proceso!',
+        message: `Tu envío ${trackingCode} para ${recipientName} fue aprobado por Administración RerF y está listo para pasar a ruta.`,
+        type: 'envio',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === senderId) {
+        await persistirNotificaciones([notifAprobadoRemitente, ...notifications]);
+      } else if (senderId) {
+        const senderKey = `@rerf_notifications_${senderId}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifAprobadoRemitente, ...prevList]));
+        } catch (eSend) {
+          console.warn('[AppContext] Error guardando notificación local de aprobación para remitente:', eSend);
+        }
+      }
+
+      if (isSupabaseConfigured && senderId && senderId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: senderId,
+            title: notifAprobadoRemitente.title,
+            message: notifAprobadoRemitente.message,
+            type: 'envio',
+            is_read: false,
+          });
+        } catch (eSb) {
+          console.warn('[AppContext] Error guardando notificación remota de aprobación:', eSb);
+        }
+      }
+
+      // Alerta para el Receptor / Destinatario (si está registrado en la app)
+      const destinatarioUser = users.find(u => {
+        const uFull = `${u.first_name} ${u.last_name}`.trim().toLowerCase();
+        return uFull === recipientName.trim().toLowerCase() ||
+          (u.email && u.email.trim().toLowerCase() === recipientName.trim().toLowerCase()) ||
+          Boolean(targetShipment.address_references && targetShipment.address_references.includes(u.id));
+      });
+
+      if (destinatarioUser && destinatarioUser.id !== senderId) {
+        const notifAprobadoReceptor: NotificationItem = {
+          id: `notif-appr-recv-${now.getTime()}`,
+          title: 'Envío Aprobado para Entrega',
+          message: `Un paquete para ti con guía ${trackingCode} (${targetShipment.description || 'General'}) ha sido aprobado y pasará a ruta pronto.`,
+          type: 'envio',
+          date: 'Hoy',
+          is_read: false,
+          created_at: now.toISOString(),
+          shipment_id: targetShipment.id,
+          tracking_number: trackingCode,
+        };
+
+        if (user?.id === destinatarioUser.id) {
+          await persistirNotificaciones([notifAprobadoReceptor, ...notifications]);
+        } else {
+          const recvKey = `@rerf_notifications_${destinatarioUser.id}`;
+          try {
+            const prevRaw = await AsyncStorage.getItem(recvKey);
+            const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+            await AsyncStorage.setItem(recvKey, JSON.stringify([notifAprobadoReceptor, ...prevList]));
+          } catch (eRecv) {
+            console.warn('[AppContext] Error guardando notificación local de aprobación para receptor:', eRecv);
+          }
+        }
+
+        if (isSupabaseConfigured && destinatarioUser.id && destinatarioUser.id.includes('-')) {
+          try {
+            await supabase.from('notificaciones').insert({
+              user_id: destinatarioUser.id,
+              title: notifAprobadoReceptor.title,
+              message: notifAprobadoReceptor.message,
+              type: 'envio',
+              is_read: false,
+            });
+          } catch (eSb) {
+            console.warn('[AppContext] Error guardando notificación de receptor en Supabase:', eSb);
+          }
+        }
+      }
+    }
+
+    // Si el envío fue aprobado o rechazado, marcar la alerta de autorización como leída para el administrador
+    if (updates.status === 'aprobado' || updates.status === 'rechazado') {
+      try {
+        const readSet = await obtenerIdsLeidos();
+        notifications.forEach(n => {
+          if (
+            (n.shipment_id === shipmentId || (targetShipment?.tracking_number && (n.tracking_number === targetShipment.tracking_number || n.message.includes(targetShipment.tracking_number)))) &&
+            n.title.toLowerCase().includes('autorizar')
+          ) {
+            readSet.add(n.id);
+          }
+        });
+        await AsyncStorage.setItem(STORAGE_KEY_READ_NOTIFS, JSON.stringify(Array.from(readSet)));
+        setNotifications(prev =>
+          prev.map(n =>
+            (n.shipment_id === shipmentId || (targetShipment?.tracking_number && (n.tracking_number === targetShipment.tracking_number || n.message.includes(targetShipment.tracking_number)))) &&
+            n.title.toLowerCase().includes('autorizar')
+              ? { ...n, is_read: true }
+              : n
+          )
+        );
+      } catch {}
+    }
+
+    // 2. Notificación cuando el envío pasa a ruta satelital 'en_camino'
+    if (updates.status === 'en_camino' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const pilotName = updates.agent_name || targetShipment.agent_name || 'Piloto RerF';
+      const senderId = targetShipment.sender_id;
+
+      const notifEnCamino: NotificationItem = {
+        id: `notif-route-sender-${now.getTime()}`,
+        title: '¡Envío en Ruta Satelital GPS!',
+        message: `El piloto ${pilotName} ha iniciado el traslado de tu paquete ${trackingCode}. Puedes seguir la ruta en tiempo real desde la sección GPS.`,
+        type: 'envio',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === senderId) {
+        await persistirNotificaciones([notifEnCamino, ...notifications]);
+      } else if (senderId) {
+        const senderKey = `@rerf_notifications_${senderId}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifEnCamino, ...prevList]));
+        } catch {}
+      }
+
+      if (isSupabaseConfigured && senderId && senderId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: senderId,
+            title: notifEnCamino.title,
+            message: notifEnCamino.message,
+            type: 'envio',
+            is_read: false,
+          });
+        } catch {}
+      }
+    }
+
+    // 3. Notificación cuando el envío es 'cancelado'
+    if (updates.status === 'cancelado' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const senderId = targetShipment.sender_id;
+      const reason = updates.cancellation_reason || 'Cancelado por solicitud.';
+
+      const notifCancelado: NotificationItem = {
+        id: `notif-cancel-${now.getTime()}`,
+        title: 'Envío Cancelado',
+        message: `El envío ${trackingCode} fue cancelado: ${reason}`,
+        type: 'alerta',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === senderId) {
+        await persistirNotificaciones([notifCancelado, ...notifications]);
+      } else if (senderId) {
+        const senderKey = `@rerf_notifications_${senderId}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifCancelado, ...prevList]));
+        } catch {}
+      }
+
+      if (isSupabaseConfigured && senderId && senderId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: senderId,
+            title: notifCancelado.title,
+            message: notifCancelado.message,
+            type: 'alerta',
+            is_read: false,
+          });
+        } catch {}
+      }
+    }
+
+    // 4. Notificación cuando el envío es 'rechazado'
+    if (updates.status === 'rechazado' && targetShipment) {
+      const now = new Date();
+      const trackingCode = targetShipment.tracking_number;
+      const senderId = targetShipment.sender_id;
+      const reason = updates.rejection_reason || 'Rechazado por administración.';
+
+      const notifRechazado: NotificationItem = {
+        id: `notif-reject-${now.getTime()}`,
+        title: 'Envío Rechazado',
+        message: `Tu envío ${trackingCode} fue rechazado por Administración: ${reason}`,
+        type: 'alerta',
+        date: 'Hoy',
+        is_read: false,
+        created_at: now.toISOString(),
+        shipment_id: targetShipment.id,
+        tracking_number: trackingCode,
+      };
+
+      if (user?.id === senderId) {
+        await persistirNotificaciones([notifRechazado, ...notifications]);
+      } else if (senderId) {
+        const senderKey = `@rerf_notifications_${senderId}`;
+        try {
+          const prevRaw = await AsyncStorage.getItem(senderKey);
+          const prevList = prevRaw ? JSON.parse(prevRaw) : [];
+          await AsyncStorage.setItem(senderKey, JSON.stringify([notifRechazado, ...prevList]));
+        } catch {}
+      }
+
+      if (isSupabaseConfigured && senderId && senderId.includes('-')) {
+        try {
+          await supabase.from('notificaciones').insert({
+            user_id: senderId,
+            title: notifRechazado.title,
+            message: notifRechazado.message,
+            type: 'alerta',
+            is_read: false,
+          });
+        } catch {}
+      }
+    }
+
+    // 5. Si la actualización es a 'entregado', notificar al remitente y al receptor
     if (updates.status === 'entregado' && targetShipment) {
       const now = new Date();
       const trackingCode = targetShipment.tracking_number;
@@ -1447,6 +1882,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         register,
         logout,
         updateProfile,
+        themeMode,
+        isDarkMode,
+        colors,
+        setThemeMode,
+        toggleTheme,
         shipments: userShipments,
         allShipments,
         addShipment,

@@ -1,12 +1,3 @@
-/**
- * Header.tsx - Barra Superior Institucional RerF (Alineada al boceto Excalidraw)
- * Programación II - UMG
- *
- * Responsabilidad: Desplegar la barra de navegación superior según el boceto Excalidraw:
- * - Izquierda: Botón de retroceso (si showBack) o Título de la pantalla.
- * - Derecha: Botón de alerta / notificaciones (!) y botón de salida ([->) con
- *   modal de confirmación "¿Cerrar sesión?" (Pantalla 4).
- */
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, StatusBar } from 'react-native';
@@ -27,7 +18,7 @@ interface HeaderProps {
   onRightPress?: () => void;
   showNotification?: boolean;
   isDark?: boolean;
-  hideExcalidrawActions?: boolean;
+  hideActions?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -38,11 +29,11 @@ export const Header: React.FC<HeaderProps> = ({
   onRightPress,
   showNotification = false,
   isDark = false,
-  hideExcalidrawActions = false,
+  hideActions = false,
 }) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { logout, refreshData, isRefreshing, notifications } = useApp();
+  const { logout, refreshData, isRefreshing, notifications, isDarkMode, colors, toggleTheme } = useApp();
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
   const hasUnread = notifications.some(n => !n.is_read);
 
@@ -51,10 +42,10 @@ export const Header: React.FC<HeaderProps> = ({
     Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0
   );
 
-  const textColor = isDark ? '#FFFFFF' : RerfColors.textMain;
-  const iconColor = isDark ? '#FFFFFF' : RerfColors.textMain;
-  const bgColor = isDark ? RerfColors.heroDark : '#FFFFFF';
-  const borderColor = isDark ? RerfColors.heroDarkBorder : RerfColors.surfaceCardBorder;
+  const textColor = isDark ? '#FFFFFF' : colors.textMain;
+  const iconColor = isDark ? '#FFFFFF' : colors.textMain;
+  const bgColor = isDark ? RerfColors.heroDark : colors.surfaceCard;
+  const borderColor = isDark ? RerfColors.heroDarkBorder : colors.surfaceCardBorder;
 
   const handleLogout = (): void => {
     setShowLogoutModal(false);
@@ -97,13 +88,32 @@ export const Header: React.FC<HeaderProps> = ({
           </Text>
         </View>
 
-        {/* Lado Derecho: Acciones fijas de Excalidraw [ ! ] y [ -> ] */}
+        {/* Lado Derecho: Acciones fijas de tema, refresh, [ ! ] y [ -> ] */}
         <View style={styles.rightContainer}>
-          {hideExcalidrawActions ? (
+          {hideActions ? (
             <>
+              {/* Botón de alternar tema aún en vistas simplificadas */}
+              <TouchableOpacity 
+                style={[
+                  styles.sketchButton,
+                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder }
+                ]} 
+                onPress={toggleTheme} 
+                activeOpacity={0.7}
+              >
+                <Ionicons 
+                  name={isDarkMode ? "sunny" : "moon"} 
+                  size={16} 
+                  color={isDarkMode ? colors.primaryYellow : iconColor} 
+                />
+              </TouchableOpacity>
+
               {showNotification && (
                 <TouchableOpacity 
-                  style={styles.sketchButton}
+                  style={[
+                    styles.sketchButton,
+                    { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder }
+                  ]}
                   onPress={() => navigation.navigate('Notificaciones')}
                   activeOpacity={0.7}
                 >
@@ -112,16 +122,42 @@ export const Header: React.FC<HeaderProps> = ({
                 </TouchableOpacity>
               )}
               {rightIcon && (
-                <TouchableOpacity style={styles.sketchButton} onPress={onRightPress} activeOpacity={0.7}>
+                <TouchableOpacity 
+                  style={[
+                    styles.sketchButton,
+                    { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder }
+                  ]} 
+                  onPress={onRightPress} 
+                  activeOpacity={0.7}
+                >
                   <Ionicons name={rightIcon} size={18} color={iconColor} />
                 </TouchableOpacity>
               )}
             </>
           ) : (
             <>
+              {/* Botón Rápido de Modo Oscuro / Claro */}
+              <TouchableOpacity 
+                style={[
+                  styles.sketchButton,
+                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder }
+                ]}
+                onPress={toggleTheme}
+                activeOpacity={0.7}
+              >
+                <Ionicons 
+                  name={isDarkMode ? "sunny" : "moon"} 
+                  size={17} 
+                  color={isDarkMode ? colors.primaryYellow : iconColor} 
+                />
+              </TouchableOpacity>
+
               {/* Botón de Refrescar / Sincronizar datos */}
               <TouchableOpacity 
-                style={styles.sketchButton}
+                style={[
+                  styles.sketchButton,
+                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder }
+                ]}
                 onPress={refreshData}
                 activeOpacity={0.7}
                 disabled={isRefreshing}
@@ -135,7 +171,10 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Botón de Alerta / Notificaciones (!) */}
               <TouchableOpacity 
-                style={styles.sketchButton}
+                style={[
+                  styles.sketchButton,
+                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder }
+                ]}
                 onPress={() => navigation.navigate('Notificaciones')}
                 activeOpacity={0.7}
               >
@@ -145,7 +184,10 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Botón de Salir / Cerrar Sesión ([->]) */}
               <TouchableOpacity 
-                style={styles.sketchButton}
+                style={[
+                  styles.sketchButton,
+                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder }
+                ]}
                 onPress={() => setShowLogoutModal(true)}
                 activeOpacity={0.7}
               >

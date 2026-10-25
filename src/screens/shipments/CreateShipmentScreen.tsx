@@ -1,19 +1,3 @@
-/**
- * CreateShipmentScreen.tsx - Pantalla 13 Apartado de realización de envío (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 13 del boceto Excalidraw con:
- * - Header: "Realizar Envío" con botones [ ! ] y [ -> ]
- * - Campos directos:
- *   - Para: [Usuario]
- *   - Paquete: [Bodega]
- *   - Dirección: [_____]
- *   - Referencia: [_____]
- *   - Seleccionar Fecha: [ 📅 ]
- *   - Descripción: [_____]
- * - Botones inferiores [ Cancelar ] y [ Enviar ]
- * - Pantalla 14 integrada: Modal "¿Desea confirmar la solicitud?" y confirmación de recepción.
- */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
@@ -76,13 +60,14 @@ const isFutureScheduledDate = (str?: string): boolean => {
 };
 
 export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'>> = ({ route, navigation }) => {
-  const { addShipment, updateShipment, shipments, warehouseItems, users, user } = useApp();
+  const { addShipment, updateShipment, shipments, warehouseItems, users, user, isDarkMode, colors } = useApp();
   const prefilled = route.params?.prefilledRecipient;
   const editShipmentId = route.params?.editShipmentId;
   const quotedAmount = route.params?.quotedAmount;
   const quotedDescription = route.params?.quotedDescription;
   const quotedWeight = route.params?.quotedWeight;
-  const quotedDestination = route.params?.quotedDestination;
+  const prefilledWarehouseItemId = route.params?.prefilledWarehouseItemId;
+  const prefilledDescription = route.params?.prefilledDescription;
   const existingShipment = editShipmentId ? shipments.find(s => s.id === editShipmentId || s.tracking_number === editShipmentId) : undefined;
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -113,12 +98,12 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
     }, 120);
   };
 
-  // Campos Excalidraw Pantalla 13
+  // Campos  Pantalla 13
   const [recipient, setRecipient] = useState<string>(existingShipment?.recipient_name || prefilled || '');
   const [selectedRecipientUser, setSelectedRecipientUser] = useState<UserProfile | null>(null);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || '');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(existingShipment?.warehouse_item_id || prefilledWarehouseItemId || '');
 
-  // Inicializar Departamento dentro de los 22 departamentos de Guatemala
+  // Inicializar Departamento dentro de los 22 departamentos de Guatemala (vacío por defecto si es nuevo)
   const getInitialDepartment = (): string => {
     if (existingShipment?.delivery_address) {
       const match = GUATEMALA_DEPARTMENTS.find(d => 
@@ -126,8 +111,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
       );
       if (match) return match.name;
     }
-    if (quotedDestination === 'departamento') return 'Quetzaltenango';
-    return 'Guatemala';
+    return '';
   };
 
   const [selectedDepartment, setSelectedDepartment] = useState<string>(getInitialDepartment);
@@ -136,8 +120,8 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const [address, setAddress] = useState<string>(existingShipment?.delivery_address || '');
   const [reference, setReference] = useState<string>(existingShipment?.address_references || '');
 
-  // Estado de Fecha dinámica y selector de calendario
-  const initialDateStr = existingShipment?.scheduled_date || formatDateDDMMYYYY(new Date());
+  // Estado de Fecha dinámica y selector de calendario (vacío por defecto si es nuevo)
+  const initialDateStr = existingShipment?.scheduled_date || '';
   const initialDateObj = parseDateDDMMYYYY(initialDateStr) || new Date();
   const [selectedDate, setSelectedDate] = useState<string>(initialDateStr);
   const [showDatePickerModal, setShowDatePickerModal] = useState<boolean>(false);
@@ -146,7 +130,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   const [pickedDate, setPickedDate] = useState<Date>(initialDateObj);
 
   const [description, setDescription] = useState<string>(
-    existingShipment?.description || quotedDescription || ''
+    existingShipment?.description || prefilledDescription || quotedDescription || ''
   );
 
   // Modales y filtros
@@ -161,8 +145,11 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
   const selectedItem = warehouseItems.find(w => w.id === selectedWarehouseId);
 
-  // Excluir al usuario dueño de la cuenta de los destinatarios disponibles
+  // Excluir al usuario dueño de la cuenta Y a los administradores de los destinatarios disponibles
   const availableUsers = users.filter(u => {
+    // Los administradores no pueden recibir paquetes de clientes
+    if (u.role === 'admin') return false;
+
     if (!user) return true;
     if (u.id === user.id) return false;
     if (u.email && user.email && u.email.trim().toLowerCase() === user.email.trim().toLowerCase()) return false;
@@ -182,14 +169,41 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
   });
 
   const handleValidateAndPromptConfirm = (): void => {
+    // Restricción para Administradores: Las cuentas de administración solo supervisan y autorizan
+    if (user?.role === 'admin') {
+      setErrorBanner('Las cuentas de administración están excluidas de crear envíos personales. Utiliza el panel de supervisión para autorizar pedidos.');
+      return;
+    }
+
     if (!recipient.trim()) {
       setErrorBanner('Por favor ingrese el destinatario (Para).');
       return;
     }
 
+    // Regla de Negocio: No permitir envíos a cuentas de administración
+    const cleanRecipient = recipient.trim().toLowerCase();
+    const matchedAdmin = users.find(u => {
+      if (u.role !== 'admin') return false;
+      const uFullName = `${u.first_name} ${u.last_name}`.trim().toLowerCase();
+      const uEmail = (u.email || '').trim().toLowerCase();
+      const uUsername = (u.username || '').trim().toLowerCase();
+      const uAlias = (u.alias || '').trim().toLowerCase().replace('@', '');
+      const cleanWithoutAt = cleanRecipient.replace('@', '');
+      return (
+        cleanRecipient === uFullName || 
+        cleanRecipient === uEmail || 
+        cleanRecipient === uUsername || 
+        cleanWithoutAt === uAlias
+      );
+    });
+
+    if (matchedAdmin || selectedRecipientUser?.role === 'admin') {
+      setErrorBanner('Las cuentas de administración están excluidas de recibir envíos personales. Selecciona a un cliente como destinatario.');
+      return;
+    }
+
     // Regla de Negocio: No permitir auto-envío a la misma cuenta del usuario en sesión
     if (user) {
-      const cleanRecipient = recipient.trim().toLowerCase();
       const currentUserName = `${user.first_name} ${user.last_name}`.trim().toLowerCase();
       const currentUserEmail = (user.email || '').trim().toLowerCase();
 
@@ -203,8 +217,16 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
       }
     }
 
+    if (!selectedDepartment.trim()) {
+      setErrorBanner('Por favor seleccione el departamento de entrega.');
+      return;
+    }
     if (!address.trim()) {
       setErrorBanner('Por favor ingrese la dirección de entrega.');
+      return;
+    }
+    if (!selectedDate.trim()) {
+      setErrorBanner('Por favor seleccione la fecha de entrega.');
       return;
     }
     if (!description.trim() && !selectedItem) {
@@ -328,7 +350,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
@@ -345,6 +367,21 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {user?.role === 'admin' && (
+          <View style={[
+            styles.adminModeNotice,
+            isDarkMode && { backgroundColor: '#131A2A', borderColor: '#1E293B' }
+          ]}>
+            <Ionicons name="shield-checkmark" size={22} color={isDarkMode ? '#60A5FA' : '#1D4ED8'} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.adminModeTitle, { color: colors.textMain }]}>Modo Administrativo</Text>
+              <Text style={[styles.adminModeSub, { color: colors.textSecondary }]}>
+                Las cuentas de administración no realizan envíos personales. Tu rol institucional es supervisar y autorizar solicitudes de clientes desde la sección Pedidos.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {errorBanner ? (
           <View style={styles.errorAlert}>
             <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
@@ -418,14 +455,24 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             activeOpacity={0.8}
           >
             <View style={styles.departmentSelectorContent}>
-              <Ionicons name="location-sharp" size={18} color={RerfColors.primaryYellowText} />
+              <Ionicons 
+                name="location-sharp" 
+                size={18} 
+                color={selectedDepartment ? RerfColors.primaryYellowText : "#94A3B8"} 
+              />
               <View style={{ marginLeft: 8, flex: 1 }}>
-                <Text style={styles.departmentValue}>{selectedDepartment}</Text>
-                <Text style={styles.departmentRegion}>Región {getDepartmentRegion(selectedDepartment)} • Guatemala</Text>
+                <Text style={[styles.departmentValue, !selectedDepartment && { color: '#94A3B8', fontWeight: '500' }]}>
+                  {selectedDepartment || 'Seleccionar departamento'}
+                </Text>
+                <Text style={styles.departmentRegion}>
+                  {selectedDepartment 
+                    ? `Región ${getDepartmentRegion(selectedDepartment)} • Guatemala`
+                    : '22 departamentos de Guatemala'}
+                </Text>
               </View>
             </View>
             <View style={styles.tagButton}>
-              <Text style={styles.tagButtonText}>Cambiar</Text>
+              <Text style={styles.tagButtonText}>{selectedDepartment ? 'Cambiar' : 'Elegir'}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -465,11 +512,17 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
             activeOpacity={0.8}
           >
             <View style={styles.dateSelectorContent}>
-              <Ionicons name="calendar-outline" size={20} color={RerfColors.primaryYellowText} />
-              <Text style={styles.dateValue}>{selectedDate}</Text>
+              <Ionicons 
+                name="calendar-outline" 
+                size={20} 
+                color={selectedDate ? RerfColors.primaryYellowText : "#94A3B8"} 
+              />
+              <Text style={[styles.dateValue, !selectedDate && { color: '#94A3B8', fontWeight: '500' }]}>
+                {selectedDate || 'DD/MM/AAAA (Toca para elegir)'}
+              </Text>
             </View>
             <View style={styles.tagButton}>
-              <Text style={styles.tagButtonText}>Elegir fecha</Text>
+              <Text style={styles.tagButtonText}>{selectedDate ? 'Cambiar' : 'Elegir fecha'}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -489,7 +542,7 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
           />
         </View>
 
-        {/* Botones inferiores Excalidraw: [ Cancelar ] [ Enviar ] */}
+        {/* Botones inferiores : [ Cancelar ] [ Enviar ] */}
         <View style={styles.bottomButtonsRow}>
           <TouchableOpacity 
             style={styles.cancelBtn}
@@ -704,20 +757,26 @@ export const CreateShipmentScreen: React.FC<RootStackScreenProps<'RealizarEnvio'
               >
                 <Text style={styles.userPickName}>Paquete Estándar Nuevo (Sin Bodega)</Text>
               </TouchableOpacity>
-              {warehouseItems.map(item => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[styles.userPickRow, selectedWarehouseId === item.id && styles.activePickRow]}
-                  onPress={() => {
-                    setSelectedWarehouseId(item.id);
-                    setDescription(item.description);
-                    setShowWarehouseModal(false);
-                  }}
-                >
-                  <Text style={styles.userPickName}>{item.product_type} ({item.storage_code})</Text>
-                  <Text style={styles.userPickEmail}>{item.description}</Text>
-                </TouchableOpacity>
-              ))}
+              {warehouseItems.filter(item => item.status === 'almacenado').length === 0 ? (
+                <Text style={{ textAlign: 'center', color: '#94A3B8', fontSize: 13, marginVertical: 14 }}>
+                  No tienes artículos almacenados disponibles para despacho.
+                </Text>
+              ) : (
+                warehouseItems.filter(item => item.status === 'almacenado').map(item => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.userPickRow, selectedWarehouseId === item.id && styles.activePickRow]}
+                    onPress={() => {
+                      setSelectedWarehouseId(item.id);
+                      setDescription(`Despacho de Bodega (${item.storage_code}): ${item.product_type} - ${item.description || ''}`.trim());
+                      setShowWarehouseModal(false);
+                    }}
+                  >
+                    <Text style={styles.userPickName}>{item.product_type} ({item.storage_code})</Text>
+                    <Text style={styles.userPickEmail}>{item.description}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
             </ScrollView>
             <TouchableOpacity 
               style={styles.closeModalBtn}
@@ -973,6 +1032,29 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
+  },
+  adminModeNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  adminModeTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    marginBottom: 2,
+  },
+  adminModeSub: {
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 16,
+    fontWeight: '500',
   },
   errorAlert: {
     flexDirection: 'row',

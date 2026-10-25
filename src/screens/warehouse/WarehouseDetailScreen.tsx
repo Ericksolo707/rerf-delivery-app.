@@ -1,14 +1,3 @@
-/**
- * WarehouseDetailScreen.tsx - Pantalla de Detalle de Almacenaje en Bodega
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad:
- * - Visualizar la ficha completa de un ítem de almacenaje en bodega personal.
- * - Mostrar código de bodega, categoría, fecha, estado visual y descripción detallada.
- * - Información del solicitante / cliente propietario.
- * - Panel de acciones administrativas para Autorizar o Rechazar el ingreso si está pendiente.
- * - Navegación fluida y barra de pestañas coherente con el estilo de la aplicación.
- */
 
 import React, { useState } from 'react';
 import { 
@@ -181,7 +170,7 @@ export const WarehouseDetailScreen: React.FC<RootStackScreenProps<'DetalleAlmace
       <Header title="Detalle de Almacenaje" showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Gran tarjeta contenedora estilo RerF Excalidraw */}
+        {/* Gran tarjeta contenedora  */}
         <View style={styles.mainDetailCard}>
           {/* Fila superior: Categoría y Fecha */}
           <View style={styles.topMetaRow}>
@@ -307,6 +296,30 @@ export const WarehouseDetailScreen: React.FC<RootStackScreenProps<'DetalleAlmace
           </View>
         )}
 
+        {/* Acción para Cliente: Realizar envío de este producto almacenado */}
+        {!isAdmin && item.status === 'almacenado' && (
+          <View style={styles.clientShipActionCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Ionicons name="cube-outline" size={18} color="#1E40AF" />
+              <Text style={styles.clientShipTitle}>¿Deseas despachar este producto?</Text>
+            </View>
+            <Text style={styles.clientShipSubtitle}>
+              Puedes solicitar la salida de este artículo de bodega y enviarlo a cualquier destinatario. Al completar el envío, el producto se retirará automáticamente de tu bodega.
+            </Text>
+            <TouchableOpacity
+              style={styles.clientShipBtn}
+              onPress={() => navigation.navigate('RealizarEnvio', {
+                prefilledWarehouseItemId: item.id,
+                prefilledDescription: `Despacho de Bodega (${item.storage_code}): ${item.product_type} - ${item.description || ''}`.trim(),
+              })}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="paper-plane" size={17} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.clientShipBtnText}>Realizar Envío con este Producto</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Botón secundario para volver a bodega */}
         <TouchableOpacity
           style={styles.backToWarehouseBtn}
@@ -318,7 +331,7 @@ export const WarehouseDetailScreen: React.FC<RootStackScreenProps<'DetalleAlmace
         </TouchableOpacity>
       </ScrollView>
 
-      {/* --- Barra inferior funcional de 5 pestañas --- */}
+      {/* Barra inferior funcional de 5 pestañas */}
       <View style={styles.bottomTabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal')}>
           <Ionicons name="menu-outline" size={24} color="#94A3B8" />
@@ -345,7 +358,7 @@ export const WarehouseDetailScreen: React.FC<RootStackScreenProps<'DetalleAlmace
           <Text style={styles.tabText}>Contacto</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Menu')}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal', { screen: 'PerfilTab' } as any)}>
           <Ionicons name="person-outline" size={24} color="#94A3B8" />
           <Text style={styles.tabText}>Perfil</Text>
         </TouchableOpacity>
@@ -626,6 +639,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: '#FFFFFF',
+  },
+  clientShipActionCard: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
+    ...RerfShadows.card,
+  },
+  clientShipTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1E40AF',
+  },
+  clientShipSubtitle: {
+    fontSize: 12,
+    color: '#3B82F6',
+    lineHeight: 17,
+    marginBottom: 14,
+  },
+  clientShipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RerfColors.logisticsBlue,
+    height: 46,
+    borderRadius: 12,
+    ...RerfShadows.card,
+  },
+  clientShipBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 13,
   },
   backToWarehouseBtn: {
     height: 46,

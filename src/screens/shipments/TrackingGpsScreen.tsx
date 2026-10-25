@@ -1,15 +1,3 @@
-/**
- * TrackingGpsScreen.tsx - Pantalla 27 Información de Llegada / GPS en Tiempo Real
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad:
- * - Renderizado de mapa satelital/vial real e interactivo (Leaflet.js + OpenStreetMap).
- * - Geocodificación y trazado de rutas de Guatemala (Bodega Central a destino de entrega).
- * - Simulación y telemetría vehicular en vivo: velocidad, ángulo de giro (bearing), distancia y ETA dinámico.
- * - Sincronización bidireccional con Supabase Realtime (para conectividad con app de escritorio o moderador).
- * - Tarjeta informativa con los 4 datos clave del moderador (Excalidraw 27) y botón de contacto.
- * - Barra inferior funcional (5 pestañas).
- */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
@@ -47,7 +35,7 @@ interface TrackingGpsScreenProps {
 }
 
 export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, navigation }) => {
-  const { shipments, getShipmentByTracking, updateShipment } = useApp();
+  const { shipments, getShipmentByTracking, updateShipment, isDarkMode, colors } = useApp();
   const initialShipmentId = route?.params?.shipmentId;
 
   // Lista de envíos ordenados de más reciente a más antiguo para selección rápida
@@ -286,20 +274,20 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Header 
         title="GPS en Tiempo Real" 
         showBack={Boolean(route?.params?.shipmentId || (navigation?.canGoBack && navigation.canGoBack()))} 
       />
 
       {/* Barra de Búsqueda de Guía */}
-      <View style={styles.searchBarContainer}>
-        <View style={styles.inputWrapper}>
-          <Ionicons name="barcode-outline" size={20} color="#64748B" style={styles.searchIconLeft} />
+      <View style={[styles.searchBarContainer, { backgroundColor: colors.surfaceCard, borderBottomColor: colors.surfaceCardBorder }]}>
+        <View style={[styles.inputWrapper, { backgroundColor: isDarkMode ? colors.surfaceSubtle : '#F1F5F9' }]}>
+          <Ionicons name="barcode-outline" size={20} color={colors.textMuted} style={styles.searchIconLeft} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.textMain }]}
             placeholder="No. entrega / guía (ej. RERF-98234-GT)"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textMuted}
             value={searchInput}
             onChangeText={(text) => {
               setSearchInput(text);
@@ -314,7 +302,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
           />
           {searchInput.length > 0 && (
             <TouchableOpacity onPress={handleClearSearch} style={styles.clearBtn} activeOpacity={0.7}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              <Ionicons name="close-circle" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -381,7 +369,10 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
         />
 
         {/* Barra Flotante de Control de Simulación (Demostración Vial) */}
-        <View style={styles.simulationControlCard}>
+        <View style={[
+          styles.simulationControlCard,
+          isDarkMode && { backgroundColor: 'rgba(19, 26, 42, 0.95)', borderColor: colors.surfaceCardBorder }
+        ]}>
           {isDelivered ? (
             <View style={styles.deliveredBadgeCard}>
               <Ionicons name="checkmark-circle" size={18} color="#15803D" />
@@ -389,8 +380,8 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
             </View>
           ) : !activeShipment ? (
             <View style={styles.simDisabledNotice}>
-              <Ionicons name="information-circle-outline" size={16} color="#64748B" />
-              <Text style={styles.simDisabledText}>Selecciona una guía para simular GPS</Text>
+              <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
+              <Text style={[styles.simDisabledText, { color: colors.textMuted }]}>Selecciona una guía para simular GPS</Text>
             </View>
           ) : (
             <View style={styles.simulationControlsLeft}>
@@ -406,11 +397,11 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={styles.simResetBtn}
+                style={[styles.simResetBtn, isDarkMode && { backgroundColor: colors.surfaceSubtle }]}
                 onPress={handleResetSimulation}
                 activeOpacity={0.85}
               >
-                <Ionicons name="refresh" size={16} color="#475569" />
+                <Ionicons name="refresh" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
           )}
@@ -421,14 +412,14 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
               <View style={styles.progressBarBackground}>
                 <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
               </View>
-              <Text style={styles.progressText}>{progressPercent}%</Text>
+              <Text style={[styles.progressText, { color: colors.textMain }]}>{progressPercent}%</Text>
             </View>
           )}
         </View>
       </View>
 
-      {/* Tarjeta Inferior de Información de Llegada (Excalidraw Pantalla 27) */}
-      <View style={styles.bottomDrawerCard}>
+      {/* Tarjeta Inferior de Información de Llegada  */}
+      <View style={[styles.bottomDrawerCard, { backgroundColor: colors.surfaceCard, borderTopColor: colors.surfaceCardBorder }]}>
         {activeShipment ? (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.drawerContentContainer}>
             <View style={styles.drawerTopMetaRow}>
@@ -455,7 +446,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
             </View>
 
             <View style={styles.drawerColumns}>
-              {/* Datos clave Excalidraw Pantalla 27 */}
+              {/* Datos clave  Pantalla 27 */}
               <View style={styles.driverInfoCol}>
                 {/* 1. Número de Entrega */}
                 <Text style={styles.infoLine}>
@@ -527,9 +518,9 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
           </ScrollView>
         ) : (
           <View style={styles.emptyDrawer}>
-            <Ionicons name="compass-outline" size={26} color="#64748B" />
-            <Text style={styles.emptyDrawerTitle}>Rastreo GPS en tiempo real</Text>
-            <Text style={styles.emptyDrawerText}>
+            <Ionicons name="compass-outline" size={26} color={colors.textMuted} />
+            <Text style={[styles.emptyDrawerTitle, { color: colors.textMain }]}>Rastreo GPS en tiempo real</Text>
+            <Text style={[styles.emptyDrawerText, { color: colors.textSecondary }]}>
               Ingresa el número de guía o selecciona un envío para rastrear:
             </Text>
             {recentShipments && recentShipments.length > 0 && (
@@ -545,6 +536,7 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
                       key={s.id}
                       style={[
                         styles.quickChip,
+                        isDarkMode && { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder },
                         sDelivered && styles.quickChipDelivered
                       ]}
                       onPress={() => {
@@ -556,10 +548,11 @@ export const TrackingGpsScreen: React.FC<TrackingGpsScreenProps> = ({ route, nav
                       <Ionicons 
                         name={sDelivered ? 'checkmark-circle' : 'cube-outline'} 
                         size={14} 
-                        color={sDelivered ? '#15803D' : '#1D4ED8'} 
+                        color={sDelivered ? '#15803D' : (isDarkMode ? '#60A5FA' : '#1D4ED8')} 
                       />
                       <Text style={[
                         styles.quickChipText,
+                        { color: colors.textMain },
                         sDelivered && styles.quickChipTextDelivered
                       ]}>
                         {s.tracking_number}

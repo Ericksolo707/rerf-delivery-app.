@@ -1,14 +1,5 @@
-/**
- * OrdersScreen.tsx - Pantalla 8 Apartado de Pedidos Activos y Pendientes (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 8 del boceto Excalidraw:
- * - Header: "Pedidos" con botones [ ! ] y [ -> ]
- * - Sección 1: "Activos ->" con tarjetas y botones [ L ] y [ R ]
- * - Sección 2: "Pendientes [ + ] ->" con tarjetas y botones [ E ] (Editar) y [ X ] (Cancelar)
- */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -73,15 +64,14 @@ export const sortShipmentsDesc = (list: Shipment[]): Shipment[] => {
 };
 
 export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ navigation }) => {
-  const { shipments, user, users, refreshData, isRefreshing } = useApp();
-  const [adminScope, setAdminScope] = useState<'mis_pedidos' | 'todos'>('mis_pedidos');
+  const { shipments, user, users, refreshData, isRefreshing, isDarkMode, colors } = useApp();
+  const isAdmin = user?.role === 'admin';
 
-  // En Pedidos mostramos estrictamente los envíos realizados/solicitados por el usuario (remitente).
-  // Si el usuario es Administrador y elige "Todos los Pedidos", puede supervisar todo el sistema.
-  const myOrders = React.useMemo(() => {
+  // Si es Administrador: Modo gestión general (supervisa todos los pedidos del sistema).
+  // Si es Cliente: Estrictamente los envíos donde él es remitente.
+  const displayedOrders = React.useMemo(() => {
     if (!user) return [];
-
-    if (user.role === 'admin' && adminScope === 'todos') {
+    if (isAdmin) {
       return shipments;
     }
 
@@ -95,18 +85,18 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
       if (agentName && (agentName === userFullName || agentName === userFirstName)) return true;
       return false;
     });
-  }, [shipments, user, adminScope]);
+  }, [shipments, user, isAdmin]);
 
   const activeOrders = React.useMemo(
-    () => sortShipmentsDesc(myOrders.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado')),
-    [myOrders]
+    () => sortShipmentsDesc(displayedOrders.filter(s => s.status !== 'pendiente' && s.status !== 'cancelado')),
+    [displayedOrders]
   );
   const pendingOrders = React.useMemo(
-    () => sortShipmentsDesc(myOrders.filter(s => s.status === 'pendiente')),
-    [myOrders]
+    () => sortShipmentsDesc(displayedOrders.filter(s => s.status === 'pendiente')),
+    [displayedOrders]
   );
   const cancelledOrders = React.useMemo(() => {
-    const cancelled = myOrders.filter(s => s.status === 'cancelado');
+    const cancelled = displayedOrders.filter(s => s.status === 'cancelado');
     return [...cancelled].sort((a, b) => {
       const timeA = a.cancelled_at 
         ? new Date(a.cancelled_at.replace(' ', 'T')).getTime() 
@@ -116,9 +106,9 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
         : (b.updated_at ? new Date(b.updated_at.replace(' ', 'T')).getTime() : getShipmentTimestamp(b));
       return timeB - timeA;
     });
-  }, [myOrders]);
+  }, [displayedOrders]);
 
-  // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
+  // Mapeo amigable de estado  (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'aprobado':
@@ -146,14 +136,16 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
     const senderLabel = senderUser 
       ? `${senderUser.first_name} ${senderUser.last_name}`.trim() 
       : (isSender ? `${user?.first_name || 'Tú'}` : 'Remitente');
-    const displayLabel = isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`;
+    const displayLabel = isAdmin 
+      ? `De: ${senderLabel} • Para: ${item.recipient_name || 'Destinatario'}` 
+      : (isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`);
 
     return (
-      <View key={item.id} style={styles.card}>
+      <View key={item.id} style={[styles.card, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
         {/* Lado izquierdo con información */}
         <View style={styles.infoCol}>
           <View style={styles.headerMetaRow}>
-            <Text style={styles.senderMetaText} numberOfLines={1}>
+            <Text style={[styles.senderMetaText, { color: colors.textSecondary }]} numberOfLines={1}>
               {displayLabel}
             </Text>
             <Text style={styles.idMetaText}>
@@ -162,14 +154,14 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           </View>
 
           <View style={styles.productBlock}>
-            <Text style={styles.fieldLabel}>Nombre producto:</Text>
-            <Text style={styles.productNameText} numberOfLines={2}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Nombre producto:</Text>
+            <Text style={[styles.productNameText, { color: colors.textMain }]} numberOfLines={2}>
               {item.description || 'Pedido de envío estándar'}
             </Text>
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={styles.fieldLabel}>Estado: </Text>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Estado: </Text>
             <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
               <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>
                 {statusInfo.label}
@@ -181,19 +173,25 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
         {/* Lado derecho: Botones [ L ] y [ R ] */}
         <View style={styles.actionsCol}>
           <TouchableOpacity 
-            style={styles.squareActionButton}
+            style={[
+              styles.squareActionButton,
+              isDarkMode && { backgroundColor: '#261F0B', borderColor: '#D97706' }
+            ]}
             onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.tracking_number || item.id })}
             activeOpacity={0.7}
           >
-            <Text style={styles.actionLetter}>L</Text>
+            <Text style={[styles.actionLetter, isDarkMode && { color: '#FBBF24' }]}>L</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.squareActionButton}
+            style={[
+              styles.squareActionButton,
+              isDarkMode && { backgroundColor: '#261F0B', borderColor: '#D97706' }
+            ]}
             onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
             activeOpacity={0.7}
           >
-            <Text style={styles.actionLetter}>R</Text>
+            <Text style={[styles.actionLetter, isDarkMode && { color: '#FBBF24' }]}>R</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -206,10 +204,12 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
     const senderLabel = senderUser 
       ? `${senderUser.first_name} ${senderUser.last_name}`.trim() 
       : (isSender ? `${user?.first_name || 'Tú'}` : 'Remitente');
-    const displayLabel = isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`;
+    const displayLabel = isAdmin 
+      ? `De: ${senderLabel} • Para: ${item.recipient_name || 'Destinatario'}` 
+      : (isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`);
 
     return (
-      <View key={item.id} style={styles.card}>
+      <View key={item.id} style={[styles.card, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
         {/* Lado izquierdo interactivo: Abre Detalle del Paquete */}
         <TouchableOpacity 
           style={styles.infoCol}
@@ -217,7 +217,7 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           activeOpacity={0.7}
         >
           <View style={styles.headerMetaRow}>
-            <Text style={styles.senderMetaText} numberOfLines={1}>
+            <Text style={[styles.senderMetaText, { color: colors.textSecondary }]} numberOfLines={1}>
               {displayLabel}
             </Text>
             <Text style={styles.idMetaText}>
@@ -226,43 +226,64 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           </View>
 
           <View style={styles.productBlock}>
-            <Text style={styles.fieldLabel}>Nombre producto:</Text>
-            <Text style={styles.productNameText} numberOfLines={2}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Nombre producto:</Text>
+            <Text style={[styles.productNameText, { color: colors.textMain }]} numberOfLines={2}>
               {item.description || 'Pedido programado'}
             </Text>
           </View>
 
           <View style={styles.dateBlock}>
-            <Text style={styles.fieldLabel}>Fecha programada: </Text>
-            <Text style={styles.dateValueText}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Fecha programada: </Text>
+            <Text style={[styles.dateValueText, { color: colors.textSecondary }]}>
               {item.scheduled_date || 'Hoy (14/10/2026)'}
             </Text>
           </View>
         </TouchableOpacity>
 
-      {/* Lado derecho: Botones [ E ] (Editar) y [ X ] (Cancelar) */}
-      <View style={styles.actionsCol}>
-        {/* Botón [ E ]: Editar pedido */}
-        <TouchableOpacity 
-          style={[styles.squareActionButton, styles.editSquareButton]}
-          onPress={() => navigation.navigate('RealizarEnvio', { editShipmentId: item.id })}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.actionLetter, styles.editLetter]}>E</Text>
-        </TouchableOpacity>
+        {/* Lado derecho: Botón Autorizar para Admin, o [ E ] y [ X ] para Cliente */}
+        {isAdmin ? (
+          <View style={styles.actionsCol}>
+            <TouchableOpacity 
+              style={styles.adminAuthorizeBtn}
+              onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="checkmark-circle" size={16} color="#15803D" />
+              <Text style={styles.adminAuthorizeBtnText}>Autorizar</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.actionsCol}>
+            {/* Botón [ E ]: Editar pedido */}
+            <TouchableOpacity 
+              style={[
+                styles.squareActionButton, 
+                styles.editSquareButton,
+                isDarkMode && { backgroundColor: '#132E2B', borderColor: '#0D9488' }
+              ]}
+              onPress={() => navigation.navigate('RealizarEnvio', { editShipmentId: item.id })}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.actionLetter, styles.editLetter, isDarkMode && { color: '#2DD4BF' }]}>E</Text>
+            </TouchableOpacity>
 
-        {/* Botón [ X ]: Cancelar pedido */}
-        <TouchableOpacity 
-          style={[styles.squareActionButton, styles.cancelSquareButton]}
-          onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: item.tracking_number || item.id })}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.actionLetter, styles.cancelLetter]}>X</Text>
-        </TouchableOpacity>
+            {/* Botón [ X ]: Cancelar pedido */}
+            <TouchableOpacity 
+              style={[
+                styles.squareActionButton, 
+                styles.cancelSquareButton,
+                isDarkMode && { backgroundColor: '#2E1515', borderColor: '#DC2626' }
+              ]}
+              onPress={() => navigation.navigate('CancelarEnvio', { shipmentId: item.tracking_number || item.id })}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.actionLetter, styles.cancelLetter, isDarkMode && { color: '#F87171' }]}>X</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
-    </View>
-  );
-};
+    );
+  };
 
   const renderCancelledCard = (item: Shipment) => {
     const isSender = item.sender_id === user?.id;
@@ -273,14 +294,19 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
     const displayLabel = isSender ? `Para: ${item.recipient_name || 'Destinatario'}` : `De: ${senderLabel}`;
 
     return (
-      <View key={item.id} style={[styles.card, { borderColor: '#FECACA', backgroundColor: '#FEF2F2' }]}>
+      <View key={item.id} style={[
+        styles.card, 
+        isDarkMode 
+          ? { borderColor: '#4C1D1D', backgroundColor: '#201314' }
+          : { borderColor: '#FECACA', backgroundColor: '#FEF2F2' }
+      ]}>
         <TouchableOpacity 
           style={styles.infoCol}
           onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
           activeOpacity={0.7}
         >
           <View style={styles.headerMetaRow}>
-            <Text style={styles.senderMetaText} numberOfLines={1}>
+            <Text style={[styles.senderMetaText, { color: colors.textSecondary }]} numberOfLines={1}>
               {displayLabel}
             </Text>
             <Text style={styles.idMetaText}>
@@ -289,8 +315,8 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           </View>
 
           <View style={styles.productBlock}>
-            <Text style={styles.fieldLabel}>Nombre producto:</Text>
-            <Text style={styles.productNameText} numberOfLines={2}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Nombre producto:</Text>
+            <Text style={[styles.productNameText, { color: colors.textMain }]} numberOfLines={2}>
               {item.description || 'Pedido cancelado'}
             </Text>
           </View>
@@ -298,14 +324,14 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
           <View style={{ marginTop: 2, marginBottom: 4 }}>
             <Text style={[styles.fieldLabel, { color: RerfColors.errorRed }]}>
               Motivo:{' '}
-              <Text style={{ fontWeight: '700', color: '#7F1D1D' }}>
+              <Text style={{ fontWeight: '700', color: isDarkMode ? '#FCA5A5' : '#7F1D1D' }}>
                 {item.cancellation_reason || 'Cancelado por el usuario'}
               </Text>
             </Text>
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={styles.fieldLabel}>Estado: </Text>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Estado: </Text>
             <View style={[styles.statusBadge, { backgroundColor: '#FEE2E2' }]}>
               <Text style={[styles.statusBadgeText, { color: '#DC2626' }]}>
                 Cancelado
@@ -329,29 +355,21 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
   };
 
   return (
-    <View style={styles.container}>
-      <Header title="Pedidos" showBack={true} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Header title={isAdmin ? "Gestión de Pedidos" : "Pedidos"} showBack={true} />
 
-      {user?.role === 'admin' && (
-        <View style={styles.adminFilterRow}>
-          <TouchableOpacity
-            style={[styles.adminFilterBtn, adminScope === 'mis_pedidos' && styles.adminFilterBtnActive]}
-            onPress={() => setAdminScope('mis_pedidos')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.adminFilterText, adminScope === 'mis_pedidos' && styles.adminFilterTextActive]}>
-              Mis Pedidos
+      {isAdmin && (
+        <View style={[
+          styles.adminBanner,
+          isDarkMode && { backgroundColor: '#131A2A', borderColor: '#1E293B' }
+        ]}>
+          <Ionicons name="shield-checkmark" size={22} color={isDarkMode ? '#60A5FA' : '#1D4ED8'} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.adminBannerTitle, { color: colors.textMain }]}>Supervisión y Autorización de Envíos</Text>
+            <Text style={[styles.adminBannerSub, { color: colors.textSecondary }]}>
+              Vista general de todos los pedidos de clientes. Revisa y autoriza los pedidos pendientes para darles salida a ruta.
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.adminFilterBtn, adminScope === 'todos' && styles.adminFilterBtnActive]}
-            onPress={() => setAdminScope('todos')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.adminFilterText, adminScope === 'todos' && styles.adminFilterTextActive]}>
-              Todos los Pedidos ({shipments.length})
-            </Text>
-          </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -369,14 +387,16 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
       >
         {/* SECCIÓN 1: Activos -> */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Activos</Text>
-          <Ionicons name="arrow-forward" size={18} color="#0F172A" />
+          <Text style={[styles.sectionTitle, { color: colors.textMain }]}>{isAdmin ? "Envíos en Tránsito / Activos" : "Activos"}</Text>
+          <Ionicons name="arrow-forward" size={18} color={colors.textMain} />
         </View>
 
         <View style={styles.cardsList}>
           {activeOrders.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyCardText}>No hay pedidos activos en tránsito.</Text>
+            <View style={[styles.emptyCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+              <Text style={[styles.emptyCardText, { color: colors.textMuted }]}>
+                {isAdmin ? "No hay pedidos activos en tránsito en el sistema." : "No hay pedidos activos en tránsito."}
+              </Text>
             </View>
           ) : (
             activeOrders.map(renderActiveCard)
@@ -386,7 +406,9 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
         {/* SECCIÓN 2: Pendientes */}
         <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
           <View style={styles.pendingTitleGroup}>
-            <Text style={styles.sectionTitle}>Pendientes</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textMain }]}>
+              {isAdmin ? "Pendientes de Autorización" : "Pendientes"}
+            </Text>
             {pendingOrders.length > 0 && (
               <View style={[styles.statusBadge, { backgroundColor: '#FEF3C7', marginLeft: 8 }]}>
                 <Text style={[styles.statusBadgeText, { color: '#B45309' }]}>
@@ -395,13 +417,15 @@ export const OrdersScreen: React.FC<RootStackScreenProps<'Pedidos'>> = ({ naviga
               </View>
             )}
           </View>
-          <Ionicons name="arrow-forward" size={18} color="#0F172A" />
+          <Ionicons name="arrow-forward" size={18} color={colors.textMain} />
         </View>
 
         <View style={styles.cardsList}>
           {pendingOrders.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyCardText}>No tienes pedidos pendientes programados.</Text>
+            <View style={[styles.emptyCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+              <Text style={[styles.emptyCardText, { color: colors.textMuted }]}>
+                {isAdmin ? "No hay pedidos pendientes de autorización." : "No tienes pedidos pendientes programados."}
+              </Text>
             </View>
           ) : (
             pendingOrders.map(renderPendingCard)
@@ -607,34 +631,46 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: RerfColors.primaryYellowHover,
   },
-  adminFilterRow: {
+  adminBanner: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 6,
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  adminFilterBtn: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
   },
-  adminFilterBtnActive: {
-    backgroundColor: RerfColors.primaryYellow,
+  adminBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    marginBottom: 2,
   },
-  adminFilterText: {
+  adminBannerSub: {
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 15,
+  },
+  adminAuthorizeBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    ...RerfShadows.card,
+  },
+  adminAuthorizeBtnText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  adminFilterTextActive: {
-    color: RerfColors.primaryYellowText,
+    fontWeight: '800',
+    color: '#15803D',
   },
   detailPillButton: {
     paddingHorizontal: 10,

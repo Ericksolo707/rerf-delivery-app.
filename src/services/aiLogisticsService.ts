@@ -1,11 +1,3 @@
-/**
- * aiLogisticsService.ts - Motor de Inteligencia Logística de RerF
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Procesamiento de consultas en lenguaje natural,
- * diagnóstico dinámico de envíos y respuestas contextuales sobre la operación
- * de RerF Logistics en Guatemala (tarifas en Quetzales, rutas, coberturas, bodega y rastreo).
- */
 
 import { Shipment, UserProfile } from '../types';
 

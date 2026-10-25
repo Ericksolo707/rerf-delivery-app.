@@ -1,14 +1,3 @@
-/**
- * UserSearchScreen.tsx - Pantalla 9 Búsqueda de Usuarios (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 9 del boceto Excalidraw con:
- * - Header: "Usuarios" con botones [ ! ] y [ -> ]
- * - Campo de búsqueda: "Buscar"
- * - Lista de usuarios con avatar circular y nombre
- * - Barra de botones: [ Favoritos ⭐ ]  [ Listado ]
- * - Sección "Recientes" con recuadros que contienen [ foto ] y nombre de usuario
- */
 
 import React, { useState } from 'react';
 import { 
@@ -123,23 +112,37 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
         {/* Lista de Usuarios (avatar circular + nombre) */}
         {!isNotFound && filteredUsers.length > 0 && (
           <View style={styles.usersList}>
-            {filteredUsers.slice(0, 5).map((user) => (
-              <TouchableOpacity
-                key={user.id}
-                style={styles.userRow}
-                onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
-                activeOpacity={0.7}
-              >
-                <View style={styles.circleAvatar}>
-                  <Ionicons name="person-outline" size={20} color="#0F172A" />
-                </View>
-                <View style={styles.userRowInfo}>
-                  <Text style={styles.userRowName}>{user.username || `${user.first_name} ${user.last_name}`.trim()}</Text>
-                  <Text style={styles.userRowEmail}>{user.alias ? `${user.alias} • ` : ''}{user.email}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-              </TouchableOpacity>
-            ))}
+            {filteredUsers.slice(0, 5).map((user) => {
+              const isAdmin = user.role === 'admin';
+              return (
+                <TouchableOpacity
+                  key={user.id}
+                  style={[styles.userRow, isAdmin && styles.userRowAdmin]}
+                  onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.circleAvatar, isAdmin && styles.circleAvatarAdmin]}>
+                    <Ionicons 
+                      name={isAdmin ? "shield-checkmark" : "person-outline"} 
+                      size={20} 
+                      color={isAdmin ? "#1D4ED8" : "#0F172A"} 
+                    />
+                  </View>
+                  <View style={styles.userRowInfo}>
+                    <View style={styles.userNameRow}>
+                      <Text style={styles.userRowName}>{user.username || `${user.first_name} ${user.last_name}`.trim()}</Text>
+                      {isAdmin && (
+                        <View style={styles.adminBadgeSmall}>
+                          <Text style={styles.adminBadgeSmallText}>Admin</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.userRowEmail}>{user.alias ? `${user.alias} • ` : ''}{user.email}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -167,21 +170,32 @@ export const UserSearchScreen: React.FC<RootStackScreenProps<'Usuarios'>> = ({ n
         <Text style={styles.recentsSectionTitle}>Recientes</Text>
 
         <View style={styles.recentsGrid}>
-          {recentUsers.map((user) => (
-            <TouchableOpacity 
-              key={user.id}
-              style={styles.recentUserCard}
-              onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
-              activeOpacity={0.8}
-            >
-              <View style={styles.recentFotoCircle}>
-                <Text style={styles.recentFotoText}>foto</Text>
-              </View>
-              <Text style={styles.recentUserName} numberOfLines={1}>
-                {user.alias || user.username || `${user.first_name} ${user.last_name}`.trim()}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {recentUsers.map((user) => {
+            const isAdmin = user.role === 'admin';
+            return (
+              <TouchableOpacity 
+                key={user.id}
+                style={[styles.recentUserCard, isAdmin && styles.recentUserCardAdmin]}
+                onPress={() => navigation.navigate('VerPerfilUsuario', { user })}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.recentFotoCircle, isAdmin && styles.recentFotoCircleAdmin]}>
+                  <Text style={[styles.recentFotoText, isAdmin && styles.recentFotoTextAdmin]}>
+                    {isAdmin ? 'admin' : 'foto'}
+                  </Text>
+                </View>
+                <Text style={styles.recentUserName} numberOfLines={1}>
+                  {user.alias || user.username || `${user.first_name} ${user.last_name}`.trim()}
+                </Text>
+                {isAdmin && (
+                  <View style={styles.adminBadgeRecent}>
+                    <Ionicons name="shield-checkmark" size={9} color="#1D4ED8" />
+                    <Text style={styles.adminBadgeRecentText}>Administrador</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
     </View>
@@ -292,6 +306,9 @@ const styles = StyleSheet.create({
     backgroundColor: RerfColors.surfaceCard,
     gap: 12,
   },
+  userRowAdmin: {
+    backgroundColor: '#FAFCFF',
+  },
   circleAvatar: {
     width: 40,
     height: 40,
@@ -302,13 +319,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: RerfColors.primaryYellowLight,
   },
+  circleAvatarAdmin: {
+    borderColor: '#93C5FD',
+    backgroundColor: '#DBEAFE',
+  },
   userRowInfo: {
     flex: 1,
+  },
+  userNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   userRowName: {
     fontSize: 13,
     fontWeight: '800',
     color: RerfColors.textMain,
+  },
+  adminBadgeSmall: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  adminBadgeSmallText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
   userRowEmail: {
     fontSize: 11,
@@ -359,6 +398,10 @@ const styles = StyleSheet.create({
     backgroundColor: RerfColors.surfaceCard,
     ...RerfShadows.card,
   },
+  recentUserCardAdmin: {
+    borderColor: '#BFDBFE',
+    backgroundColor: '#FAFCFF',
+  },
   recentFotoCircle: {
     width: 60,
     height: 60,
@@ -370,15 +413,40 @@ const styles = StyleSheet.create({
     backgroundColor: RerfColors.logisticsBlueLight,
     marginBottom: 10,
   },
+  recentFotoCircleAdmin: {
+    borderColor: '#93C5FD',
+    backgroundColor: '#DBEAFE',
+  },
   recentFotoText: {
     fontSize: 12,
     fontWeight: '700',
     color: RerfColors.logisticsBlue,
+  },
+  recentFotoTextAdmin: {
+    color: '#1D4ED8',
+    fontWeight: '800',
   },
   recentUserName: {
     fontSize: 12,
     fontWeight: '800',
     color: RerfColors.textMain,
     textAlign: 'center',
+  },
+  adminBadgeRecent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  adminBadgeRecentText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
 });

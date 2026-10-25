@@ -1,24 +1,8 @@
--- =====================================================================
--- ESQUEMA LIMPIO Y OPTIMIZADO PARA RERF DELIVERY APP (PostgreSQL / Supabase)
--- Programación II - UMG / RerF Logistics
---
--- Tablas activas y específicas en español:
--- 1. usuarios       (Perfiles de clientes, pilotos, moderadores y admin)
--- 2. envios         (Gestión de pedidos, entregas y GPS con piloto)
--- 3. bodega         (Almacenaje de paquetes en bodega personal)
--- 4. facturas       (Facturación y comprobantes de envíos)
--- 5. notificaciones (Alertas por usuario en tiempo real)
--- 6. mensajes       (Soporte con piloto/moderador y chat)
--- 7. favoritos      (Contactos y usuarios guardados en favoritos)
--- 8. reportes       (Reportes y denuncias revisadas por moderadores)
--- =====================================================================
-
+-- Extensiones
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- =====================================================================
--- 1. TABLA: usuarios (Perfiles)
--- =====================================================================
+-- Tabla usuarios
 CREATE TABLE IF NOT EXISTS public.usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     first_name TEXT NOT NULL,
@@ -34,7 +18,6 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Si existe la tabla anterior 'profiles', migrar datos a 'usuarios'
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'profiles') THEN
@@ -45,9 +28,7 @@ BEGIN
     END IF;
 END $$;
 
--- =====================================================================
--- 2. TABLA: envios (Pedidos, Entregas y Rastreo GPS)
--- =====================================================================
+-- Tabla envios
 CREATE TABLE IF NOT EXISTS public.envios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tracking_number TEXT UNIQUE NOT NULL,
@@ -66,7 +47,6 @@ CREATE TABLE IF NOT EXISTS public.envios (
     payment_method TEXT,
     payment_status TEXT DEFAULT 'pendiente',
     total_amount NUMERIC(10, 2) DEFAULT 0.00,
-    -- Campos habilitados por el moderador de escritorio para GPS y piloto
     agent_name TEXT,
     vehicle_model TEXT,
     vehicle_plate TEXT,
@@ -79,7 +59,6 @@ CREATE TABLE IF NOT EXISTS public.envios (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Si existe la tabla anterior 'shipments', migrar datos a 'envios'
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'shipments') THEN
@@ -90,9 +69,7 @@ BEGIN
     END IF;
 END $$;
 
--- =====================================================================
--- 3. TABLA: bodega (Almacenaje de paquetes en bodega personal)
--- =====================================================================
+-- Tabla bodega
 CREATE TABLE IF NOT EXISTS public.bodega (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.usuarios(id) ON DELETE SET NULL,
@@ -106,7 +83,6 @@ CREATE TABLE IF NOT EXISTS public.bodega (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Si existe 'warehouse_items', migrar a 'bodega'
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'warehouse_items') THEN
@@ -117,9 +93,7 @@ BEGIN
     END IF;
 END $$;
 
--- =====================================================================
--- 4. TABLA: facturas (Comprobantes y facturación)
--- =====================================================================
+-- Tabla facturas
 CREATE TABLE IF NOT EXISTS public.facturas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_number TEXT UNIQUE NOT NULL,
@@ -135,7 +109,6 @@ CREATE TABLE IF NOT EXISTS public.facturas (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Si existe 'invoices', migrar a 'facturas'
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'invoices') THEN
@@ -146,9 +119,7 @@ BEGIN
     END IF;
 END $$;
 
--- =====================================================================
--- 5. TABLA: notificaciones
--- =====================================================================
+-- Tabla notificaciones
 CREATE TABLE IF NOT EXISTS public.notificaciones (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.usuarios(id) ON DELETE CASCADE,
@@ -160,7 +131,6 @@ CREATE TABLE IF NOT EXISTS public.notificaciones (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Si existe 'notifications', migrar a 'notificaciones'
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notifications') THEN
@@ -171,9 +141,7 @@ BEGIN
     END IF;
 END $$;
 
--- =====================================================================
--- 6. TABLA: mensajes (Chat y soporte)
--- =====================================================================
+-- Tabla mensajes
 CREATE TABLE IF NOT EXISTS public.mensajes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_id UUID REFERENCES public.usuarios(id) ON DELETE SET NULL,
@@ -184,7 +152,6 @@ CREATE TABLE IF NOT EXISTS public.mensajes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Si existe 'chat_messages', migrar a 'mensajes'
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'chat_messages') THEN
@@ -195,9 +162,7 @@ BEGIN
     END IF;
 END $$;
 
--- =====================================================================
--- 7. TABLA: favoritos (Contactos frecuentes de los usuarios)
--- =====================================================================
+-- Tabla favoritos
 CREATE TABLE IF NOT EXISTS public.favoritos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
@@ -206,7 +171,6 @@ CREATE TABLE IF NOT EXISTS public.favoritos (
     UNIQUE(user_id, favorite_user_id)
 );
 
--- Si existe 'user_favorites', migrar a 'favoritos'
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user_favorites') THEN
@@ -217,9 +181,7 @@ BEGIN
     END IF;
 END $$;
 
--- =====================================================================
--- 8. TABLA: reportes (Denuncias de usuarios revisadas por moderadores)
--- =====================================================================
+-- Tabla reportes
 CREATE TABLE IF NOT EXISTS public.reportes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reporter_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
@@ -229,7 +191,6 @@ CREATE TABLE IF NOT EXISTS public.reportes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Si existe 'user_reports', migrar a 'reportes'
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user_reports') THEN
@@ -240,19 +201,13 @@ BEGIN
     END IF;
 END $$;
 
--- =====================================================================
--- LIMPIEZA DE TABLAS OBSOLETAS QUE YA NO SE USAN
--- =====================================================================
+-- Limpieza de tablas no utilizadas
 DROP TABLE IF EXISTS public.packages CASCADE;
 DROP TABLE IF EXISTS public.quotations CASCADE;
 DROP TABLE IF EXISTS public.user_favorites CASCADE;
 DROP TABLE IF EXISTS public.user_reports CASCADE;
 
--- =====================================================================
--- POLÍTICAS RLS (Row Level Security) 100% OPERATIVAS
--- Permite insertar, leer y actualizar desde la app móvil y app de escritorio
--- sin bloqueos de 401 Unauthorized
--- =====================================================================
+-- Politicas RLS
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Acceso total usuarios" ON public.usuarios;
 CREATE POLICY "Acceso total usuarios" ON public.usuarios FOR ALL USING (true) WITH CHECK (true);

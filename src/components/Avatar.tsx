@@ -1,10 +1,3 @@
-/**
- * Avatar.tsx - Componente de Avatar Genérico Corporativo
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Renderizar avatares genéricos institucionales mediante
- * iniciales y siluetas vectoriales, eliminando dependencias de fotos no deseadas.
- */
 
 import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';

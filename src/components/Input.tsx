@@ -8,6 +8,7 @@ import {
   StyleProp, 
   ViewStyle 
 } from 'react-native';
+import { useApp } from '../context/AppContext';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -24,14 +25,23 @@ export const Input: React.FC<InputProps> = ({
   style,
   ...props
 }) => {
+  const { colors, isDarkMode } = useApp();
+
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      <View style={[styles.inputWrapper, error ? styles.inputError : null]}>
+      {label && <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>}
+      <View style={[
+        styles.inputWrapper,
+        {
+          backgroundColor: isDarkMode ? colors.surfaceSubtle : '#F8FAFC',
+          borderColor: isDarkMode ? colors.surfaceCardBorder : '#CBD5E1',
+        },
+        error ? styles.inputError : null
+      ]}>
         {leftIcon && <View style={styles.iconContainer}>{leftIcon}</View>}
         <TextInput
-          style={[styles.input, style]}
-          placeholderTextColor="#94A3B8"
+          style={[styles.input, { color: colors.textMain }, style]}
+          placeholderTextColor={colors.textMuted}
           {...props}
         />
       </View>

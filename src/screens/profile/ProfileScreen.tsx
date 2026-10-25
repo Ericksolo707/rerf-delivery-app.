@@ -1,20 +1,3 @@
-/**
- * ProfileScreen.tsx - Pantalla 24 Visualización y Edición de Perfil (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 24 del boceto Excalidraw con:
- * - Header: "Perfil" con botones [ ! ] y [ -> ]
- * - Círculo grande de "foto" con nombre de usuario y alias
- * - Filas de campos con botón "editar" en cada una:
- *   - Nombre de usuario (Editable)
- *   - Alias (Editable, ej. @carlosg)
- *   - Correo (Solo lectura, no modificable directamente)
- *   - Teléfono (Editable)
- *   - Dirección (Editable)
- *   - Referencias (Editable)
- *   - Descripción (Editable)
- * - Botón inferior: [ Guardar ] (Actualiza el perfil y el directorio de usuarios de la app)
- */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
@@ -36,7 +19,7 @@ import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> = ({ navigation }) => {
-  const { user, updateProfile } = useApp();
+  const { user, updateProfile, themeMode, isDarkMode, colors, setThemeMode } = useApp();
 
   const getComputedUsername = (u: typeof user): string => {
     if (!u) return 'Usuario RerF';
@@ -54,10 +37,10 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
   // Estados directos del formulario (lo que el usuario ve y edita en pantalla)
   const [usernameInput, setUsernameInput] = useState<string>(() => user?.username || getComputedUsername(user));
   const [alias, setAlias] = useState<string>(() => user?.alias || (user?.first_name ? `@${user.first_name.toLowerCase()}` : '@usuario'));
-  const [description, setDescription] = useState<string>(() => user?.description || user?.bio || 'Cliente frecuente de envíos nacionales y almacenaje en bodega.');
-  const [phone, setPhone] = useState<string>(() => user?.phone || '+502 5598-1234');
-  const [address, setAddress] = useState<string>(() => user?.address || 'Zona 10, Ciudad de Guatemala');
-  const [references, setReferences] = useState<string>(() => user?.address_references || 'Frente a plaza comercial');
+  const [description, setDescription] = useState<string>(() => user?.description || user?.bio || '');
+  const [phone, setPhone] = useState<string>(() => user?.phone || '');
+  const [address, setAddress] = useState<string>(() => user?.address || '');
+  const [references, setReferences] = useState<string>(() => user?.address_references || '');
   const [editingField, setEditingField] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
@@ -100,10 +83,10 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
     setLoadedUserId(user.id);
     setUsernameInput(user.username || getComputedUsername(user));
     setAlias(user.alias || (user.first_name ? `@${user.first_name.toLowerCase()}` : '@usuario'));
-    setDescription(user.description || user.bio || 'Cliente frecuente de envíos nacionales y almacenaje en bodega.');
-    setPhone(user.phone || '+502 5598-1234');
-    setAddress(user.address || 'Zona 10, Ciudad de Guatemala');
-    setReferences(user.address_references || 'Frente a plaza comercial');
+    setDescription(user.description || user.bio || '');
+    setPhone(user.phone || '');
+    setAddress(user.address || '');
+    setReferences(user.address_references || '');
     setEditingField(null);
   }
 
@@ -195,6 +178,12 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           />
           <Text style={styles.usernameTitle}>{usernameInput || 'Usuario RerF'}</Text>
           <Text style={styles.userAliasSubtitle}>{alias}</Text>
+          {user?.role === 'admin' && (
+            <View style={styles.adminProfileBadge}>
+              <Ionicons name="shield-checkmark" size={13} color="#1D4ED8" />
+              <Text style={styles.adminProfileBadgeText}>Administrador Oficial RerF</Text>
+            </View>
+          )}
         </View>
 
         {savedSuccess && (
@@ -204,7 +193,7 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           </View>
         )}
 
-        {/* Lista de campos con botón "editar" en cada fila (Excalidraw Pantalla 24) */}
+        {/* Lista de campos con botón "editar" en cada fila  */}
         <View style={styles.fieldsContainer}>
           {/* Fila Nombre de Usuario */}
           <View style={styles.profileFieldRow}>
@@ -404,6 +393,97 @@ export const ProfileScreen: React.FC<MainTabCompositeScreenProps<'PerfilTab'>> =
           </View>
         </View>
 
+        {/* Sección de Apariencia y Modo Oscuro de la App */}
+        <View style={[styles.appearanceCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+          <View style={styles.appearanceHeader}>
+            <View style={styles.appearanceTitleRow}>
+              <Ionicons 
+                name={isDarkMode ? "moon" : "sunny"} 
+                size={18} 
+                color={colors.primaryYellow} 
+              />
+              <Text style={[styles.appearanceTitle, { color: colors.textMain }]}>Tema de la Aplicación</Text>
+            </View>
+            <Text style={[styles.appearanceSubtitle, { color: colors.textSecondary }]}>
+              {themeMode === 'system' ? 'Automático (según tu sistema)' : isDarkMode ? 'Modo Oscuro activo' : 'Modo Claro activo'}
+            </Text>
+          </View>
+
+          <View style={styles.themeSelectorRow}>
+            {/* Opción 1: Claro */}
+            <TouchableOpacity
+              style={[
+                styles.themeChip,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder },
+                themeMode === 'light' && [styles.themeChipActive, { borderColor: colors.primaryYellow, backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }],
+              ]}
+              onPress={() => setThemeMode('light')}
+              activeOpacity={0.8}
+            >
+              <Ionicons 
+                name="sunny-outline" 
+                size={18} 
+                color={themeMode === 'light' ? colors.primaryYellowHover : colors.textSecondary} 
+              />
+              <Text style={[
+                styles.themeChipText,
+                { color: colors.textSecondary },
+                themeMode === 'light' && [styles.themeChipTextActive, { color: isDarkMode ? '#FEF3C7' : '#78350F' }],
+              ]}>
+                Claro
+              </Text>
+            </TouchableOpacity>
+
+            {/* Opción 2: Oscuro */}
+            <TouchableOpacity
+              style={[
+                styles.themeChip,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder },
+                themeMode === 'dark' && [styles.themeChipActive, { borderColor: colors.primaryYellow, backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }],
+              ]}
+              onPress={() => setThemeMode('dark')}
+              activeOpacity={0.8}
+            >
+              <Ionicons 
+                name="moon-outline" 
+                size={18} 
+                color={themeMode === 'dark' ? colors.primaryYellowHover : colors.textSecondary} 
+              />
+              <Text style={[
+                styles.themeChipText,
+                { color: colors.textSecondary },
+                themeMode === 'dark' && [styles.themeChipTextActive, { color: isDarkMode ? '#FEF3C7' : '#78350F' }],
+              ]}>
+                Oscuro
+              </Text>
+            </TouchableOpacity>
+
+            {/* Opción 3: Sistema */}
+            <TouchableOpacity
+              style={[
+                styles.themeChip,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceCardBorder },
+                themeMode === 'system' && [styles.themeChipActive, { borderColor: colors.primaryYellow, backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }],
+              ]}
+              onPress={() => setThemeMode('system')}
+              activeOpacity={0.8}
+            >
+              <Ionicons 
+                name="phone-portrait-outline" 
+                size={18} 
+                color={themeMode === 'system' ? colors.primaryYellowHover : colors.textSecondary} 
+              />
+              <Text style={[
+                styles.themeChipText,
+                { color: colors.textSecondary },
+                themeMode === 'system' && [styles.themeChipTextActive, { color: isDarkMode ? '#FEF3C7' : '#78350F' }],
+              ]}>
+                Auto
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Botón inferior: [ Guardar ] */}
         <TouchableOpacity 
           style={styles.saveButton}
@@ -446,6 +526,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: RerfColors.textMuted,
     marginTop: 2,
+  },
+  adminProfileBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    marginTop: 8,
+  },
+  adminProfileBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
   successBanner: {
     flexDirection: 'row',
@@ -568,5 +665,65 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: RerfColors.primaryYellowText,
+  },
+  appearanceCard: {
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    borderRadius: 14,
+    padding: 16,
+    backgroundColor: RerfColors.surfaceCard,
+    marginBottom: 20,
+    ...RerfShadows.card,
+  },
+  appearanceHeader: {
+    marginBottom: 12,
+  },
+  appearanceTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  appearanceTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: RerfColors.textMain,
+  },
+  appearanceSubtitle: {
+    fontSize: 12,
+    color: RerfColors.textMuted,
+    marginTop: 2,
+  },
+  themeSelectorRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  themeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: RerfColors.surfaceCardBorder,
+    backgroundColor: RerfColors.surfaceSubtle,
+  },
+  themeChipActive: {
+    borderWidth: 1.5,
+    borderColor: RerfColors.primaryYellow,
+    backgroundColor: '#FEF3C7',
+  },
+  themeChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: RerfColors.textSecondary,
+  },
+  themeChipTextActive: {
+    color: '#78350F',
+    fontWeight: '800',
   },
 });

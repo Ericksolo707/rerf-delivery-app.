@@ -1,11 +1,3 @@
-/**
- * RepositorioBase.ts - Clase Base Abstracta para Repositorios
- * Programación II - Sesión 5 UMG
- *
- * Responsabilidad: Definir la estructura obligatoria y los métodos polimórficos
- * que cualquier repositorio del sistema debe implementar.
- * Aplica conceptos de Clases Abstractas, Herencia y Polimorfismo.
- */
 
 export abstract class RepositorioBase<T, TCreacion = Omit<T, 'id'>> {
   /**

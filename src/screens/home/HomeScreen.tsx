@@ -1,16 +1,3 @@
-/**
- * HomeScreen.tsx - Pantalla Principal RerF Logistics (Alineada a Boceto Excalidraw Pantalla 3)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 3 del boceto Excalidraw con:
- * - Header: "Bienvenido [usuario]" con botones [ ! ] y [ -> ]
- * - Título corporativo: "RERF APP"
- * - Contenedor: "Animación / Muestra de Servicios" (Banner de Servicios)
- * - Botón ancho: "Movimientos recientes"
- * - Cuadrícula 2x2 de accesos directos:
- *   [ Entregas ]     [ Pedidos ]
- *   [ Usuarios ]     [ Enviar Paquete ]
- */
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -28,7 +15,8 @@ import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({ navigation }) => {
-  const { user, refreshData, isRefreshing } = useApp();
+  const { user, shipments, warehouseItems, users, refreshData, isRefreshing, isDarkMode, colors } = useApp();
+  const isAdmin = user?.role === 'admin';
   
   // Nombre limpio y profesional para la bienvenida (sin dominio @correo.com)
   const displayName = React.useMemo(() => {
@@ -42,7 +30,16 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
     return base.charAt(0).toUpperCase() + base.slice(1);
   }, [user]);
 
-  // Carrusel interactivo para "Animación / Muestra de Servicios"
+  // Métricas del sistema en tiempo real para el Administrador
+  const adminMetrics = React.useMemo(() => {
+    const pendingOrders = shipments.filter(s => s.status === 'pendiente').length;
+    const inRouteOrders = shipments.filter(s => s.status === 'en_camino' || s.status === 'aprobado').length;
+    const clientsCount = users.filter(u => u.role !== 'admin').length;
+    const warehouseCount = warehouseItems.length;
+    return { pendingOrders, inRouteOrders, clientsCount, warehouseCount };
+  }, [shipments, users, warehouseItems]);
+
+  // Carrusel interactivo para "Animación / Muestra de Servicios" (modo Cliente)
   const services = [
     {
       title: 'Envíos Express Puerta a Puerta',
@@ -67,17 +64,18 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
   const [currentServiceIndex, setCurrentServiceIndex] = useState<number>(0);
 
   useEffect(() => {
+    if (isAdmin) return;
     const timer = setInterval(() => {
       setCurrentServiceIndex((prev) => (prev + 1) % services.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, [services.length]);
+  }, [services.length, isAdmin]);
 
   const activeService = services[currentServiceIndex];
 
   return (
-    <View style={styles.container}>
-      {/* Header Excalidraw: "Bienvenido [usuario]" con [ ! ] y [ -> ] */}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header : "Bienvenido [usuario]" con [ ! ] y [ -> ] */}
       <Header 
         title={`Bienvenido ${displayName}`} 
       />
@@ -89,43 +87,99 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={refreshData}
-            colors={[RerfColors.primaryYellow, RerfColors.logisticsBlue]}
-            tintColor={RerfColors.logisticsBlue}
+            colors={[colors.primaryYellow, colors.logisticsBlue]}
+            tintColor={colors.logisticsBlue}
           />
         }
       >
         {/* Título RERF APP */}
         <View style={styles.appTitleContainer}>
-          <Text style={styles.appTitle}>RERF APP</Text>
+          <Text style={[styles.appTitle, { color: colors.textMain }]}>
+            {isAdmin ? 'RERF APP • PANEL ADMINISTRADOR' : 'RERF APP'}
+          </Text>
         </View>
 
-        {/* Sección: "Nuestros servicios" */}
-        <View style={styles.showcaseCard}>
-          <View style={styles.showcaseHeader}>
-            <Text style={styles.showcaseLabel}>Nuestros servicios</Text>
-            <View style={styles.dotIndicatorRow}>
-              {services.map((_, idx) => (
-                <View 
-                  key={idx} 
-                  style={[
-                    styles.dot, 
-                    idx === currentServiceIndex && styles.activeDot
-                  ]} 
-                />
-              ))}
+        {/* Muestra de Servicios (Cliente) O Métricas Operativas (Administrador) */}
+        {isAdmin ? (
+          <View style={[styles.adminKpiCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+            <View style={[styles.showcaseHeader, { borderBottomColor: colors.surfaceSubtle }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="shield-checkmark" size={16} color="#1D4ED8" />
+                <Text style={styles.adminKpiHeaderLabel}>MÉTRICAS OPERATIVAS DEL SISTEMA</Text>
+              </View>
+              <View style={styles.liveBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveBadgeText}>En vivo</Text>
+              </View>
             </View>
-          </View>
 
-          <View style={styles.serviceItemRow}>
-            <View style={[styles.serviceIconCircle, { backgroundColor: `${activeService.color}15` }]}>
-              <Ionicons name={activeService.icon} size={28} color={activeService.color} />
-            </View>
-            <View style={styles.serviceTextCol}>
-              <Text style={styles.serviceTitle}>{activeService.title}</Text>
-              <Text style={styles.serviceDesc}>{activeService.desc}</Text>
+            <View style={styles.kpiGrid}>
+              <TouchableOpacity 
+                style={[styles.kpiItem, { backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7', borderColor: isDarkMode ? '#78350F' : '#FDE68A' }]}
+                onPress={() => navigation.navigate('Pedidos')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.kpiValue, { color: isDarkMode ? '#FBBF24' : '#B45309' }]}>{adminMetrics.pendingOrders}</Text>
+                <Text style={[styles.kpiLabel, { color: isDarkMode ? '#FCD34D' : '#475569' }]}>Por autorizar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.kpiItem, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: isDarkMode ? '#3B82F6' : '#BFDBFE' }]}
+                onPress={() => navigation.navigate('Entregas')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.kpiValue, { color: isDarkMode ? '#93C5FD' : '#1D4ED8' }]}>{adminMetrics.inRouteOrders}</Text>
+                <Text style={[styles.kpiLabel, { color: isDarkMode ? '#BFDBFE' : '#475569' }]}>En ruta activa</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.kpiItem, { backgroundColor: isDarkMode ? '#064E3B' : '#F0FDF4', borderColor: isDarkMode ? '#047857' : '#BBF7D0' }]}
+                onPress={() => navigation.navigate('Usuarios')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.kpiValue, { color: isDarkMode ? '#6EE7B7' : '#15803D' }]}>{adminMetrics.clientsCount}</Text>
+                <Text style={[styles.kpiLabel, { color: isDarkMode ? '#A7F3D0' : '#475569' }]}>Clientes activos</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.kpiItem, { backgroundColor: isDarkMode ? '#2E1065' : '#F5F3FF', borderColor: isDarkMode ? '#5B21B6' : '#DDD6FE' }]}
+                onPress={() => navigation.navigate('Principal', { screen: 'BodegaTab' } as any)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.kpiValue, { color: isDarkMode ? '#C4B5FD' : '#6D28D9' }]}>{adminMetrics.warehouseCount}</Text>
+                <Text style={[styles.kpiLabel, { color: isDarkMode ? '#DDD6FE' : '#475569' }]}>En bodega</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </View>
+        ) : (
+          <View style={[styles.showcaseCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
+            <View style={[styles.showcaseHeader, { borderBottomColor: colors.surfaceSubtle }]}>
+              <Text style={[styles.showcaseLabel, { color: colors.textSecondary }]}>Nuestros servicios</Text>
+              <View style={styles.dotIndicatorRow}>
+                {services.map((_, idx) => (
+                  <View 
+                    key={idx} 
+                    style={[
+                      styles.dot, 
+                      { backgroundColor: isDarkMode ? '#334155' : '#CBD5E1' },
+                      idx === currentServiceIndex && styles.activeDot
+                    ]} 
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.serviceItemRow}>
+              <View style={[styles.serviceIconCircle, { backgroundColor: `${activeService.color}15` }]}>
+                <Ionicons name={activeService.icon} size={28} color={activeService.color} />
+              </View>
+              <View style={styles.serviceTextCol}>
+                <Text style={[styles.serviceTitle, { color: colors.textMain }]}>{activeService.title}</Text>
+                <Text style={[styles.serviceDesc, { color: colors.textSecondary }]}>{activeService.desc}</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Botón: Movimientos recientes */}
         <TouchableOpacity 
@@ -133,92 +187,177 @@ export const HomeScreen: React.FC<MainTabCompositeScreenProps<'InicioTab'>> = ({
           onPress={() => navigation.navigate('MovimientosRecientes')}
           activeOpacity={0.8}
         >
-          <Text style={styles.recentMovementsText}>Movimientos recientes</Text>
+          <Text style={styles.recentMovementsText}>
+            {isAdmin ? 'Auditoría de movimientos del sistema' : 'Movimientos recientes'}
+          </Text>
           <Ionicons name="chevron-forward" size={18} color={RerfColors.primaryYellowText} />
         </TouchableOpacity>
 
         {/* Cuadrícula de Accesos Directos del Menú Principal */}
         <View style={styles.gridContainer}>
-          {/* Fila 1: Operaciones Principales */}
-          <View style={styles.gridRow}>
-            {/* Botón Envíos (Pantalla 12: Enviar Paquete y Gestión) */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('GestionEnvio')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: RerfColors.primaryYellowLight }]}>
-                <Ionicons name="paper-plane-outline" size={28} color={RerfColors.primaryYellowHover} />
-              </View>
-              <Text style={styles.gridCardText}>Envíos</Text>
-            </TouchableOpacity>
+          {isAdmin ? (
+            /* ================= CUADRÍCULA ADMINISTRADOR (Excluido de acciones de cliente) ================= */
+            <>
+              {/* Fila 1 Admin: Pedidos/Autorizaciones y Monitoreo Entregas */}
+              <View style={styles.gridRow}>
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Pedidos')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }]}>
+                    <Ionicons name="clipboard-outline" size={28} color={isDarkMode ? '#FBBF24' : '#B45309'} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Autorizaciones</Text>
+                </TouchableOpacity>
 
-            {/* Botón Pedidos (Pantalla 8) */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('Pedidos')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#EFF6FF' }]}>
-                <Ionicons name="clipboard-outline" size={28} color={RerfColors.logisticsBlue} />
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Entregas')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1E293B' : RerfColors.logisticsBlueLight }]}>
+                    <Ionicons name="bicycle-outline" size={28} color={colors.logisticsBlue} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Entregas Flota</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.gridCardText}>Pedidos</Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* Fila 2: Entregas y Cotización */}
-          <View style={styles.gridRow}>
-            {/* Botón Entregas (Pantalla 7) */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('Entregas')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: RerfColors.logisticsBlueLight }]}>
-                <Ionicons name="bicycle-outline" size={28} color={RerfColors.logisticsBlue} />
-              </View>
-              <Text style={styles.gridCardText}>Entregas</Text>
-            </TouchableOpacity>
+              {/* Fila 2 Admin: Bodega Central y Directorio Clientes */}
+              <View style={styles.gridRow}>
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Principal', { screen: 'BodegaTab' } as any)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#2E1065' : '#F5F3FF' }]}>
+                    <Ionicons name="cube-outline" size={28} color={isDarkMode ? '#C4B5FD' : '#6D28D9'} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Bodega Central</Text>
+                </TouchableOpacity>
 
-            {/* Botón Cotizador de Envío (Pantalla 26) */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('Cotizador')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
-                <Ionicons name="calculator-outline" size={28} color={RerfColors.successGreen} />
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Usuarios')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF' }]}>
+                    <Ionicons name="people-outline" size={28} color={isDarkMode ? '#93C5FD' : '#1D4ED8'} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Clientes</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.gridCardText}>Cotizar Envío</Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* Fila 3: Facturación y Contactos */}
-          <View style={styles.gridRow}>
-            {/* Botón Facturas FEL (Pantalla 28) */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('Facturas')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#CCFBF1' }]}>
-                <Ionicons name="receipt-outline" size={28} color="#0D9488" />
-              </View>
-              <Text style={styles.gridCardText}>Facturas FEL</Text>
-            </TouchableOpacity>
+              {/* Fila 3 Admin: Facturación FEL y Consultas */}
+              <View style={styles.gridRow}>
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Facturas')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#042F2E' : '#CCFBF1' }]}>
+                    <Ionicons name="receipt-outline" size={28} color={isDarkMode ? '#5EEAD4' : '#0D9488'} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Facturas FEL</Text>
+                </TouchableOpacity>
 
-            {/* Botón Directorio de Usuarios */}
-            <TouchableOpacity 
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('Usuarios')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="people-outline" size={28} color="#B45309" />
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('DesglosePaquetes')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#064E3B' : '#ECFDF5' }]}>
+                    <Ionicons name="search-outline" size={28} color={colors.successGreen} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Desglose General</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.gridCardText}>Usuarios</Text>
-            </TouchableOpacity>
-          </View>
+            </>
+          ) : (
+            /* ================= CUADRÍCULA CLIENTE (Operaciones de envío y seguimiento) ================= */
+            <>
+              {/* Fila 1: Operaciones Principales */}
+              <View style={styles.gridRow}>
+                {/* Botón Envíos (Pantalla 12: Enviar Paquete y Gestión) */}
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('GestionEnvio')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#451A03' : RerfColors.primaryYellowLight }]}>
+                    <Ionicons name="paper-plane-outline" size={28} color={colors.primaryYellow} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Envíos</Text>
+                </TouchableOpacity>
+
+                {/* Botón Pedidos (Pantalla 8) */}
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Pedidos')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF' }]}>
+                    <Ionicons name="clipboard-outline" size={28} color={colors.logisticsBlue} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Pedidos</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Fila 2: Entregas y Cotización */}
+              <View style={styles.gridRow}>
+                {/* Botón Entregas (Pantalla 7) */}
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Entregas')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1E293B' : RerfColors.logisticsBlueLight }]}>
+                    <Ionicons name="bicycle-outline" size={28} color={colors.logisticsBlue} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Entregas</Text>
+                </TouchableOpacity>
+
+                {/* Botón Cotizador de Envío (Pantalla 26) */}
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Cotizador')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#064E3B' : '#ECFDF5' }]}>
+                    <Ionicons name="calculator-outline" size={28} color={colors.successGreen} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Cotizar Envío</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Fila 3: Facturación y Contactos */}
+              <View style={styles.gridRow}>
+                {/* Botón Facturas FEL (Pantalla 28) */}
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Facturas')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#042F2E' : '#CCFBF1' }]}>
+                    <Ionicons name="receipt-outline" size={28} color={isDarkMode ? '#5EEAD4' : '#0D9488'} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Facturas FEL</Text>
+                </TouchableOpacity>
+
+                {/* Botón Directorio de Usuarios */}
+                <TouchableOpacity 
+                  style={[styles.gridCard, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}
+                  onPress={() => navigation.navigate('Usuarios')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7' }]}>
+                    <Ionicons name="people-outline" size={28} color={isDarkMode ? '#FBBF24' : '#B45309'} />
+                  </View>
+                  <Text style={[styles.gridCardText, { color: colors.textMain }]}>Usuarios</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -244,6 +383,65 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: RerfColors.textMain,
     letterSpacing: 0.5,
+  },
+  adminKpiCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    padding: 16,
+    marginBottom: 18,
+    ...RerfShadows.card,
+  },
+  adminKpiHeaderLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#1D4ED8',
+    letterSpacing: 0.5,
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16A34A',
+  },
+  liveBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 4,
+  },
+  kpiItem: {
+    width: '48%',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kpiValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  kpiLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
   },
   showcaseCard: {
     backgroundColor: RerfColors.surfaceCard,

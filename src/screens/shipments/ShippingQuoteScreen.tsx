@@ -1,16 +1,3 @@
-/**
- * ShippingQuoteScreen.tsx - Pantalla 26 Cotizador de Envío (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 26 del boceto Excalidraw con:
- * - Header: "Cotizador" con botones [ ! ] y [ -> ]
- * - Rombito central "LOGO" + "Cotizador RERF APP"
- * - Campo: "Cantidad:"
- * - Campo: "Peso estimado (kg/lb):"
- * - Selector: "Material:" [ Frágil ] [ Fuerte ]
- * - Campo de salida: "Total estimado:"
- * - Botón inferior: [ Cotizar ]
- */
 
 import React, { useState } from 'react';
 import { 
@@ -26,77 +13,62 @@ import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { RootStackScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
+import { useApp } from '../../context/AppContext';
 
 export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = ({ navigation }) => {
-  const [quantity, setQuantity] = useState<string>('1');
-  const [weight, setWeight] = useState<string>('5');
-  const [material, setMaterial] = useState<'fragil' | 'fuerte'>('fragil');
-  const [destinationZone, setDestinationZone] = useState<'capital' | 'departamento'>('capital');
+  const { colors, isDarkMode } = useApp();
+  const [quantity, setQuantity] = useState<string>('');
+  const [weight, setWeight] = useState<string>('');
+  const [material, setMaterial] = useState<'fragil' | 'fuerte' | null>(null);
+  const [destinationZone, setDestinationZone] = useState<'capital' | 'departamento' | null>(null);
+  const [feedbackNotice, setFeedbackNotice] = useState<string>('');
 
-  const [calculatedTotal, setCalculatedTotal] = useState<number | null>(null);
-  const [hasCalculated, setHasCalculated] = useState<boolean>(false);
+  // Validación de datos ingresados para cotizar
+  const parsedQty = parseInt(quantity, 10);
+  const parsedWeight = parseFloat(weight);
+  const hasValidQuantity = !isNaN(parsedQty) && parsedQty > 0;
+  const hasValidWeight = !isNaN(parsedWeight) && parsedWeight > 0;
+  const isReadyToQuote = hasValidQuantity && hasValidWeight && material !== null && destinationZone !== null;
 
-  const updateQuantity = (val: string): void => {
-    setQuantity(val);
-    setHasCalculated(false);
-  };
+  const materialSurcharge = material === 'fragil' ? 15.00 : material === 'fuerte' ? 5.00 : 0.00;
+  const zoneSurcharge = destinationZone === 'departamento' ? 15.00 : 0.00;
+  const baseRate = 25.00;
+  const weightRate = hasValidWeight && parsedWeight > 1 ? (parsedWeight - 1) * 3.50 : 0.00;
+  const total = isReadyToQuote ? (baseRate + weightRate + materialSurcharge + zoneSurcharge) * parsedQty : null;
 
-  const updateWeight = (val: string): void => {
-    setWeight(val);
-    setHasCalculated(false);
-  };
-
-  const updateMaterial = (mat: 'fragil' | 'fuerte'): void => {
-    setMaterial(mat);
-    setHasCalculated(false);
-  };
-
-  const updateDestination = (zone: 'capital' | 'departamento'): void => {
-    setDestinationZone(zone);
-    setHasCalculated(false);
-  };
-
-  const handleCotizar = (): void => {
+  const handleReset = (): void => {
     Keyboard.dismiss();
-    const qty = parseInt(quantity, 10) || 1;
-    const w = parseFloat(weight) || 1;
-    const materialSurcharge = material === 'fragil' ? 15.00 : 5.00;
-    const zoneSurcharge = destinationZone === 'departamento' ? 15.00 : 0.00;
-    const baseRate = 25.00;
-    const weightRate = w > 1 ? (w - 1) * 3.50 : 0;
-    const total = (baseRate + weightRate + materialSurcharge + zoneSurcharge) * qty;
-
-    setCalculatedTotal(total);
-    setHasCalculated(true);
+    setQuantity('');
+    setWeight('');
+    setMaterial(null);
+    setDestinationZone(null);
+    setFeedbackNotice('Cotizador restablecido (campos limpios)');
+    setTimeout(() => setFeedbackNotice(''), 2500);
   };
 
   const handleProceedToShipment = (): void => {
-    if (!hasCalculated || calculatedTotal === null) {
-      handleCotizar();
-      return;
-    }
-    const qty = parseInt(quantity, 10) || 1;
-    const w = parseFloat(weight) || 1;
-    const desc = `Cotización RerF: ${qty} paquete(s) (${w} kg/lb, ${material === 'fragil' ? 'Frágil' : 'Fuerte'}, ${destinationZone === 'capital' ? 'Capital (Local)' : 'Departamental'})`;
+    Keyboard.dismiss();
+    if (!isReadyToQuote || total === null) return;
+    const desc = `Cotización RerF: ${parsedQty} paquete(s) (${parsedWeight} kg/lb, ${material === 'fragil' ? 'Frágil' : 'Fuerte'}, ${destinationZone === 'capital' ? 'Capital (Local)' : 'Departamental'})`;
 
     navigation.navigate('RealizarEnvio', {
-      quotedAmount: calculatedTotal,
+      quotedAmount: total,
       quotedDescription: desc,
       quotedWeight: weight,
-      quotedMaterial: material,
-      quotedDestination: destinationZone,
+      quotedMaterial: material || undefined,
+      quotedDestination: destinationZone || undefined,
     });
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Header title="Cotizador" showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* LOGO Corporativo RerF (Reemplaza placeholder LOGO) */}
         <View style={styles.logoContainer}>
-          <Text style={styles.cotizadorHeaderTitle}>Cotizador</Text>
-          <Text style={styles.cotizadorHeaderSubtitle}>RERF APP</Text>
+          <Text style={[styles.cotizadorHeaderTitle, { color: colors.textMain }]}>Cotizador</Text>
+          <Text style={[styles.cotizadorHeaderSubtitle, { color: colors.textSecondary }]}>RERF APP</Text>
           <View style={styles.diamondBox}>
             <View style={styles.diamondInnerContent}>
               <Ionicons name="cube" size={16} color={RerfColors.primaryYellow} />
@@ -108,51 +80,81 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
         </View>
 
         {/* Formulario Estilo Boceto Pantalla 26 */}
-        <View style={styles.formContainer}>
+        <View style={[styles.formContainer, { backgroundColor: colors.surfaceCard, borderColor: colors.surfaceCardBorder }]}>
           {/* 1. Cantidad */}
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Cantidad:</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Cantidad:</Text>
             <TextInput
-              style={styles.textInput}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: isDarkMode ? colors.surfaceSubtle : '#FFFFFF',
+                  borderColor: isDarkMode ? colors.surfaceCardBorder : '#CBD5E1',
+                  color: colors.textMain,
+                }
+              ]}
               value={quantity}
-              onChangeText={updateQuantity}
+              onChangeText={setQuantity}
               keyboardType="numeric"
-              placeholder="1"
+              placeholder="Ingresa cantidad (ej. 1)"
+              placeholderTextColor={colors.textMuted}
             />
           </View>
 
           {/* 2. Peso estimado (kg/lb) */}
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Peso estimado (kg/lb):</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Peso estimado (kg/lb):</Text>
             <TextInput
-              style={styles.textInput}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: isDarkMode ? colors.surfaceSubtle : '#FFFFFF',
+                  borderColor: isDarkMode ? colors.surfaceCardBorder : '#CBD5E1',
+                  color: colors.textMain,
+                }
+              ]}
               value={weight}
-              onChangeText={updateWeight}
+              onChangeText={setWeight}
               keyboardType="numeric"
-              placeholder="5"
+              placeholder="Ingresa peso (ej. 5)"
+              placeholderTextColor={colors.textMuted}
             />
           </View>
 
           {/* 3. Material: [ Frágil ] [ Fuerte ] */}
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Material:</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Material:</Text>
             <View style={styles.toggleRow}>
               <TouchableOpacity
-                style={[styles.toggleBtn, material === 'fragil' && styles.toggleBtnActive]}
-                onPress={() => updateMaterial('fragil')}
+                style={[
+                  styles.toggleBtn,
+                  {
+                    backgroundColor: isDarkMode ? colors.surfaceSubtle : '#F8FAFC',
+                    borderColor: isDarkMode ? colors.surfaceCardBorder : '#CBD5E1',
+                  },
+                  material === 'fragil' && styles.toggleBtnActive
+                ]}
+                onPress={() => setMaterial(material === 'fragil' ? null : 'fragil')}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.toggleBtnText, material === 'fragil' && styles.toggleBtnTextActive]}>
+                <Text style={[styles.toggleBtnText, { color: colors.textSecondary }, material === 'fragil' && styles.toggleBtnTextActive]}>
                   Frágil
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.toggleBtn, material === 'fuerte' && styles.toggleBtnActive]}
-                onPress={() => updateMaterial('fuerte')}
+                style={[
+                  styles.toggleBtn,
+                  {
+                    backgroundColor: isDarkMode ? colors.surfaceSubtle : '#F8FAFC',
+                    borderColor: isDarkMode ? colors.surfaceCardBorder : '#CBD5E1',
+                  },
+                  material === 'fuerte' && styles.toggleBtnActive
+                ]}
+                onPress={() => setMaterial(material === 'fuerte' ? null : 'fuerte')}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.toggleBtnText, material === 'fuerte' && styles.toggleBtnTextActive]}>
+                <Text style={[styles.toggleBtnText, { color: colors.textSecondary }, material === 'fuerte' && styles.toggleBtnTextActive]}>
                   Fuerte
                 </Text>
               </TouchableOpacity>
@@ -161,86 +163,116 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
 
           {/* 4. Cobertura: [ Capital ] [ Departamentos ] */}
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Cobertura / Destino:</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Cobertura / Destino:</Text>
             <View style={styles.toggleRow}>
               <TouchableOpacity
-                style={[styles.toggleBtn, destinationZone === 'capital' && styles.toggleBtnActive]}
-                onPress={() => updateDestination('capital')}
+                style={[
+                  styles.toggleBtn,
+                  {
+                    backgroundColor: isDarkMode ? colors.surfaceSubtle : '#F8FAFC',
+                    borderColor: isDarkMode ? colors.surfaceCardBorder : '#CBD5E1',
+                  },
+                  destinationZone === 'capital' && styles.toggleBtnActive
+                ]}
+                onPress={() => setDestinationZone(destinationZone === 'capital' ? null : 'capital')}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.toggleBtnText, destinationZone === 'capital' && styles.toggleBtnTextActive]}>
+                <Text style={[styles.toggleBtnText, { color: colors.textSecondary }, destinationZone === 'capital' && styles.toggleBtnTextActive]}>
                   Capital (Local)
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.toggleBtn, destinationZone === 'departamento' && styles.toggleBtnActive]}
-                onPress={() => updateDestination('departamento')}
+                style={[
+                  styles.toggleBtn,
+                  {
+                    backgroundColor: isDarkMode ? colors.surfaceSubtle : '#F8FAFC',
+                    borderColor: isDarkMode ? colors.surfaceCardBorder : '#CBD5E1',
+                  },
+                  destinationZone === 'departamento' && styles.toggleBtnActive
+                ]}
+                onPress={() => setDestinationZone(destinationZone === 'departamento' ? null : 'departamento')}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.toggleBtnText, destinationZone === 'departamento' && styles.toggleBtnTextActive]}>
+                <Text style={[styles.toggleBtnText, { color: colors.textSecondary }, destinationZone === 'departamento' && styles.toggleBtnTextActive]}>
                   Departamental (+Q15)
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* 5. Total estimado */}
+          {/* 5. Total estimado con indicador en tiempo real */}
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Total estimado:</Text>
-            <View style={[styles.totalBox, !hasCalculated && styles.totalBoxPending]}>
-              {hasCalculated && calculatedTotal !== null ? (
-                <Text style={styles.totalText}>Q {calculatedTotal.toFixed(2)}</Text>
+            <View style={styles.fieldHeaderRow}>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Total estimado:</Text>
+              {isReadyToQuote && (
+                <View style={styles.liveTag}>
+                  <Ionicons name="flash" size={12} color="#15803D" />
+                  <Text style={styles.liveTagText}>Cálculo en vivo</Text>
+                </View>
+              )}
+            </View>
+            <View style={[
+              styles.totalBox,
+              !isReadyToQuote && styles.totalBoxEmpty,
+              isDarkMode && !isReadyToQuote && { backgroundColor: '#1E293B', borderColor: '#334155' }
+            ]}>
+              {isReadyToQuote && total !== null ? (
+                <Text style={styles.totalText}>Q {total.toFixed(2)}</Text>
               ) : (
-                <View style={styles.pendingRow}>
-                  <Ionicons name="calculator-outline" size={16} color="#B45309" />
-                  <Text style={styles.pendingText}>
-                    {calculatedTotal !== null ? 'Presiona «Cotizar» para actualizar' : 'Presiona «Cotizar» para calcular'}
-                  </Text>
+                <View style={styles.emptyPromptRow}>
+                  <Ionicons name="calculator-outline" size={16} color={isDarkMode ? '#FBBF24' : '#92400E'} />
+                  <Text style={[styles.emptyPromptText, isDarkMode && { color: '#FBBF24' }]}>Ingresa cantidad, peso y opciones</Text>
                 </View>
               )}
             </View>
           </View>
 
-          {/* Desglose de tarifa */}
-          {hasCalculated && calculatedTotal !== null ? (
-            <View style={styles.breakdownBox}>
-              <Text style={styles.breakdownTitle}>Detalle del cálculo:</Text>
-              <Text style={styles.breakdownItem}>• Tarifa base estándar: Q 25.00</Text>
-              <Text style={styles.breakdownItem}>• Material ({material === 'fragil' ? 'Frágil' : 'Fuerte'}): Q {material === 'fragil' ? '15.00' : '5.00'}</Text>
-              <Text style={styles.breakdownItem}>• Recargo por peso ({weight || '1'} kg): Q {parseFloat(weight) > 1 ? ((parseFloat(weight) - 1) * 3.50).toFixed(2) : '0.00'}</Text>
-              {destinationZone === 'departamento' && (
-                <Text style={styles.breakdownItem}>• Cobertura departamental: Q 15.00</Text>
+          {/* Desglose de tarifa en vivo */}
+          {isReadyToQuote && total !== null ? (
+            <View style={[
+              styles.breakdownBox,
+              isDarkMode && { backgroundColor: '#131A2A', borderColor: '#1E293B' }
+            ]}>
+              <Text style={[styles.breakdownTitle, { color: colors.textMain }]}>Detalle del cálculo en tiempo real:</Text>
+              <Text style={[styles.breakdownItem, { color: colors.textSecondary }]}>• Tarifa base estándar: Q 25.00</Text>
+              <Text style={[styles.breakdownItem, { color: colors.textSecondary }]}>
+                • Material ({material === 'fragil' ? 'Frágil' : 'Fuerte'}): Q {materialSurcharge.toFixed(2)}
+              </Text>
+              <Text style={[styles.breakdownItem, { color: colors.textSecondary }]}>
+                • Recargo por peso ({parsedWeight} kg/lb): Q {weightRate.toFixed(2)}
+              </Text>
+              <Text style={[styles.breakdownItem, { color: colors.textSecondary }]}>
+                • Cobertura: {destinationZone === 'departamento' ? 'Departamental (+Q 15.00)' : 'Capital / Local (Q 0.00)'}
+              </Text>
+              {parsedQty > 1 && (
+                <Text style={[styles.breakdownItem, { fontWeight: '800', color: colors.textMain }]}>
+                  • Multiplicador por cantidad: {parsedQty} paquetes (x{parsedQty})
+                </Text>
               )}
             </View>
           ) : (
-            <View style={styles.infoHelperBox}>
-              <Ionicons name="information-circle-outline" size={16} color="#64748B" />
-              <Text style={styles.infoHelperText}>
-                Ingresa los datos y presiona «Cotizar» para obtener el cálculo oficial y habilitar el envío.
+            <View style={[
+              styles.infoHelperBox,
+              isDarkMode && { backgroundColor: '#1E293B', borderColor: '#334155' }
+            ]}>
+              <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
+              <Text style={[styles.infoHelperText, { color: colors.textMuted }]}>
+                Ingresa los datos arriba para calcular la tarifa en tiempo real y habilitar el envío.
               </Text>
             </View>
           )}
 
-          {/* Botón [ Cotizar ] */}
-          <TouchableOpacity
-            style={[styles.cotizarBtn, hasCalculated && styles.cotizarBtnCalculated]}
-            onPress={handleCotizar}
-            activeOpacity={0.85}
-          >
-            <Ionicons 
-              name={hasCalculated ? "checkmark-circle" : "calculator"} 
-              size={18} 
-              color={RerfColors.primaryYellowText} 
-              style={{ marginRight: 8 }} 
-            />
-            <Text style={styles.cotizarBtnText}>
-              {hasCalculated ? 'Recalcular Cotización' : 'Cotizar'}
-            </Text>
-          </TouchableOpacity>
+          {/* Banner de confirmación */}
+          {feedbackNotice ? (
+            <View style={styles.feedbackNoticeBox}>
+              <Ionicons name="checkmark-circle" size={16} color="#15803D" />
+              <Text style={styles.feedbackNoticeText}>{feedbackNotice}</Text>
+            </View>
+          ) : null}
 
-          {/* Botón [ Realizar Envío con esta Cotización ] */}
-          {hasCalculated && calculatedTotal !== null && (
+          {/* Botón Principal: Realizar Envío con esta Cotización */}
+          {isReadyToQuote && total !== null ? (
             <TouchableOpacity
               style={styles.crearEnvioBtn}
               onPress={handleProceedToShipment}
@@ -248,15 +280,36 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
             >
               <Ionicons name="paper-plane" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
               <Text style={styles.crearEnvioBtnText}>
-                Realizar Envío con esta Tarifa (Q {calculatedTotal.toFixed(2)})
+                Realizar Envío con esta Cotización (Q {total.toFixed(2)})
               </Text>
             </TouchableOpacity>
+          ) : (
+            <View style={[
+              styles.crearEnvioBtn,
+              styles.crearEnvioBtnDisabled,
+              isDarkMode && { backgroundColor: '#1E293B' }
+            ]}>
+              <Ionicons name="paper-plane-outline" size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
+              <Text style={[styles.crearEnvioBtnDisabledText, { color: colors.textMuted }]}>
+                Completa los campos para cotizar
+              </Text>
+            </View>
           )}
+
+          {/* Botón Secundario: Restablecer / Limpiar */}
+          <TouchableOpacity
+            style={[styles.resetBtnFull, isDarkMode && { backgroundColor: '#1E293B', borderColor: '#334155' }]}
+            onPress={handleReset}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="trash-outline" size={16} color={colors.textMuted} style={{ marginRight: 6 }} />
+            <Text style={[styles.resetBtnFullText, { color: colors.textSecondary }]}>Limpiar campos</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* --- Barra inferior funcional de navegación --- */}
-      <View style={styles.bottomTabBar}>
+      {/* Barra inferior funcional de navegación */}
+      <View style={[styles.bottomTabBar, { backgroundColor: colors.surfaceCard, borderTopColor: colors.surfaceCardBorder }]}>
         <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal')}>
           <Ionicons name="menu-outline" size={24} color="#3B82F6" />
           <Text style={[styles.tabText, { color: '#3B82F6' }]}>App</Text>
@@ -277,7 +330,7 @@ export const ShippingQuoteScreen: React.FC<RootStackScreenProps<'Cotizador'>> = 
           <Text style={styles.tabText}>Contacto</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Menu')}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Principal', { screen: 'PerfilTab' } as any)}>
           <Ionicons name="person-outline" size={24} color="#94A3B8" />
           <Text style={styles.tabText}>Perfil</Text>
         </TouchableOpacity>
@@ -389,32 +442,52 @@ const styles = StyleSheet.create({
   toggleBtnTextActive: {
     color: RerfColors.primaryYellowText,
   },
+  fieldHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  liveTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  liveTagText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#15803D',
+  },
   totalBox: {
-    height: 48,
+    height: 52,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: RerfColors.primaryYellowHover,
     backgroundColor: RerfColors.primaryYellowLight,
     justifyContent: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     ...RerfShadows.card,
   },
-  totalBoxPending: {
+  totalBoxEmpty: {
     backgroundColor: '#FEF3C7',
     borderColor: '#FCD34D',
   },
-  pendingRow: {
+  emptyPromptRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  pendingText: {
+  emptyPromptText: {
     fontSize: 13,
     fontWeight: '700',
     color: '#92400E',
   },
   totalText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
     color: RerfColors.primaryYellowHover,
   },
@@ -427,8 +500,8 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginTop: 8,
-    marginBottom: 2,
+    marginTop: 10,
+    marginBottom: 4,
   },
   infoHelperText: {
     fontSize: 12,
@@ -437,26 +510,39 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 16,
   },
-  cotizarBtn: {
-    height: 50,
-    borderRadius: 25,
+  feedbackNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 10,
+    padding: 10,
     borderWidth: 1,
-    borderColor: RerfColors.primaryYellowHover,
-    backgroundColor: RerfColors.primaryYellow,
+    borderColor: '#86EFAC',
+    marginTop: 10,
+  },
+  feedbackNoticeText: {
+    fontSize: 12,
+    color: '#15803D',
+    fontWeight: '700',
+    flex: 1,
+  },
+  resetBtnFull: {
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 14,
+    marginTop: 10,
     ...RerfShadows.card,
   },
-  cotizarBtnCalculated: {
-    backgroundColor: '#FDE68A',
-    borderColor: '#F59E0B',
-  },
-  cotizarBtnText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: RerfColors.primaryYellowText,
+  resetBtnFullText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
   },
   breakdownBox: {
     backgroundColor: '#F8FAFC',
@@ -489,10 +575,22 @@ const styles = StyleSheet.create({
     marginTop: 10,
     ...RerfShadows.card,
   },
+  crearEnvioBtnDisabled: {
+    backgroundColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   crearEnvioBtnText: {
     fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  crearEnvioBtnDisabledText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#94A3B8',
   },
   bottomTabBar: {
     flexDirection: 'row',

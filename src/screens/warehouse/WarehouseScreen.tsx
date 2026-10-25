@@ -1,15 +1,3 @@
-/**
- * WarehouseScreen.tsx - Pantalla 19 Apartado de Bodega Personal (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 19 del boceto Excalidraw con:
- * - Header: "Mi Bodega" con botones [ ! ] y [ -> ]
- * - Campo: "Buscar"
- * - Indicador: "Total de productos: [X]"
- * - Lista de tarjetas con Nombre, Almacenaje, Destino, Estado visual y Descripción.
- * - Panel de Autorización exclusiva para Administradores con notificaciones en tiempo real.
- * - Botón inferior: [ Solicitar almacenaje ]
- */
 
 import React, { useState } from 'react';
 import { 
@@ -29,7 +17,8 @@ import { MainTabCompositeScreenProps } from '../../types/navigation';
 import { RerfColors, RerfShadows } from '../../constants/theme';
 
 export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>> = ({ route, navigation }) => {
-  const { warehouseItems, user, users, authorizeWarehouseItem } = useApp();
+  const { warehouseItems, user, users, authorizeWarehouseItem, isDarkMode, colors } = useApp();
+  const isAdmin = user?.role === 'admin';
   const routeSearch = route?.params?.searchCode || '';
   const [searchInput, setSearchInput] = useState<string>('');
 
@@ -57,6 +46,9 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
     const desc = (item?.description || '').toLowerCase();
     return type.includes(q) || code.includes(q) || desc.includes(q);
   });
+
+  const activeItemsCount = warehouseItems.filter(i => i.status === 'almacenado' || i.status === 'solicitado').length;
+  const retiredItemsCount = warehouseItems.filter(i => i.status === 'retirado').length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -142,19 +134,25 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
 
     return (
       <TouchableOpacity 
-        style={styles.card}
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.surfaceCardBorder,
+          }
+        ]}
         activeOpacity={0.85}
         onPress={() => navigation.navigate('DetalleAlmacenaje', { itemId: item?.id, storageCode: item?.storage_code })}
       >
         {/* Cabecera de la tarjeta: Nombre / Almacenaje */}
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.productName}>{item?.product_type || 'Mercadería'}</Text>
+          <Text style={[styles.productName, { color: colors.textMain }]}>{item?.product_type || 'Mercadería'}</Text>
           <Text style={styles.storageCode}>{item?.storage_code}</Text>
         </View>
 
         {/* Fila de Estado con Badge visual */}
         <View style={styles.statusRow}>
-          <Text style={styles.metaLabel}>Estado: </Text>
+          <Text style={[styles.metaLabel, { color: colors.textMuted }]}>Estado: </Text>
           <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
             <Ionicons name={badge.icon} size={13} color={badge.text} />
             <Text style={[styles.statusBadgeText, { color: badge.text }]}>
@@ -166,18 +164,18 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
         {/* Mostrar cliente si el usuario logueado es Administrador */}
         {isAdmin && (
           <Text style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Solicitante: </Text>
-            <Text style={styles.metaValue}>{ownerName}</Text>
+            <Text style={[styles.metaLabel, { color: colors.textMuted }]}>Solicitante: </Text>
+            <Text style={[styles.metaValue, { color: colors.textMain }]}>{ownerName}</Text>
           </Text>
         )}
 
         <Text style={styles.metaRow}>
-          <Text style={styles.metaLabel}>Material: </Text>
-          <Text style={styles.metaValue}>{item?.material === 'fragil' ? 'Frágil' : 'Fuerte / Resistente'}</Text>
+          <Text style={[styles.metaLabel, { color: colors.textMuted }]}>Material: </Text>
+          <Text style={[styles.metaValue, { color: colors.textMain }]}>{item?.material === 'fragil' ? 'Frágil' : 'Fuerte / Resistente'}</Text>
         </Text>
 
-        <Text style={styles.descLabel}>Descripción:</Text>
-        <Text style={styles.descValue} numberOfLines={2}>
+        <Text style={[styles.descLabel, { color: colors.textMuted }]}>Descripción:</Text>
+        <Text style={[styles.descValue, { color: colors.textSecondary }]} numberOfLines={2}>
           {item?.description || 'Sin descripción adicional'}
         </Text>
 
@@ -214,8 +212,23 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
   };
 
   return (
-    <View style={styles.container}>
-      <Header title="Mi Bodega" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Header title={isAdmin ? "Bodega Central" : "Mi Bodega"} />
+
+      {isAdmin && (
+        <View style={[
+          styles.adminBanner,
+          isDarkMode && { backgroundColor: '#131A2A', borderColor: '#1E293B' }
+        ]}>
+          <Ionicons name="shield-checkmark" size={20} color={isDarkMode ? '#60A5FA' : '#1D4ED8'} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.adminBannerTitle, { color: colors.textMain }]}>Control General de Bodega Central</Text>
+            <Text style={[styles.adminBannerSub, { color: colors.textSecondary }]}>
+              Supervisión de mercadería en custodia y autorización de ingresos solicitados por clientes.
+            </Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.content}>
         {/* Campo Buscar */}
@@ -244,10 +257,17 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
           </View>
         )}
 
-        {/* Total de productos */}
-        <Text style={styles.totalProductsText}>
-          Total de productos: {filtered.length}
-        </Text>
+        {/* Indicador de productos en bodega y retirados */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Text style={styles.totalProductsText}>
+            En resguardo: {activeItemsCount}
+          </Text>
+          {retiredItemsCount > 0 && (
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B' }}>
+              ({retiredItemsCount} retirados por envío)
+            </Text>
+          )}
+        </View>
 
         {/* Lista de productos en bodega */}
         <FlatList
@@ -259,19 +279,23 @@ export const WarehouseScreen: React.FC<MainTabCompositeScreenProps<'BodegaTab'>>
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="cube-outline" size={44} color="#94A3B8" />
-              <Text style={styles.emptyText}>No tienes artículos registrados en bodega</Text>
+              <Text style={styles.emptyText}>
+                {isAdmin ? "No hay artículos registrados en bodega central" : "No tienes artículos registrados en bodega"}
+              </Text>
             </View>
           }
         />
 
-        {/* Botón inferior: [ Solicitar almacenaje ] */}
-        <TouchableOpacity 
-          style={styles.requestButton}
-          onPress={() => navigation.navigate('SolicitudAlmacenaje')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.requestButtonText}>Solicitar almacenaje</Text>
-        </TouchableOpacity>
+        {/* Botón inferior: [ Solicitar almacenaje ] (Solo disponible para clientes) */}
+        {!isAdmin && (
+          <TouchableOpacity 
+            style={styles.requestButton}
+            onPress={() => navigation.navigate('SolicitudAlmacenaje')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.requestButtonText}>Solicitar almacenaje</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Modal de Confirmación para Admin */}
@@ -311,6 +335,30 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     paddingBottom: 24,
+  },
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  adminBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    marginBottom: 2,
+  },
+  adminBannerSub: {
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 15,
   },
   searchBox: {
     marginBottom: 12,

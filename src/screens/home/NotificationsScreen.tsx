@@ -1,14 +1,3 @@
-/**
- * NotificationsScreen.tsx - Pantalla 5 Notificaciones (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 5 del boceto Excalidraw con:
- * - Header: "Notificaciones" con acciones [ ! ] y [ -> ]
- * - Campo de búsqueda: "Buscar"
- * - Lista de tarjetas con:
- *   - Fila superior: Fecha | Hora | Estado (Activo / En ruta / Leído)
- *   - Cuerpo del mensaje: Texto informativo
- */
 
 import React, { useState, useMemo } from 'react';
 import { 
@@ -113,7 +102,7 @@ const getDisplayDateTime = (item: NotificationItem): { dateLabel: string; timeLa
 };
 
 export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'>> = ({ navigation }) => {
-  const { notifications, markNotificationRead, markAllNotificationsAsRead, refreshData, isRefreshing, shipments, user, users } = useApp();
+  const { notifications, markNotificationRead, markAllNotificationsAsRead, refreshData, isRefreshing, shipments, user, users, isDarkMode, colors } = useApp();
   const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState<string>('');
 
@@ -254,16 +243,23 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
 
     return (
       <TouchableOpacity 
-        style={[styles.notifCard, !item.is_read && styles.unreadCard]}
+        style={[
+          styles.notifCard, 
+          {
+            backgroundColor: colors.surfaceCard,
+            borderColor: colors.surfaceCardBorder,
+          },
+          !item.is_read && (isDarkMode ? { backgroundColor: '#182234', borderColor: '#23334D' } : styles.unreadCard)
+        ]}
         onPress={() => handlePressNotification(item)}
         activeOpacity={0.8}
       >
         {/* Fila superior: Fecha | Hora | Estado */}
         <View style={styles.topInfoRow}>
-          <Text style={styles.dateText}>{dateLabel}</Text>
-          <Text style={styles.timeText}>{timeLabel}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: item.is_read ? '#E2E8F0' : '#FEF3C7' }]}>
-            <Text style={[styles.statusText, { color: item.is_read ? '#475569' : '#B45309' }]}>
+          <Text style={[styles.dateText, { color: colors.textMuted }]}>{dateLabel}</Text>
+          <Text style={[styles.timeText, { color: colors.textMuted }]}>{timeLabel}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: item.is_read ? (isDarkMode ? '#1E293B' : '#E2E8F0') : (isDarkMode ? '#33230A' : '#FEF3C7') }]}>
+            <Text style={[styles.statusText, { color: item.is_read ? (isDarkMode ? '#94A3B8' : '#475569') : (isDarkMode ? '#FBBF24' : '#B45309') }]}>
               {item.is_read ? 'Leído' : 'Activo'}
             </Text>
           </View>
@@ -271,8 +267,8 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
 
         {/* Cuerpo de la tarjeta: Texto Informativo */}
         <View style={styles.contentBox}>
-          <Text style={styles.informativeTitle}>{item.title}</Text>
-          <Text style={styles.informativeText}>{item.message}</Text>
+          <Text style={[styles.informativeTitle, { color: colors.textMain }]}>{item.title}</Text>
+          <Text style={[styles.informativeText, { color: colors.textSecondary }]}>{item.message}</Text>
         </View>
 
         {/* Pie con acceso directo al movimiento */}
@@ -285,7 +281,7 @@ export const NotificationsScreen: React.FC<RootStackScreenProps<'Notificaciones'
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Header title="Notificaciones" showBack={true} />
 
       {/* Campo Buscar */}

@@ -1,14 +1,3 @@
-/**
- * UserProfileViewScreen.tsx - Pantalla 10 Visualización de perfiles, guardado y reporte (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 10 del boceto Excalidraw con:
- * - Header: "Usuarios" con botones [ ! ] y [ -> ]
- * - Círculo grande de "foto"
- * - Campos de texto: Nombre, Alias, Correo
- * - Recuadro de "Descripción:"
- * - Botones inferiores [ Guardar usuario ] y [ Reportar Usuario ]
- */
 
 import React, { useState } from 'react';
 import { 
@@ -84,8 +73,14 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
             lastName={targetUser.last_name} 
             role={targetUser.role} 
             size={100} 
-            style={styles.avatarStyle} 
+            style={[styles.avatarStyle, targetUser.role === 'admin' && styles.avatarStyleAdmin]} 
           />
+          {targetUser.role === 'admin' && (
+            <View style={styles.adminProfileBadge}>
+              <Ionicons name="shield-checkmark" size={14} color="#1D4ED8" />
+              <Text style={styles.adminProfileBadgeText}>Administrador Oficial RerF</Text>
+            </View>
+          )}
         </View>
 
         {/* Datos del usuario */}
@@ -116,6 +111,19 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
           </Text>
         </View>
 
+        {/* Aviso de cuenta institucional para administradores */}
+        {targetUser.role === 'admin' && !isMe && (
+          <View style={styles.adminNoticeContainer}>
+            <Ionicons name="shield-checkmark-outline" size={22} color="#0369A1" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.adminNoticeTitle}>Cuenta de Administración Oficial</Text>
+              <Text style={styles.adminNoticeText}>
+                Esta cuenta gestiona y supervisa la plataforma RerF Logistics. Está excluida de recibir envíos o pedidos personales.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Botones inferiores en fila o aviso si es el titular */}
         {isMe ? (
           <View style={styles.myProfileNoticeContainer}>
@@ -123,6 +131,28 @@ export const UserProfileViewScreen: React.FC<RootStackScreenProps<'VerPerfilUsua
             <Text style={styles.myProfileNoticeText}>
               Este es tu perfil registrado. Puedes editar todos tus datos directamente desde la pestaña Perfil.
             </Text>
+          </View>
+        ) : targetUser.role === 'admin' ? (
+          <View style={styles.bottomButtonsRow}>
+            <TouchableOpacity 
+              style={[styles.actionButton, isFav ? styles.savedButton : styles.saveButton]}
+              onPress={handleToggleFav}
+              activeOpacity={0.8}
+            >
+              <Ionicons name={isFav ? 'star' : 'star-outline'} size={18} color="#0F172A" />
+              <Text style={styles.actionButtonText}>
+                {isFav ? 'Contacto Guardado' : 'Guardar Contacto'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.supportContactBtn]}
+              onPress={() => navigation.navigate('Principal', { screen: 'ContactoTab' } as any)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chatbubbles-outline" size={18} color="#0369A1" />
+              <Text style={[styles.actionButtonText, { color: '#0369A1' }]}>Contactar Soporte</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.bottomButtonsRow}>
@@ -191,6 +221,26 @@ const styles = StyleSheet.create({
     borderColor: RerfColors.primaryYellow,
     ...RerfShadows.cardHover,
   },
+  avatarStyleAdmin: {
+    borderColor: '#3B82F6',
+  },
+  adminProfileBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginTop: 12,
+  },
+  adminProfileBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1D4ED8',
+  },
   infoFieldsContainer: {
     alignItems: 'center',
     marginBottom: 24,
@@ -211,7 +261,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     backgroundColor: RerfColors.surfaceCard,
-    marginBottom: 32,
+    marginBottom: 24,
     ...RerfShadows.card,
   },
   descTitle: {
@@ -224,6 +274,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: RerfColors.textSecondary,
     lineHeight: 18,
+  },
+  adminNoticeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 24,
+  },
+  adminNoticeTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0369A1',
+    marginBottom: 2,
+  },
+  adminNoticeText: {
+    fontSize: 12,
+    color: '#0284C7',
+    lineHeight: 16,
   },
   bottomButtonsRow: {
     flexDirection: 'row',
@@ -254,6 +326,10 @@ const styles = StyleSheet.create({
   reportButton: {
     borderColor: '#FECACA',
     backgroundColor: RerfColors.errorRedLight,
+  },
+  supportContactBtn: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
   },
   actionButtonText: {
     fontSize: 12,

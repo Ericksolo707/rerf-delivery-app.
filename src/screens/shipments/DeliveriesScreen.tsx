@@ -1,15 +1,5 @@
-/**
- * DeliveriesScreen.tsx - Pantalla 7 Apartado de Entregas (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 7 del boceto Excalidraw:
- * - Header: "Entregas" con botones [ ! ] y [ -> ]
- * - Lista corrida de tarjetas de entregas con división izquierda/derecha:
- *   - Izquierda: "Para: [usuario]", "Id entrega: [código]", "Nombre producto", "Estado: Recoger/Bodega/Ruta/Entregado".
- *   - Derecha: Botones cuadrados estilizados [ L ] (Localizar GPS) y [ R ] (Rastrear / Detalle de Paquete).
- */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -27,14 +17,14 @@ import { RerfColors, RerfShadows } from '../../constants/theme';
 import { sortShipmentsDesc } from './OrdersScreen';
 
 export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ navigation }) => {
-  const { shipments, user, users, refreshData, isRefreshing } = useApp();
-  const [adminScope, setAdminScope] = useState<'mis_entregas' | 'todas'>('mis_entregas');
+  const { shipments, user, users, refreshData, isRefreshing, isDarkMode, colors } = useApp();
+  const isAdmin = user?.role === 'admin';
 
-  // Para un usuario cliente, Entregas representa los paquetes dirigidos hacia él (donde es destinatario).
-  // Para el Piloto representa todas las entregas operativas, y el Administrador puede alternar.
+  // Para el Administrador y Piloto: Todas las entregas operativas del sistema.
+  // Para el Cliente: Únicamente los paquetes dirigidos hacia él (donde es destinatario).
   const deliveries = React.useMemo(() => {
     if (!user) return [];
-    if (user.role === 'piloto' || (user.role === 'admin' && adminScope === 'todas')) {
+    if (isAdmin || user.role === 'piloto') {
       return shipments;
     }
 
@@ -59,13 +49,13 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
 
       return false;
     });
-  }, [shipments, user, adminScope]);
+  }, [shipments, user, isAdmin]);
 
   const sortedDeliveries = React.useMemo(() => {
     return sortShipmentsDesc(deliveries);
   }, [deliveries]);
 
-  // Mapeo amigable de estado según el boceto Excalidraw (Recoger / Bodega / Ruta / Entregado)
+  // Mapeo amigable de estado  (Recoger / Bodega / Ruta / Entregado)
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'aprobado':
@@ -93,11 +83,20 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
       ? `${senderUser.first_name} ${senderUser.last_name}`.trim() 
       : (item.sender_id ? 'Remitente' : 'RerF Logistics');
 
-    const isRecipientView = user?.role !== 'admin' && user?.role !== 'piloto';
+    const metaLabel = isAdmin
+      ? `De: ${senderName} • Para: ${item.recipient_name || 'Destinatario'}`
+      : `De: ${senderName}`;
     const isCancelled = item.status === 'cancelado';
 
     return (
-      <View style={[styles.card, isCancelled && styles.cancelledCard]}>
+      <View style={[
+        styles.card, 
+        {
+          backgroundColor: colors.surfaceCard,
+          borderColor: colors.surfaceCardBorder,
+        },
+        isCancelled && (isDarkMode ? { backgroundColor: '#201314', borderColor: '#4C1D1D' } : styles.cancelledCard)
+      ]}>
         {/* Lado izquierdo con información estructurada del boceto */}
         <TouchableOpacity 
           style={styles.infoCol}
@@ -105,8 +104,8 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
           activeOpacity={0.7}
         >
           <View style={styles.headerMetaRow}>
-            <Text style={styles.recipientMetaText} numberOfLines={1}>
-              {isRecipientView ? `De: ${senderName}` : `Para: ${item.recipient_name || 'Destinatario'}`}
+            <Text style={[styles.recipientMetaText, { color: colors.textSecondary }]} numberOfLines={1}>
+              {metaLabel}
             </Text>
             <Text style={styles.idMetaText}>
               Id entrega: {item.tracking_number}
@@ -114,8 +113,8 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
           </View>
 
           <View style={styles.productBlock}>
-            <Text style={styles.fieldLabel}>Nombre producto:</Text>
-            <Text style={styles.productNameText} numberOfLines={2}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Nombre producto:</Text>
+            <Text style={[styles.productNameText, { color: colors.textMain }]} numberOfLines={2}>
               {item.description || 'Paquete de entrega estándar'}
             </Text>
           </View>
@@ -124,7 +123,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
             <View style={{ marginTop: 2, marginBottom: 4 }}>
               <Text style={[styles.fieldLabel, { color: RerfColors.errorRed }]}>
                 Motivo:{' '}
-                <Text style={{ fontWeight: '700', color: '#7F1D1D' }}>
+                <Text style={{ fontWeight: '700', color: isDarkMode ? '#FCA5A5' : '#7F1D1D' }}>
                   {item.cancellation_reason || 'Cancelado por el usuario'}
                 </Text>
               </Text>
@@ -132,7 +131,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
           )}
 
           <View style={styles.statusRow}>
-            <Text style={styles.fieldLabel}>Estado: </Text>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Estado: </Text>
             <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
               <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>
                 {statusInfo.label}
@@ -141,7 +140,7 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
           </View>
         </TouchableOpacity>
 
-        {/* Lado derecho con botones de acción Excalidraw */}
+        {/* Lado derecho con botones de acción  */}
         <View style={styles.actionsCol}>
           {isCancelled ? (
             <TouchableOpacity 
@@ -156,20 +155,26 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
             <>
               {/* Botón L (Localizar en GPS) */}
               <TouchableOpacity 
-                style={styles.squareActionButton}
+                style={[
+                  styles.squareActionButton,
+                  isDarkMode && { backgroundColor: '#261F0B', borderColor: '#D97706' }
+                ]}
                 onPress={() => navigation.navigate('TrackingGPS', { shipmentId: item.tracking_number || item.id })}
                 activeOpacity={0.7}
               >
-                <Text style={styles.actionLetter}>L</Text>
+                <Text style={[styles.actionLetter, isDarkMode && { color: '#FBBF24' }]}>L</Text>
               </TouchableOpacity>
 
               {/* Botón R (Rastrear / Detalle de Paquete) */}
               <TouchableOpacity 
-                style={styles.squareActionButton}
+                style={[
+                  styles.squareActionButton,
+                  isDarkMode && { backgroundColor: '#261F0B', borderColor: '#D97706' }
+                ]}
                 onPress={() => navigation.navigate('DetallePaquete', { shipmentId: item.id })}
                 activeOpacity={0.7}
               >
-                <Text style={styles.actionLetter}>R</Text>
+                <Text style={[styles.actionLetter, isDarkMode && { color: '#FBBF24' }]}>R</Text>
               </TouchableOpacity>
             </>
           )}
@@ -179,29 +184,21 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
   };
 
   return (
-    <View style={styles.container}>
-      <Header title="Entregas" showBack={true} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Header title={isAdmin ? "Supervisión de Entregas" : "Entregas"} showBack={true} />
 
-      {user?.role === 'admin' && (
-        <View style={styles.adminFilterRow}>
-          <TouchableOpacity
-            style={[styles.adminFilterBtn, adminScope === 'mis_entregas' && styles.adminFilterBtnActive]}
-            onPress={() => setAdminScope('mis_entregas')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.adminFilterText, adminScope === 'mis_entregas' && styles.adminFilterTextActive]}>
-              Mis Entregas
+      {isAdmin && (
+        <View style={[
+          styles.adminBanner,
+          isDarkMode && { backgroundColor: '#131A2A', borderColor: '#1E293B' }
+        ]}>
+          <Ionicons name="shield-checkmark" size={22} color={isDarkMode ? '#60A5FA' : '#1D4ED8'} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.adminBannerTitle, { color: colors.textMain }]}>Monitoreo General de Entregas y Flota</Text>
+            <Text style={[styles.adminBannerSub, { color: colors.textSecondary }]}>
+              Supervisión de todas las entregas asignadas y en tránsito hacia clientes a nivel nacional.
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.adminFilterBtn, adminScope === 'todas' && styles.adminFilterBtnActive]}
-            onPress={() => setAdminScope('todas')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.adminFilterText, adminScope === 'todas' && styles.adminFilterTextActive]}>
-              Todas las Entregas ({shipments.length})
-            </Text>
-          </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -221,10 +218,14 @@ export const DeliveriesScreen: React.FC<RootStackScreenProps<'Entregas'>> = ({ n
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="cube-outline" size={54} color="#94A3B8" />
-            <Text style={styles.emptyTitle}>No tienes entregas en camino</Text>
-            <Text style={styles.emptySub}>
-              Cuando otro usuario te envíe un paquete a tu nombre o dirección, aparecerá aquí automáticamente para que puedas seguir al repartidor en el mapa GPS en tiempo real.
+            <Ionicons name="cube-outline" size={54} color={colors.textMuted} />
+            <Text style={[styles.emptyTitle, { color: colors.textMain }]}>
+              {isAdmin ? "No hay entregas registradas en el sistema" : "No tienes entregas en camino"}
+            </Text>
+            <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
+              {isAdmin 
+                ? "Cuando se autoricen nuevos envíos y se asignen a los pilotos, aparecerán aquí para supervisar la flota y su localización GPS."
+                : "Cuando otro usuario te envíe un paquete a tu nombre o dirección, aparecerá aquí automáticamente para que puedas seguir al repartidor en el mapa GPS en tiempo real."}
             </Text>
           </View>
         }
@@ -358,34 +359,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: RerfColors.primaryYellowText,
   },
-  adminFilterRow: {
+  adminBanner: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 6,
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  adminFilterBtn: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
   },
-  adminFilterBtnActive: {
-    backgroundColor: RerfColors.primaryYellow,
+  adminBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    marginBottom: 2,
   },
-  adminFilterText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  adminFilterTextActive: {
-    color: RerfColors.primaryYellowText,
+  adminBannerSub: {
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 15,
   },
   cancelledCard: {
     borderColor: '#FECACA',

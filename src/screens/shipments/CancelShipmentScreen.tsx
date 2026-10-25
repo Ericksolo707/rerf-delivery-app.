@@ -1,15 +1,3 @@
-/**
- * CancelShipmentScreen.tsx - Pantalla 17 y 18 Cancelación de Envío (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 17 y 18 del boceto Excalidraw con:
- * - Header: "Cancelar Envío" con botones [ ! ] y [ -> ]
- * - Campo: "Envío a cancelar: [ID / Guía]"
- * - Campo: "Motivo de cancelación:"
- * - Botones: [ Regresar ]  [ Cancelar ]
- * - Botón inferior: [ Soporte técnico ]
- * - Modales Pantalla 18: Confirmación "¿Desea cancelar el pedido/paquete?" y "Tu envío fue cancelado con éxito"
- */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 

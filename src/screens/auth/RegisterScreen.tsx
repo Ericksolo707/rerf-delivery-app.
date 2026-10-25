@@ -1,18 +1,3 @@
-/**
- *  -------------- PANTALLA PARA EL REGISTRO DEL USUARIO --------------
- *
- * RegisterScreen.tsx - Registro de Nuevos Usuarios (Alineada a Boceto Excalidraw Pantalla 2)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 2 del boceto Excalidraw con:
- * - Logo rómbico central con "LOGO" y texto "RERF APP"
- * - Campo "Nombre:" con subtítulo "Al guardar no es posible cambiarlo"
- * - Campo "Confirmar:" (confirmación de usuario/nombre)
- * - Campo "Contraseña:" con subtítulo "Para una contraseña segura debe contener como mínimo un número y 8 caracteres como mínimo"
- * - Campo "Confirmar:" con subtítulo "Confirmar los caracteres de nuevo"
- * - Botones inferiores [ Salir ] y [ Guardar ]
- * Conexión completa y segura a Supabase Auth.
- */
 
 import React, { useState, useRef, useEffect } from "react";
 import {
@@ -158,7 +143,7 @@ export const RegisterScreen: React.FC<RootStackScreenProps<"Register">> = ({
           <Text style={styles.appTitle}>RERF APP</Text>
         </View>
 
-        {/* Formulario Estilo Excalidraw Pantalla 2 */}
+        {/* Formulario  Pantalla 2 */}
         <View style={styles.formContainer}>
           {error ? (
             <View style={styles.errorBanner}>

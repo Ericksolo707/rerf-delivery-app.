@@ -1,14 +1,8 @@
-/**
- * RootNavigator.tsx - Navegador Principal de la Aplicación
- * Programación II - UMG
- *
- * Responsabilidad: Definir la pila de navegación de todas las pantallas,
- * aplicando tipado estricto con RootStackParamList.
- */
 
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, DefaultTheme, DarkTheme } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
 import { useApp } from "../context/AppContext";
 import { RootStackParamList } from "../types/navigation";
 
@@ -47,18 +41,42 @@ import { SupportChatScreen } from "../screens/support/SupportChatScreen";
 import { AiChatScreen } from "../screens/support/AiChatScreen";
 import { InvoicesScreen } from "../screens/invoices/InvoicesScreen";
 
-// Pantallas de Notificaciones y Menú
+// Pantalla de Notificaciones
 import { NotificationsScreen } from "../screens/home/NotificationsScreen";
-import { MenuScreen } from "../screens/home/MenuScreen";
 
 // Instanciación tipada del Stack Navigator
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator: React.FC = () => {
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, isDarkMode, colors } = useApp();
+
+  const navTheme = isDarkMode
+    ? {
+        ...DarkTheme,
+        colors: {
+          ...DarkTheme.colors,
+          background: colors.background,
+          card: colors.surfaceCard,
+          text: colors.textMain,
+          border: colors.surfaceCardBorder,
+          primary: colors.primaryYellow,
+        },
+      }
+    : {
+        ...DefaultTheme,
+        colors: {
+          ...DefaultTheme.colors,
+          background: colors.background,
+          card: colors.surfaceCard,
+          text: colors.textMain,
+          border: colors.surfaceCardBorder,
+          primary: colors.primaryYellow,
+        },
+      };
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Stack.Navigator
         screenOptions={{ headerShown: false, animation: "slide_from_right" }}
       >
@@ -134,12 +152,11 @@ export const RootNavigator: React.FC = () => {
             <Stack.Screen name="ChatIA" component={AiChatScreen} />
             <Stack.Screen name="Facturas" component={InvoicesScreen} />
 
-            {/* Menús y Notificaciones */}
+            {/* Notificaciones */}
             <Stack.Screen
               name="Notificaciones"
               component={NotificationsScreen}
             />
-            <Stack.Screen name="Menu" component={MenuScreen} />
           </>
         )}
       </Stack.Navigator>

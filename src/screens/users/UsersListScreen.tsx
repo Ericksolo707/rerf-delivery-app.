@@ -1,12 +1,3 @@
-/**
- * UsersListScreen.tsx - Pantalla 11 Listado de Usuarios (Boceto Excalidraw)
- * Programación II - UMG / RerF Logistics
- *
- * Responsabilidad: Pantalla 11 del boceto Excalidraw con:
- * - Header: "Usuarios" con botones [ ! ] y [ -> ]
- * - Fila de título: "Listado de usuarios" y botón de estrella [ ⭐ ]
- * - Cuadrícula de 2 columnas con tarjetas de usuario que contienen [ foto ] y nombre de usuario.
- */
 
 import React, { useState } from 'react';
 import { 
@@ -39,22 +30,33 @@ export const UsersListScreen: React.FC<RootStackScreenProps<'ListadoUsuarios'>> 
     ? otherUsers.filter(u => u.is_favorite) 
     : otherUsers;
 
-  const renderUserCard = ({ item }: { item: UserProfile }) => (
-    <TouchableOpacity
-      style={styles.gridCard}
-      onPress={() => navigation.navigate('VerPerfilUsuario', { user: item })}
-      activeOpacity={0.8}
-    >
-      <View style={styles.fotoCircle}>
-        <Text style={styles.fotoText}>foto</Text>
-      </View>
-      <Text style={styles.userNameText} numberOfLines={1}>
-        {item.alias 
-          ? (item.alias.startsWith('@') ? item.alias : `@${item.alias}`) 
-          : (item.username || `${item.first_name.toLowerCase()}${item.last_name.toLowerCase()}`)}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderUserCard = ({ item }: { item: UserProfile }) => {
+    const isAdmin = item.role === 'admin';
+    return (
+      <TouchableOpacity
+        style={[styles.gridCard, isAdmin && styles.gridCardAdmin]}
+        onPress={() => navigation.navigate('VerPerfilUsuario', { user: item })}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.fotoCircle, isAdmin && styles.fotoCircleAdmin]}>
+          <Text style={[styles.fotoText, isAdmin && styles.fotoTextAdmin]}>
+            {isAdmin ? 'admin' : 'foto'}
+          </Text>
+        </View>
+        <Text style={styles.userNameText} numberOfLines={1}>
+          {item.alias 
+            ? (item.alias.startsWith('@') ? item.alias : `@${item.alias}`) 
+            : (item.username || `${item.first_name.toLowerCase()}${item.last_name.toLowerCase()}`)}
+        </Text>
+        {isAdmin && (
+          <View style={styles.adminBadge}>
+            <Ionicons name="shield-checkmark" size={10} color="#1D4ED8" />
+            <Text style={styles.adminBadgeText}>Administrador</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -77,7 +79,7 @@ export const UsersListScreen: React.FC<RootStackScreenProps<'ListadoUsuarios'>> 
           </TouchableOpacity>
         </View>
 
-        {/* Cuadrícula de 2 Columnas de Usuarios (Excalidraw Pantalla 11) */}
+        {/* Cuadrícula de 2 Columnas de Usuarios  */}
         <FlatList
           data={displayedUsers}
           keyExtractor={item => item.id}
@@ -152,6 +154,10 @@ const styles = StyleSheet.create({
     backgroundColor: RerfColors.surfaceCard,
     ...RerfShadows.card,
   },
+  gridCardAdmin: {
+    borderColor: '#BFDBFE',
+    backgroundColor: '#FAFCFF',
+  },
   fotoCircle: {
     width: 64,
     height: 64,
@@ -163,10 +169,35 @@ const styles = StyleSheet.create({
     backgroundColor: RerfColors.logisticsBlueLight,
     marginBottom: 10,
   },
+  fotoCircleAdmin: {
+    borderColor: '#93C5FD',
+    backgroundColor: '#DBEAFE',
+  },
   fotoText: {
     fontSize: 12,
     fontWeight: '700',
     color: RerfColors.logisticsBlue,
+  },
+  fotoTextAdmin: {
+    color: '#1D4ED8',
+    fontWeight: '800',
+  },
+  adminBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 6,
+  },
+  adminBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
   userNameText: {
     fontSize: 13,
